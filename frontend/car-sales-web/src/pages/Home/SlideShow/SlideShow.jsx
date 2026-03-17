@@ -1,0 +1,69 @@
+import React, { useState, useEffect } from "react";
+import "./SlideShow.css";
+
+function SlideShow() {
+  const [index, setIndex] = useState(0);
+
+  const slides = [
+    {
+      avif: "../images/mercedes/MaybachS680/S680-img3",
+      alt: "Mercedes Maybach S680",
+    },
+    {
+      avif: "../images/porsche/cayenne/cayenne-img2",
+      alt: "Porsche Cayenne",
+    },
+    {
+      avif: "../images/test",
+      alt: "Featured car",
+    },
+  ];
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setIndex((prevIndex) => (prevIndex + 1) % slides.length);
+    }, 3000);
+
+    return () => clearInterval(timer); // Dọn dẹp bộ nhớ khi component unmount
+  }, [slides.length]);
+
+  return (
+    <section className="hero-container">
+      {/* Khối Slideshow Ảnh nền */}
+      <div className="slideshow">
+        {slides.map((slide, i) => (
+          <picture key={i}>
+            <source
+              type="image/avif"
+              srcSet={`${slide.avif}-640.avif 640w, ${slide.avif}-1024.avif 1024w, ${slide.avif}-1600.avif 1600w`}
+              sizes="(max-width: 768px) 100vw, 1200px"
+            />
+            <img
+              src={`${slide.avif}-1024.avif`}
+              className={`slide ${i === index ? "active" : ""}`}
+              alt={slide.alt}
+              loading={i === 0 ? "eager" : "lazy"}
+            />
+          </picture>
+        ))}
+      </div>
+
+      {/* Khối Nội dung (Nằm đè lên Slideshow) */}
+      <div className="hero-overlay">
+        <div className="hero-content">
+          <h1>UNLEASH THE PERFORMANCE WITHIN</h1>
+          <p>
+            Every detail is a testament to the combination of technology, art
+            and the desire to conquer.
+          </p>
+          <div className="hero-buttons">
+            <a href="/about" className="btn-about">About Us</a>
+            <a href="/explore" className="btn-explore">Explore</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export default SlideShow;
