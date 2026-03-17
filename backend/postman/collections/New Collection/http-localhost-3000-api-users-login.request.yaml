@@ -1,0 +1,14 @@
+$kind: http-request
+name: http://localhost:3000/api/users/login
+url: http://localhost:3000/api/users/login
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \  \"email\": \"hkbao0365v3@gmail.com\",\r
+
+    \  \"password\": \"admin_hkb_123\"\r
+
+    }"
+order: 1772812483578
