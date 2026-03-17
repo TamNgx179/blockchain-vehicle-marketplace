@@ -1,0 +1,86 @@
+/* Style cho từng thẻ xe */
+.car-card {
+  background: #ffffff;
+  border-radius: 16px;
+  /* Bo góc lớn theo mẫu image_6.png */
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  /* --- THÊM SHADOW ĐỂ CARD RÕ RÀNG HƠN --- */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  /* Tạo viền mặc định trong suốt để khi hover không bị giật khung */
+  border: 2px solid transparent;
+  height: 100%;
+}
+
+/* --- HIỆU ỨNG HOVER ĐẸP --- */
+.car-card:hover {
+  transform: translateY(-5px);
+  /* Nhấc nhẹ thẻ lên */
+  /* Hiệu ứng viền xanh DodgerBlue giống ảnh image_6.png */
+  border-color: #1e90ff;
+  /* Đổ bóng đậm hơn một chút để tạo chiều sâu */
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* Khu vực chứa ảnh xe - Sửa lỗi ảnh bị khuyết và chiều rộng chưa đúng */
+.car-card .thumb-img {
+  width: 100%;
+  /* Đảm bảo ảnh luôn chiếm hết chiều rộng của khung chứa */
+  height: auto;
+  /* Chiều cao tự động để giữ nguyên tỷ lệ ảnh */
+  max-height: 200px;
+  /* Chiều cao tối đa cho ảnh, bạn có thể tăng giảm tùy ý */
+  /* --- QUAN TRỌNG: Giữ nguyên tỉ lệ xe, KHÔNG BỊ CẮT MẤT --- */
+  object-fit: contain;
+  /* Khoảng trống xung quanh ảnh để xe không chạm viền */
+  padding: 0px;
+  background-color: #ffffff;
+}
+
+/* Phần nội dung dưới ảnh */
+.car-card .body {
+  padding: 15px 20px 20px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.car-card .body h3 {
+  font-family: 'Poppins', sans-serif;
+  font-size: 16px;
+  /* Kích thước chữ tiêu đề */
+  font-weight: 700;
+  color: #111;
+  margin: 0;
+}
+
+/* Link Shop now */
+.car-card .cta {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  transition: color 0.2s;
+}
+
+.car-card .cta::after {
+  content: ' →';
+  /* Thêm mũi tên phía sau */
+  margin-left: 5px;
+  transition: transform 0.2s;
+}
+
+.car-card .cta:hover {
+  color: #1e90ff;
+  /* Đổi sang màu xanh khi hover shop now */
+}
+
+.car-card .cta:hover::after {
+  transform: translateX(4px);
+  /* Mũi tên trượt sang phải */
+}
