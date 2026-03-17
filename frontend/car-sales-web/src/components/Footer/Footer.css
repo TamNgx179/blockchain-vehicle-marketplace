@@ -1,0 +1,134 @@
+.footer {
+  background-color: #e9ecef;
+  /* Màu nền xám nhạt như trong ảnh */
+  padding: 20px 0 10px 0;
+  font-family: 'Poppins', sans-serif;
+  color: #333;
+}
+
+.footer-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 0 5%;
+  gap: 50px;
+}
+
+/* Logo */
+.footer-avata {
+  flex: 1;
+}
+
+.footer-logo-img {
+  width: 150px;
+  height: auto;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+}
+
+/* Layout chia cột */
+.footer-content {
+  flex: 3;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 40px;
+}
+
+.footer-heading {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 25px;
+  color: #000;
+  position: relative;
+}
+
+/* Lists */
+.footer-links,
+.footer-contact {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.footer-links li {
+  margin-bottom: 12px;
+}
+
+.footer-links li a {
+  text-decoration: none;
+  color: #555;
+  font-size: 15px;
+  transition: all 0.3s ease;
+}
+
+.footer-links li a:hover {
+  color: #ff4d4d;
+  /* Màu accent đỏ */
+  padding-left: 5px;
+}
+
+/* Contact & Icons */
+.footer-contact li {
+  margin-bottom: 15px;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.social-icons {
+  display: flex;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.social-icons img {
+  width: 32px;
+  height: 32px;
+  transition: transform 0.3s ease;
+  cursor: pointer;
+}
+
+.social-icons img:hover {
+  transform: translateY(-5px);
+}
+
+/* Divider & Bottom */
+.footer-divider {
+  border: 0;
+  border-top: 1px solid #ccc;
+  margin: 20px 0 10px 0;
+  width: 90%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.footer-bottom {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: #666;
+}
+
+/* Responsive cho điện thoại */
+@media (max-width: 768px) {
+  .footer-container {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .footer-content {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+
+  .footer-contact li {
+    justify-content: center;
+  }
+
+  .social-icons {
+    justify-content: center;
+  }
+}
