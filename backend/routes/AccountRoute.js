@@ -3,9 +3,10 @@ import authenticateToken from "../middlewares/authMiddleware.js";
 
 import {
   changePassword,
-  getProfile,
-  editProfile,
+  getUser,
+  updateUser,
   deleteUser,
+  getUserById,
   addToWishlist,
   getWishlist,
   removeFromWishlist,
@@ -16,8 +17,15 @@ const router = express.Router();
 
 // Đổi mật khẩu yêu cầu đăng nhập
 router.post("/changePassword", authenticateToken, changePassword);
-router.get('/getProfile', authenticateToken, getProfile);
-router.put('/editProfile', authenticateToken, editProfile);
+
+// Admin / dev: lấy toàn bộ user
+router.get("/all", getUser);
+
+// Lấy thông tin user theo token (me)
+router.get("/", getUserById);
+
+// Update profile theo token (me)
+router.put("/", updateUser);
 
 // Xóa tài khoản chính mình (PHẢI đặt trước /:id)
 router.delete("/me", authenticateToken, (req, res) => {
@@ -26,7 +34,7 @@ router.delete("/me", authenticateToken, (req, res) => {
 });
 
 // Xóa user theo id (admin hoặc tự xóa chính mình)
-router.delete("/:id", authenticateToken, deleteUser);
+router.delete("/:id", deleteUser);
 
 router.post("/logout", logout);
 

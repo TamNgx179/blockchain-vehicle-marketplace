@@ -6,9 +6,7 @@ const productSchema = new mongoose.Schema({
     price: { type: Number, required: true, min: 0 },
     description: { type: String },  //Mô tả chi tiết về sản phẩm
     category: { type: String, required: true },
-    thumbnailImage: { type: String, default: "",required: true },   // ảnh card ngoài
-    heroImage: { type: String, default: "", required: true },        // ảnh lớn trang chi tiết
-    galleryImages: { type: [String], default: [] }, // ảnh photo gallery
+    images: { type: [String], default: [] }, // nhiều ảnh thay vì 1 ảnh
     stock: { type: Number, default: 0, min: 0 },
 
     specifications: {
