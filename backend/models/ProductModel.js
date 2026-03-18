@@ -1,24 +1,58 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
-const productSchema = new mongoose.Schema({
-    name: { type: String, required: true },
-    brand: { type: String, required: true },
-    price: { type: Number, required: true, min: 0 },
-    description: { type: String },  //Mô tả chi tiết về sản phẩm
-    category: { type: String, required: true },
-    images: { type: [String], default: [] }, // nhiều ảnh thay vì 1 ảnh
-    stock: { type: Number, default: 0, min: 0 },
+const productSchema = new mongoose.Schema(
+{
+  name: { type: String, required: true },
+  brand: { type: String, required: true },
+  price: { type: Number, required: true, min: 0 },
+  description: { type: String },
 
-    specifications: {
-        engine: String,
-        horsepower: Number,
-        fuelType: String,
-        transmission: String
+  category: { type: String, required: true },
+
+  thumbnailImage: { type: String, default: "", required: true },
+  heroImage: { type: String, default: "", required: true },
+  galleryImages: { type: [String], default: [] },
+
+  stock: { type: Number, default: 0, min: 0 },
+
+  // ===== SPECS =====
+  specifications: {
+    type: {
+      model: String,
+      engine: String,
+      power: Number,
+      torque: Number,
+
+      gear: Number, // số cấp số
+
+      topSpeed: Number,
+
+      dimensions: {
+        length: Number,
+        width: Number,
+        height: Number,
+      },
+
+      weight: Number,
+      fuelConsumption: Number
     },
+    required: true,
+  },
 
-    averageRating: { type: Number, default: 0, min: 0, max: 5 },
-    reviewCount: { type: Number, default: 0 }
+  safety: {
+    type: [String],
+    default: [],
+  },
 
-}, { timestamps: true });
+  convenience: {
+    type: [String],
+    default: [],
+  },
 
-export default mongoose.model('Product', productSchema);
+  averageRating: { type: Number, default: 0, min: 0, max: 5 },
+  reviewCount: { type: Number, default: 0 },
+},
+{ timestamps: true }
+);
+
+export default mongoose.model("Product", productSchema);

@@ -3,47 +3,64 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import session from "express-session";
+import path from "path";
+import { fileURLToPath } from "url";
 import passport from "./config/passport.js";
 import connectDB from "./config/db.js";
-import Product from "./routes/Product.js";
-import User from "./routes/AuthRoute.js";
-import Account from "./routes/AccountRoute.js";
-import Review from "./routes/ReviewRoute.js";
-import Contact from "./routes/ContactRoute.js";
-import Cart from "./routes/CartRoute.js";
+
+// Import Routes
+import ProductRoutes from "./routes/Product.js";
+import UserRoutes from "./routes/AuthRoute.js";
+import AccountRoutes from "./routes/AccountRoute.js";
+import ReviewRoutes from "./routes/ReviewRoute.js";
+import ContactRoutes from "./routes/ContactRoute.js";
+import CartRoutes from "./routes/CartRoute.js";
+import OrderRoutes from "./routes/OrderRoutes.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 
 // Kết nối Database
 connectDB();
 
-// Middleware
+// Middleware cơ bản
 app.use(cors()); 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Cấu hình express-session
-app.use(
-  session({
-    secret: "your_secret_key", // Chuỗi bí mật để mã hóa session
+// Cấu hình Session
+app.use(session({
+    secret: process.env.SESSION_SECRET || "your_secret_key",
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false, maxAge: 24 * 60 * 60 * 1000 }, // 24h
-  })
-);
+    cookie: { secure: false, maxAge: 24 * 60 * 60 * 1000 },
+}));
 
 // Khởi tạo Passport
 app.use(passport.initialize());
 app.use(passport.session()); 
 
-// Routes
-app.use("/api/products", Product);
-app.use("/api/users", User);
-app.use("/api/accounts", Account);
-app.use("/api/reviews", Review);
-app.use("/api/contacts", Contact);
-app.use("/api/cart", Cart);
+// Phục vụ file tĩnh (Xem ảnh)
+app.use('/images', express.static(path.join(__dirname, 'public/images')));
+
+// --- Routes ---
+app.use("/api/products", ProductRoutes);
+app.use("/api/users", UserRoutes);
+app.use("/api/accounts", AccountRoutes);
+app.use("/api/reviews", ReviewRoutes);
+app.use("/api/contacts", ContactRoutes);
+app.use("/api/cart", CartRoutes);
+app.use("/api/orders", OrderRoutes);
+
+// Middleware xử lý lỗi tập trung
+app.use((err, req, res, next) => {
+  res.status(err.status || 500).json({
+    message: err.message || "Lỗi Server nội bộ",
+  });
+});
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () =>
