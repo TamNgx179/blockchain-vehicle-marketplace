@@ -15,6 +15,7 @@ const cartItemSchema = new mongoose.Schema({
   price: {
     type: Number,
     required: true,
+    min: 0,
   },
 });
 
@@ -25,20 +26,35 @@ const cartSchema = new mongoose.Schema(
       ref: "User",
       required: true,
       unique: true,
+      index: true,
     },
-    items: [cartItemSchema],
+    items: {
+      type: [cartItemSchema],
+      default: [],
+    },
     totalPrice: {
       type: Number,
       default: 0,
+      min: 0,
+    },
+    totalItems: {
+      type: Number,
+      default: 0,
+      min: 0,
     },
   },
   { timestamps: true }
 );
 
-// Tự động tính totalPrice trước khi save
-cartSchema.pre("save", async function () {
+// backup hook
+cartSchema.pre("save", function () {
   this.totalPrice = this.items.reduce(
     (sum, item) => sum + item.price * item.quantity,
+    0
+  );
+
+  this.totalItems = this.items.reduce(
+    (sum, item) => sum + item.quantity,
     0
   );
 });
