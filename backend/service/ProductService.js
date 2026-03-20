@@ -74,11 +74,23 @@ export const createProductService = async ({ body, files }) => {
     throw new Error("Thiếu hình ảnh bắt buộc");
   }
 
-  const thumbnailImage = files.thumbnailImage[0].filename;
-  const heroImage = files.heroImage[0].filename;
+  const thumbnailImage = files.thumbnailImage[0].path
+    .split("public")[1]
+    .replace(/\\/g, "/")
+    .replace(/^\/+/, "");
+
+  const heroImage = files.heroImage[0].path
+    .split("public")[1]
+    .replace(/\\/g, "/")
+    .replace(/^\/+/, "");
 
   const galleryImages = files?.galleryImages
-    ? files.galleryImages.map((f) => f.filename)
+    ? files.galleryImages.map((f) =>
+        f.path
+          .split("public")[1]
+          .replace(/\\/g, "/")
+          .replace(/^\/+/, "")
+      )
     : [];
 
   const product = new Product({
@@ -129,15 +141,26 @@ export const updateProductService = async (id, { body, files }) => {
 
   // ===== FILE UPDATE =====
   if (files?.thumbnailImage?.[0]) {
-    product.thumbnailImage = files.thumbnailImage[0].filename;
+    product.thumbnailImage = files.thumbnailImage[0].path
+      .split("public")[1]
+      .replace(/\\/g, "/")
+      .replace(/^\/+/, "");
   }
 
   if (files?.heroImage?.[0]) {
-    product.heroImage = files.heroImage[0].filename;
+    product.heroImage = files.heroImage[0].path
+      .split("public")[1]
+      .replace(/\\/g, "/")
+      .replace(/^\/+/, "");
   }
 
   if (files?.galleryImages) {
-    product.galleryImages = files.galleryImages.map((f) => f.filename);
+    product.galleryImages = files.galleryImages.map((f) =>
+      f.path
+        .split("public")[1]
+        .replace(/\\/g, "/")
+        .replace(/^\/+/, "")
+    );
   }
 
   return product.save();
