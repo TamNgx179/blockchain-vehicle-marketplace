@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { ethers } from "ethers";
 
 const orderItemSchema = new mongoose.Schema({
   productId: {
@@ -47,9 +48,34 @@ const orderSchema = new mongoose.Schema(
       min: 0,
     },
 
+    depositAmountWei: {
+      type: String,
+      default: "",
+    },
+
+    blockchainOrderId: {
+      type: Number,
+      required: true,
+      unique: true,
+      index: true,
+    },
+
+    buyerWallet: {
+      type: String,
+      default: "",
+      validate: {
+        validator: (v) => !v || ethers.isAddress(v),
+        message: "Invalid buyer wallet address",
+      },
+    },
+
     sellerWallet: {
       type: String,
       required: true,
+      validate: {
+        validator: (v) => ethers.isAddress(v),
+        message: "Invalid seller wallet address",
+      },
     },
 
     paymentType: {
@@ -72,10 +98,46 @@ const orderSchema = new mongoose.Schema(
     depositTxHash: {
       type: String,
       default: "",
+      index: true,
+    },
+
+    fullTxHash: {
+      type: String,
+      default: "",
+      index: true,
     },
 
     depositPaidAt: {
       type: Date,
+    },
+
+    stockReduced: {
+      type: Boolean,
+      default: false,
+    },
+
+    deliveryMethod: {
+      type: String,
+      enum: ["pickup", "delivery"],
+      required: true,
+    },
+
+    pickupInfo: {
+      name: String,
+      phone: String,
+      pickupDate: Date,
+    },
+
+    shippingAddress: {
+      name: String,
+      phone: String,
+      address: String,
+    },
+
+    expiresAt: {
+      type: Date,
+      required: true,
+      index: true,
     },
 
     status: {
