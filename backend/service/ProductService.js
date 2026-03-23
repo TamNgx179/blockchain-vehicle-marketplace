@@ -1,8 +1,11 @@
 import Product from "../models/ProductModel.js";
 
 /*
-  HELPER
+  =========================
+  HELPER FUNCTIONS
+  =========================
 */
+
 const parseJSON = (field, name) => {
   try {
     return typeof field === "string" ? JSON.parse(field) : field;
@@ -19,24 +22,163 @@ const toNumber = (value, fieldName) => {
   return num;
 };
 
-/*
-  GET ALL
-*/
-export const getAllProductsService = async () => {
-  return Product.find().sort({ createdAt: -1 });
+const normalizeImagePath = (filePath) => {
+  return filePath
+    .split("public")[1]
+    .replace(/\\/g, "/")
+    .replace(/^\/+/, "");
+};
+
+const validateSpecifications = (specs) => {
+  if (!specs || typeof specs !== "object") {
+    throw new Error("Specifications không hợp lệ");
+  }
+
+  if (!specs.model || !specs.engine) {
+    throw new Error("Specifications thiếu model hoặc engine");
+  }
+
+  if (!specs.powertrainType) {
+    throw new Error("Specifications thiếu powertrainType");
+  }
+
+  if (!["gasoline", "electric"].includes(specs.powertrainType)) {
+    throw new Error('powertrainType chỉ được là "gasoline" hoặc "electric"');
+  }
+
+  if (!specs.fuelConsumption || typeof specs.fuelConsumption !== "object") {
+    throw new Error("Specifications thiếu fuelConsumption");
+  }
+
+  if (
+    specs.fuelConsumption.value === undefined ||
+    specs.fuelConsumption.value === null ||
+    isNaN(Number(specs.fuelConsumption.value))
+  ) {
+    throw new Error("fuelConsumption.value phải là số");
+  }
+
+  specs.fuelConsumption.value = Number(specs.fuelConsumption.value);
+
+  if (specs.power !== undefined) {
+    specs.power = toNumber(specs.power, "Specifications.power");
+  }
+
+  if (specs.torque !== undefined) {
+    specs.torque = toNumber(specs.torque, "Specifications.torque");
+  }
+
+  if (specs.gear !== undefined) {
+    specs.gear = toNumber(specs.gear, "Specifications.gear");
+  }
+
+  if (specs.topSpeed !== undefined) {
+    specs.topSpeed = toNumber(specs.topSpeed, "Specifications.topSpeed");
+  }
+
+  if (specs.weight !== undefined) {
+    specs.weight = toNumber(specs.weight, "Specifications.weight");
+  }
+
+  if (specs.dimensions) {
+    if (specs.dimensions.length !== undefined) {
+      specs.dimensions.length = toNumber(
+        specs.dimensions.length,
+        "Specifications.dimensions.length"
+      );
+    }
+
+    if (specs.dimensions.width !== undefined) {
+      specs.dimensions.width = toNumber(
+        specs.dimensions.width,
+        "Specifications.dimensions.width"
+      );
+    }
+
+    if (specs.dimensions.height !== undefined) {
+      specs.dimensions.height = toNumber(
+        specs.dimensions.height,
+        "Specifications.dimensions.height"
+      );
+    }
+  }
+
+  if (specs.powertrainType === "gasoline") {
+    if (specs.fuelConsumption.unit !== "L/100km") {
+      throw new Error('Xe xăng phải có fuelConsumption.unit là "L/100km"');
+    }
+
+    if (
+      specs.batteryCapacity !== undefined &&
+      specs.batteryCapacity !== null &&
+      (
+        typeof specs.batteryCapacity !== "object" ||
+        specs.batteryCapacity.value !== undefined ||
+        specs.batteryCapacity.unit !== undefined
+      )
+    ) {
+      throw new Error("Xe xăng không được có batteryCapacity");
+    }
+
+    delete specs.batteryCapacity;
+  }
+
+  if (specs.powertrainType === "electric") {
+    if (specs.fuelConsumption.unit !== "kWh/100km") {
+      throw new Error('Xe điện phải có fuelConsumption.unit là "kWh/100km"');
+    }
+
+    if (!specs.batteryCapacity || typeof specs.batteryCapacity !== "object") {
+      throw new Error("Xe điện bắt buộc phải có batteryCapacity");
+    }
+
+    if (
+      specs.batteryCapacity.value === undefined ||
+      specs.batteryCapacity.value === null ||
+      isNaN(Number(specs.batteryCapacity.value))
+    ) {
+      throw new Error("batteryCapacity.value phải là số");
+    }
+
+    specs.batteryCapacity.value = Number(specs.batteryCapacity.value);
+
+    if (
+      !specs.batteryCapacity.unit ||
+      specs.batteryCapacity.unit !== "kWh"
+    ) {
+      specs.batteryCapacity.unit = "kWh";
+    }
+  }
+
+  return specs;
 };
 
 /*
-  GET BY ID
+  =========================
+  GET ALL PRODUCTS
+  =========================
+*/
+export const getAllProductsService = async () => {
+  return await Product.find().sort({ createdAt: -1 });
+};
+
+/*
+  =========================
+  GET PRODUCT BY ID
+  =========================
 */
 export const getProductByIdService = async (id) => {
   const product = await Product.findById(id);
-  if (!product) throw new Error("NOT_FOUND");
+  if (!product) {
+    throw new Error("NOT_FOUND");
+  }
   return product;
 };
 
 /*
-  CREATE
+  =========================
+  CREATE PRODUCT
+  =========================
 */
 export const createProductService = async ({ body, files }) => {
   let {
@@ -48,49 +190,34 @@ export const createProductService = async ({ body, files }) => {
     description,
     specifications,
     safety,
-    convenience
+    convenience,
   } = body;
 
   if (!name || !brand || price === undefined || !category || stock === undefined) {
     throw new Error("Vui lòng điền đầy đủ thông tin sản phẩm");
   }
 
-  // ===== PARSE =====
-  const parsedSpecs = parseJSON(specifications, "Specifications");
-  const parsedSafety = safety ? parseJSON(safety, "Safety") : [];
-  const parsedConvenience = convenience ? parseJSON(convenience, "Convenience") : [];
-
-  // ===== VALIDATE SPEC =====
-  if (!parsedSpecs || !parsedSpecs.model || !parsedSpecs.engine) {
-    throw new Error("Specifications thiếu model hoặc engine");
-  }
-
-  // ===== NUMBER =====
   price = toNumber(price, "Price");
   stock = toNumber(stock, "Stock");
 
-  // ===== FILE CHECK =====
+  const parsedSpecs = validateSpecifications(
+    parseJSON(specifications, "Specifications")
+  );
+
+  const parsedSafety = safety ? parseJSON(safety, "Safety") : [];
+  const parsedConvenience = convenience
+    ? parseJSON(convenience, "Convenience")
+    : [];
+
   if (!files?.thumbnailImage?.[0] || !files?.heroImage?.[0]) {
     throw new Error("Thiếu hình ảnh bắt buộc");
   }
 
-  const thumbnailImage = files.thumbnailImage[0].path
-    .split("public")[1]
-    .replace(/\\/g, "/")
-    .replace(/^\/+/, "");
-
-  const heroImage = files.heroImage[0].path
-    .split("public")[1]
-    .replace(/\\/g, "/")
-    .replace(/^\/+/, "");
+  const thumbnailImage = normalizeImagePath(files.thumbnailImage[0].path);
+  const heroImage = normalizeImagePath(files.heroImage[0].path);
 
   const galleryImages = files?.galleryImages
-    ? files.galleryImages.map((f) =>
-        f.path
-          .split("public")[1]
-          .replace(/\\/g, "/")
-          .replace(/^\/+/, "")
-      )
+    ? files.galleryImages.map((file) => normalizeImagePath(file.path))
     : [];
 
   const product = new Product({
@@ -105,79 +232,89 @@ export const createProductService = async ({ body, files }) => {
     galleryImages,
     specifications: parsedSpecs,
     safety: parsedSafety,
-    convenience: parsedConvenience
+    convenience: parsedConvenience,
   });
 
-  return product.save();
+  return await product.save();
 };
 
 /*
-  UPDATE
+  =========================
+  UPDATE PRODUCT
+  =========================
 */
 export const updateProductService = async (id, { body, files }) => {
   const product = await Product.findById(id);
-  if (!product) throw new Error("NOT_FOUND");
+
+  if (!product) {
+    throw new Error("NOT_FOUND");
+  }
 
   const { specifications, safety, convenience, ...rest } = body;
 
-  // ===== SANITIZE NUMBER =====
-  if (rest.price !== undefined) rest.price = toNumber(rest.price, "Price");
-  if (rest.stock !== undefined) rest.stock = toNumber(rest.stock, "Stock");
+  if (rest.price !== undefined) {
+    rest.price = toNumber(rest.price, "Price");
+  }
+
+  if (rest.stock !== undefined) {
+    rest.stock = toNumber(rest.stock, "Stock");
+  }
 
   Object.assign(product, rest);
 
-  // ===== PARSE JSON =====
-  if (specifications) {
-    product.specifications = parseJSON(specifications, "Specifications");
+  if (specifications !== undefined) {
+    const parsedSpecs = validateSpecifications(
+      parseJSON(specifications, "Specifications")
+    );
+
+    product.specifications = parsedSpecs;
+    product.markModified("specifications");
   }
 
-  if (safety) {
+  if (safety !== undefined) {
     product.safety = parseJSON(safety, "Safety");
   }
 
-  if (convenience) {
+  if (convenience !== undefined) {
     product.convenience = parseJSON(convenience, "Convenience");
   }
 
-  // ===== FILE UPDATE =====
   if (files?.thumbnailImage?.[0]) {
-    product.thumbnailImage = files.thumbnailImage[0].path
-      .split("public")[1]
-      .replace(/\\/g, "/")
-      .replace(/^\/+/, "");
+    product.thumbnailImage = normalizeImagePath(files.thumbnailImage[0].path);
   }
 
   if (files?.heroImage?.[0]) {
-    product.heroImage = files.heroImage[0].path
-      .split("public")[1]
-      .replace(/\\/g, "/")
-      .replace(/^\/+/, "");
+    product.heroImage = normalizeImagePath(files.heroImage[0].path);
   }
 
   if (files?.galleryImages) {
-    product.galleryImages = files.galleryImages.map((f) =>
-      f.path
-        .split("public")[1]
-        .replace(/\\/g, "/")
-        .replace(/^\/+/, "")
+    product.galleryImages = files.galleryImages.map((file) =>
+      normalizeImagePath(file.path)
     );
   }
 
-  return product.save();
+  return await product.save();
 };
 
 /*
-  DELETE
+  =========================
+  DELETE PRODUCT
+  =========================
 */
 export const deleteProductService = async (id) => {
   const product = await Product.findById(id);
-  if (!product) throw new Error("NOT_FOUND");
 
-  return Product.findByIdAndDelete(id);
+  if (!product) {
+    throw new Error("NOT_FOUND");
+  }
+
+  return await Product.findByIdAndDelete(id);
 };
 
 /*
-  FILTER
+  =========================
+  FILTER PRODUCTS
+  =========================
 */
 export const filterProductsService = async (queryParams) => {
   const {
@@ -189,9 +326,10 @@ export const filterProductsService = async (queryParams) => {
     maxPower,
     minGear,
     maxGear,
+    powertrainType,
     safety,
     page = 1,
-    limit = 10
+    limit = 10,
   } = queryParams;
 
   const filter = {};
@@ -202,6 +340,10 @@ export const filterProductsService = async (queryParams) => {
 
   if (category) {
     filter.category = { $regex: category, $options: "i" };
+  }
+
+  if (powertrainType) {
+    filter["specifications.powertrainType"] = powertrainType;
   }
 
   if (minPrice || maxPrice) {
@@ -222,10 +364,9 @@ export const filterProductsService = async (queryParams) => {
     if (maxGear) filter["specifications.gear"].$lte = Number(maxGear);
   }
 
-  // đổi sang $all nếu muốn match đủ
   if (safety) {
     filter.safety = {
-      $in: Array.isArray(safety) ? safety : [safety]
+      $in: Array.isArray(safety) ? safety : [safety],
     };
   }
 
@@ -234,11 +375,8 @@ export const filterProductsService = async (queryParams) => {
   const skip = (currentPage - 1) * perPage;
 
   const [products, total] = await Promise.all([
-    Product.find(filter)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(perPage),
-    Product.countDocuments(filter)
+    Product.find(filter).sort({ createdAt: -1 }).skip(skip).limit(perPage),
+    Product.countDocuments(filter),
   ]);
 
   return {
@@ -247,7 +385,7 @@ export const filterProductsService = async (queryParams) => {
       total,
       page: currentPage,
       limit: perPage,
-      totalPages: Math.ceil(total / perPage)
-    }
+      totalPages: Math.ceil(total / perPage),
+    },
   };
 };
