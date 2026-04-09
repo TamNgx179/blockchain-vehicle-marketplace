@@ -88,7 +88,6 @@
   transition: var(--transition);
 }
 
-.nav_block2 li a:hover::after,
 .nav_block2 li a.active::after {
   width: 100%;
 }

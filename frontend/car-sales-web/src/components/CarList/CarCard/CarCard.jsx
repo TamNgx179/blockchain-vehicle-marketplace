@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import './CarCard.css';
 function CarCard({ car, delay }) {
   return (
@@ -17,12 +18,10 @@ function CarCard({ car, delay }) {
       />
       <div className="body">
         <h3>{car.name}</h3>
-        <a
-          className="cta"
-          href={`car.html?brand=${car.brandId}&id=${car.id}`}
-        >
+        {/* Navigate to the SPA product detail route */}
+        <Link className="cta" to={`/product/${car.id}`}>
           Shop now
-        </a>
+        </Link>
       </div>
     </div>
   );
