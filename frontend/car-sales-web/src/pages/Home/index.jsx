@@ -7,9 +7,10 @@ import Footer from "../../components/Footer/Footer";
 
 import cars from "../../data/cars";
 function Home() {
-  const [type, setType] = useState("EV"); // Mặc định chọn EV
+  // Default category
+  const [type, setType] = useState("EV");
 
-  // Logic lọc xe: Nếu car.type trùng với state type thì giữ lại
+  // Filter cars by selected category
   const filteredCars = cars.filter(car => car.type === type);
 
   return (
@@ -17,7 +18,8 @@ function Home() {
       <Navbar />
       <SlideShow />
       <Filter type={type} setType={setType} />
-      <CarList cars={filteredCars} />
+      {/* Key forces pagination state reset when the filter changes */}
+      <CarList key={type} cars={filteredCars} />
       <Footer />
     </>
   );
