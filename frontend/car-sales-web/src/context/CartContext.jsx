@@ -1,35 +1,43 @@
+// CartContext.jsx
 import { createContext, useState, useContext } from 'react';
-
+// 1. Tạo Context cho giỏ hàng
 const CartContext = createContext();
-
+// 2. Tạo Component Provider để bao bọc ứng dụng và
 export const CartProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState([]);
 
-  // Hàm thêm sản phẩm vào giỏ (có ngăn trùng lặp)
   const addToCart = (car) => {
-    setCartItems((prevItems) => {
-      // 1. Kiểm tra xem xe (car) này đã có trong giỏ hàng chưa dựa vào car.id
-      const isCarInCart = prevItems.some((item) => item.id === car.id);
-
-      if (isCarInCart) {
-        // 2a. Nếu đã tồn tại, trả về mảng cũ mà không thay đổi gì cả
-        // (Bạn có thể thêm thông báo cho người dùng tại đây nếu muốn)
-        console.log(`Xe với ID ${car.id} đã có trong giỏ hàng.`);
-        return prevItems;
-      } else {
-        // 2b. Nếu chưa tồn tại, thêm xe mới vào mảng
-        return [...prevItems, car];
+    setCartItems((prev) => {
+      const isExist = prev.find(item => item.id === car.id);
+      if (isExist) {
+        console.log(`-> Xe ID ${car.id} ĐÃ CÓ. Tiến hành tăng số lượng.`);
+        return prev.map(item => item.id === car.id
+          ? { ...item, quantity: (item.quantity || 1) + 1 }
+          : item);
       }
+      console.log(`-> Xe ID ${car.id} CHƯA CÓ. Thêm mới vào giỏ với số lượng 1.`, cartItems);
+      return [...prev, { ...car, quantity: 1 }];
     });
     console.log(cartItems);
   };
 
+  const removeFromCart = (id) => {
+    setCartItems(prev => prev.filter(item => item.id !== id));
+    console.log(`-> Đã xóa xe ID ${id} khỏi giỏ hàng.`, cartItems);
+  };
+
+  const updateQuantity = (id, amount) => {
+    setCartItems(prev => prev.map(item =>
+      item.id === id ? { ...item, quantity: Math.max(1, item.quantity + amount) } : item
+    ));
+    console.log(`-> Đã cập nhật số lượng xe ID ${id} thêm ${amount}.`, cartItems);
+  };
+
   return (
-    <CartContext.Provider value={{ cartItems, addToCart }}>
+    <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, updateQuantity }}>
       {children}
     </CartContext.Provider>
   );
 };
 
-// Hook tùy chỉnh để sử dụng context nhanh hơn
 export const useCart = () => useContext(CartContext);

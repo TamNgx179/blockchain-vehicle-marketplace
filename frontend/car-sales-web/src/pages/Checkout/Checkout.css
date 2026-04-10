@@ -1,0 +1,278 @@
+/* Tổng thể */
+.checkout-page {
+  font-family: 'Inter', -apple-system, sans-serif;
+  background-color: #f8faff;
+  min-height: 100vh;
+  padding: 40px 8%;
+  color: #333;
+}
+
+/* 1. Thanh tiến trình (Progress Bar) */
+#purchasing-progress {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 40px;
+}
+
+#step-purchasing {
+  display: flex;
+  align-items: center;
+  list-style: none;
+  gap: 15px;
+  padding: 0;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #a0aec0;
+  /* Màu xám cho step chưa tới */
+  font-size: 14px;
+}
+
+.step.active {
+  color: #1a202c;
+  font-weight: 600;
+}
+
+.step .dot {
+  width: 22px;
+  height: 22px;
+  background: #cbd5e0;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+}
+
+.step.active .dot {
+  background: #5d5fef;
+}
+
+/* Mũi tên giữa các bước */
+.step:not(:last-child):after {
+  content: '>';
+  margin-left: 15px;
+  color: #cbd5e0;
+  font-weight: 300;
+}
+
+/* 2. Bố cục chính */
+#main-content {
+  display: grid;
+  grid-template-columns: 1.8fr 0.8fr;
+  /* Tỷ lệ 2 cột */
+  gap: 25px;
+  align-items: start;
+}
+
+/* 3. Cột trái (Car Selection) */
+#Choosing-method {
+  background: white;
+  padding: 40px;
+  border-radius: 24px;
+  border: 1px solid black;
+}
+
+h2 {
+  font-size: 22px;
+  margin-bottom: 20px;
+  font-weight: 700;
+}
+
+.description {
+  font-size: 14px;
+  color: #4a5568;
+  line-height: 1.6;
+  margin-bottom: 30px;
+}
+
+/* Container màu xanh nhạt bao quanh card */
+.display-carform {
+  background: #eef2ff;
+  padding: 25px;
+  border-radius: 18px;
+  margin-bottom: 30px;
+}
+
+.carform {
+  background: white;
+  border: 2px solid #38a169;
+  /* Viền xanh lá */
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  gap: 25px;
+  position: relative;
+}
+
+.img-car {
+  width: 160px;
+  object-fit: contain;
+}
+
+.car-infomation {
+  flex: 1;
+}
+
+.car-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.car-name {
+  font-weight: 700;
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+
+.delete-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* Thông số kỹ thuật */
+.info-line {
+  display: flex;
+  gap: 25px;
+  margin-bottom: 15px;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #718096;
+  font-size: 13px;
+}
+
+.icon-small {
+  width: 18px;
+  opacity: 0.7;
+}
+
+/* Số lượng và Giá */
+.car-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.qty-controls {
+  display: flex;
+  align-items: center;
+  border: 1px solid #e2e8f0;
+  width: fit-content;
+  border-radius: 4px;
+}
+
+.qty-btn {
+  background: none;
+  border: none;
+  padding: 2px 8px;
+  cursor: pointer;
+  color: #718096;
+}
+
+.qty-input {
+  width: 30px;
+  text-align: center;
+  border: none;
+  border-left: 1px solid #e2e8f0;
+  border-right: 1px solid #e2e8f0;
+  font-size: 13px;
+}
+
+.price {
+  font-weight: 700;
+  font-size: 18px;
+}
+
+/* Nút Thêm xe (Dashed) */
+.add-another-btn {
+  width: 100%;
+  margin-top: 15px;
+  padding: 12px;
+  border: 2px dashed #cbd5e0;
+  background: none;
+  border-radius: 12px;
+  color: #4a5568;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+/* 4. Cột phải (Order Summary) */
+#Order-summary {
+  background: #f8f9fa;
+  border-radius: 24px;
+  padding: 25px;
+  border: 1px solid black;
+}
+
+.summary-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.summary-label {
+  color: #1a202c;
+  font-weight: 600;
+}
+
+.summary-val {
+  color: #718096;
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid #e2e8f0;
+  margin: 15px 0;
+}
+
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 700;
+  font-size: 16px;
+  margin-top: 20px;
+}
+
+/* Nút Next */
+#button-block {
+  margin-top: 30px;
+  overflow: hidden;
+}
+
+#next-step {
+  background: #5d5fef;
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 8px;
+  float: right;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+#next-step:hover {
+  opacity: 0.9;
+}

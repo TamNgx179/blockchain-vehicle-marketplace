@@ -133,6 +133,25 @@
   /* Tạo viền trắng quanh số để tách biệt */
 }
 
+.trolley.active {
+  background-color: rgba(93, 95, 239, 0.1);
+  /* Màu nền nhẹ */
+  border-radius: 8px;
+  padding: 5px;
+  /* Hoặc làm icon sáng lên / đổi màu */
+  filter: drop-shadow(0 0 5px rgba(93, 95, 239, 0.5));
+}
+
+.trolley.active img {
+  transform: scale(1.1);
+  /* Phóng to nhẹ icon */
+}
+
+.trolley.active .counter {
+  background-color: #5d5fef;
+  /* Đổi màu số lượng nếu muốn */
+}
+
 /* Login Button */
 .popup-login a {
   display: flex;

@@ -44,10 +44,13 @@ function Navbar() {
 
       {/* Right side actions */}
       <div className="nav-right">
-        <a href="" className="trolley">
-          <img src={trolley} alt="Trolley icon" loading="lazy" />
+        <NavLink
+          to="/checkout"
+          className={({ isActive }) => (isActive ? "trolley active" : "trolley")}
+        >
+          <img src={trolley} alt="Trolley icon" />
           <span className="counter">{cartItems.length}</span>
-        </a>
+        </NavLink>
         {/* Auth shortcut */}
         <div className="popup-login">
           <NavLink to="/auth">
