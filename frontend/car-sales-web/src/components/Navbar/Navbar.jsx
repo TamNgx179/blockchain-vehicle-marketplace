@@ -1,8 +1,11 @@
 import signin from '../../assets/icon/signin.png';
+import trolley from '../../assets/icon/trolley.png';
 import { NavLink } from "react-router-dom";
+import { useCart } from "../../context/CartContext";
 import "./Navbar.css";
 
 function Navbar() {
+  const { cartItems } = useCart();
   return (
     <nav className="navbar">
       {/* Use NavLink to prevent full page reloads */}
@@ -41,6 +44,10 @@ function Navbar() {
 
       {/* Right side actions */}
       <div className="nav-right">
+        <a href="" className="trolley">
+          <img src={trolley} alt="Trolley icon" loading="lazy" />
+          <span className="counter">{cartItems.length}</span>
+        </a>
         {/* Auth shortcut */}
         <div className="popup-login">
           <NavLink to="/auth">
