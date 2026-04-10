@@ -261,7 +261,7 @@ hr {
   overflow: hidden;
 }
 
-#next-step {
+.next-step {
   background: #5d5fef;
   color: white;
   border: none;
@@ -273,6 +273,22 @@ hr {
   transition: opacity 0.2s;
 }
 
-#next-step:hover {
+.next-step:hover {
+  opacity: 0.9;
+}
+
+.back-step {
+  background: #5d5fef;
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 8px;
+  float: left;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.back-step:hover {
   opacity: 0.9;
 }
