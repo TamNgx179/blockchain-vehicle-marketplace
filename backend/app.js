@@ -16,6 +16,7 @@ import ReviewRoutes from "./routes/ReviewRoute.js";
 import ContactRoutes from "./routes/ContactRoute.js";
 import CartRoutes from "./routes/CartRoute.js";
 import OrderRoutes from "./routes/OrderRoutes.js";
+import DashboardRoutes from "./routes/DashboardRoute.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -54,6 +55,7 @@ app.use("/api/reviews", ReviewRoutes);
 app.use("/api/contacts", ContactRoutes);
 app.use("/api/cart", CartRoutes);
 app.use("/api/orders", OrderRoutes);
+app.use("/api/dashboard", DashboardRoutes);
 
 // Middleware xử lý lỗi tập trung
 app.use((err, req, res, next) => {
