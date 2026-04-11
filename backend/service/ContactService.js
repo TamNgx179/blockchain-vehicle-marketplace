@@ -13,7 +13,7 @@ export const getContactByIdService = async (id) => {
         throw new Error("Không tìm thấy liên hệ");
     }
 
-    return await Contact.findById(id);
+    return await contact;
 }
 
 // Tạo liên hệ mới
@@ -24,6 +24,7 @@ export const createContactService = async (data) => {
     }
 
     const contact = new Contact(data);
+    const savedContact = await contact.save();
 
     // Gửi email xác nhận đên khách hàng sau khi tạo liên hệ thành công
     await sendMail(
@@ -33,7 +34,7 @@ export const createContactService = async (data) => {
          <p>Chúng tôi sẽ phản hồi sớm nhất.</p>`
     );
 
-    return await contact.save();
+    return savedContact;
 };
 
 // Đọc liên hệ
