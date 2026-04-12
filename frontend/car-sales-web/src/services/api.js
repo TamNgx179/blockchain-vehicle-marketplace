@@ -11,7 +11,7 @@ const api = axios.create({
 // Tự động gắn token từ localStorage vào Header trước khi gửi request
 api.interceptors.request.use((config) => {
   // mã token mỗi lần đăng nhập mỗi khác , đâu là dùng tạm lấy từ post man 
-  localStorage.setItem('token', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ZGFiYWYyYTQyMDc2NTcyMDJkYjcxZiIsInVzZXJuYW1lIjoiMjM1MjAxOTUiLCJpc2FkbWluIjpmYWxzZSwiaWF0IjoxNzc1OTUxNzk5LCJleHAiOjE3NzU5NTUzOTl9.cUiRoo8Khq5SEd4QJDUqL6cQu8EDPsSlbeYv8Qroc3A');
+  localStorage.setItem('token', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ZGFiYWYyYTQyMDc2NTcyMDJkYjcxZiIsInVzZXJuYW1lIjoiMjM1MjAxOTUiLCJpc2FkbWluIjpmYWxzZSwiaWF0IjoxNzc2MDE0MjM4LCJleHAiOjE3NzYwMTc4Mzh9.a-NN4RG_n3olZKYoWwrQqySKtwJ0TIVgViGj8ylZkKE');
   const token = localStorage.getItem('token'); // Hoặc nơi bạn lưu token
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
