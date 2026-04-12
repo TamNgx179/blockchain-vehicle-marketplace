@@ -21,15 +21,18 @@ function Step1CarSelection({ cartItems, removeFromCart, updateQuantity, selected
 
         {cartItems.length > 0 ? (
           cartItems.map((item) => {
-            const isSelected = selectedIds.includes(item.id);
+            const isSelected = selectedIds.includes(item._id);
+
             return (
               <div
                 className={`carform ${isSelected ? 'selected-outline' : ''}`}
-                key={item.id}
-                onClick={() => toggleSelectCar(item.id)} // Click để chọn
+                key={item._id}
+                onClick={() => toggleSelectCar(item._id)}
                 style={{ cursor: 'pointer' }}
               >
-                <img className="img-car" src={item.display} alt={item.name} />
+                {/* Đổi từ item.display sang item.thumbnailImage */}
+                <img className="img-car" src={item.thumbnailImage} alt={item.name} />
+
                 <hr className="line" />
                 <div className="car-infomation">
                   <div className="car-and-close">
@@ -38,40 +41,42 @@ function Step1CarSelection({ cartItems, removeFromCart, updateQuantity, selected
                       className="icon trash-icon"
                       src={trashcan}
                       onClick={(e) => {
-                        e.stopPropagation(); // Không cho kích hoạt toggleSelectCar
-                        removeFromCart(item.id);
+                        e.stopPropagation();
+                        removeFromCart(item._id);
                       }}
                       alt="remove"
                     />
                   </div>
+
                   <div className="info-line">
                     <div className="info-item">
                       <img className="icon" src={weight} alt="" />
-                      <span>{item.specs?.Weight || 'N/A'}</span>
+                      <span>{item.specifications?.weight ? `${item.specifications.weight} kg` : 'N/A'}</span>
                     </div>
                     <div className="info-item">
                       <img className="icon" src={engine} alt="" />
-                      <span>{item.specs?.Power || 'N/A'}</span>
+                      <span>{item.specifications?.power ? `${item.specifications.power} HP` : 'N/A'}</span>
                     </div>
                     <div className="info-item">
                       <img className="icon" src={energy} alt="" />
-                      <span>{item.specs?.["Top Speed"] || 'N/A'}</span>
+                      <span>{item.specifications?.topSpeed ? `${item.specifications.topSpeed} km/h` : 'N/A'}</span>
                     </div>
                   </div>
+
                   <div className="car-quantity">
                     <button
                       type="button"
                       className="qty-btn"
-                      onClick={(e) => { e.stopPropagation(); updateQuantity(item.id, -1); }}
+                      onClick={(e) => { e.stopPropagation(); updateQuantity(item._id, -1); }}
                     >-</button>
                     <input type="number" value={item.quantity} readOnly className="qty-input" onClick={(e) => e.stopPropagation()} />
                     <button
                       type="button"
                       className="qty-btn"
-                      onClick={(e) => { e.stopPropagation(); updateQuantity(item.id, 1); }}
+                      onClick={(e) => { e.stopPropagation(); updateQuantity(item._id, 1); }}
                     >+</button>
                   </div>
-                  <h3 className="car-price">${(item.priceUSD * item.quantity).toLocaleString()}</h3>
+                  <h3 className="car-price">${(item.price * item.quantity).toLocaleString()}</h3>
                 </div>
               </div>
             );
