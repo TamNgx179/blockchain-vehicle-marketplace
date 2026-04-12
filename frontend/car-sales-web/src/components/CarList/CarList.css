@@ -1,7 +1,7 @@
 .car-list-container {
   box-sizing: border-box;
   width: 100%;
-  padding: 40px 8%;
+  padding: 0px 8% 40px 8%;
   /* Căn lề trái phải đồng bộ với Filter và Hero */
   background-color: #ffffff;
 }
