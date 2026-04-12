@@ -1,0 +1,109 @@
+/* --- STEP 4: CONFIRMATION --- */
+.confirmation-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* Hiệu ứng hiện dần cho cả trang */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleUp {
+  0% {
+    transform: scale(0);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+.confirmation-container h2 {
+  color: #1a202c;
+  font-size: 28px;
+  margin-bottom: 12px;
+  font-weight: 700;
+}
+
+.confirmation-container p {
+  color: #4a5568;
+  font-size: 16px;
+  line-height: 1.6;
+  max-width: 500px;
+}
+
+/* Box chứa mã giao dịch (Hash) */
+.tx-box {
+  background: #f7fafc;
+  border: 1px dashed #cbd5e0;
+  padding: 20px;
+  border-radius: 12px;
+  margin-top: 30px;
+  width: 100%;
+  max-width: 600px;
+}
+
+.tx-label {
+  display: block;
+  font-size: 13px;
+  text-transform: uppercase;
+  color: #718096;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.tx-hash-link {
+  display: block;
+  word-break: break-all;
+  color: #5d5fef;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 14px;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.tx-hash-link:hover {
+  color: #4345d9;
+  text-decoration: underline;
+}
+
+/* Nút quay về Home - Tông xanh BMW/Modern Blue */
+.home-button {
+  margin-top: 40px;
+  background: #5d60ef;
+  /* Màu xanh đậm hơn một chút cho cảm giác an tâm */
+  color: white;
+  border: none;
+  padding: 14px 40px;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.home-button:hover {
+  background: #004a82;
+  /* Xanh đậm hơn khi hover */
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 102, 177, 0.4);
+}
+
+.home-button:active {
+  transform: translateY(0);
+}

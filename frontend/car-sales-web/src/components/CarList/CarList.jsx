@@ -29,7 +29,7 @@ function CarList({ cars }) {
         <div className="car-list grid-4">
           {visibleCars.map((car, index) => (
             <CarCard
-              key={car.id}
+              key={car._id}
               car={car}
               /* Animation delay chạy từ 0 đến 0.35s cho 8 card */
               delay={index * 0.05}
