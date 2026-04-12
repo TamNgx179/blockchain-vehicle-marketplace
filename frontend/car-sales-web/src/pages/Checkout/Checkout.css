@@ -1,0 +1,140 @@
+/* --- LAYOUT TỔNG THỂ --- */
+.checkout-page {
+  font-family: 'Inter', -apple-system, sans-serif;
+  background-color: #f8faff;
+  min-height: 100vh;
+  padding: 40px 8%;
+  color: #333;
+}
+
+/* --- 1. THANH TIẾN TRÌNH (PROGRESS BAR) --- */
+#purchasing-progress {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 40px;
+}
+
+#step-purchasing {
+  display: flex;
+  align-items: center;
+  list-style: none;
+  gap: 15px;
+  padding: 0;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #a0aec0;
+  font-size: 14px;
+}
+
+.step.active {
+  color: #1a202c;
+  font-weight: 600;
+}
+
+.step .dot {
+  width: 22px;
+  height: 22px;
+  background: #cbd5e0;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+}
+
+.step.active .dot {
+  background: #5d5fef;
+}
+
+/* Mũi tên giữa các bước */
+.step:not(:last-child):after {
+  content: '>';
+  margin-left: 15px;
+  color: #cbd5e0;
+  font-weight: 300;
+}
+
+/* --- 2. BỐ CỤC CHÍNH (GRID SYSTEM) --- */
+#main-content {
+  display: grid;
+  grid-template-columns: 1.8fr 0.8fr;
+  /* Cột trái rộng hơn cột phải */
+  gap: 25px;
+  align-items: start;
+}
+
+/* Cột trái: Nơi render nội dung các Step */
+#Choosing-method {
+  background: white;
+  padding: 40px;
+  border-radius: 24px;
+  border: 1px solid #e2e8f0;
+  /* Thay black bằng màu nhẹ hơn cho hiện đại */
+}
+
+/* --- 3. CÁC NÚT ĐIỀU HƯỚNG (BOTTOM BUTTONS) --- */
+#button-block {
+  margin-top: 30px;
+  overflow: hidden;
+  /* Clear float cho các nút bên trong */
+}
+
+.next-step,
+.back-step {
+  background: #5d5fef;
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+
+.next-step:hover,
+.back-step:hover {
+  opacity: 0.9;
+}
+
+.next-step:disabled,
+.back-step:disabled {
+  background: #cbd5e0;
+  cursor: not-allowed;
+}
+
+/* Bổ sung cho label của các bước */
+.step-label {
+  white-space: nowrap;
+  /* Tránh chữ bị xuống hàng trên màn hình nhỏ */
+}
+
+/* Tối ưu lại nút bấm để tránh dùng float */
+#button-block {
+  margin-top: 30px;
+  display: flex;
+  justify-content: space-between;
+  /* Đẩy 2 nút về 2 đầu */
+  align-items: center;
+}
+
+/* Trường hợp chỉ có 1 nút Next (Step 1 không có nút Back) */
+#button-block:not(:has(.back-step)) {
+  justify-content: flex-end;
+}
+
+/* CSS cho cột Summary nếu chưa có ở file riêng */
+#main-content> :last-child {
+  background: white;
+  padding: 25px;
+  border-radius: 24px;
+  border: 1px solid #e2e8f0;
+  position: sticky;
+  /* Giữ bảng tổng tiền luôn thấy khi scroll */
+  top: 20px;
+}

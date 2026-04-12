@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import CarCard from './CarCard/CarCard';
 import './CarList.css';
 
@@ -6,10 +6,6 @@ function CarList({ cars }) {
   // Quản lý vị trí bắt đầu của 8 xe đang hiển thị
   const [startIndex, setStartIndex] = useState(0);
   const itemsPerPage = 8;
-  // QUAN TRỌNG: Reset về trang 1 mỗi khi danh sách xe thay đổi (do lọc)
-  useEffect(() => {
-    setStartIndex(0);
-  }, [cars]);
   // Cắt mảng để chỉ lấy 8 xe tùy theo startIndex
   const visibleCars = cars.slice(startIndex, startIndex + itemsPerPage);
 
@@ -33,7 +29,7 @@ function CarList({ cars }) {
         <div className="car-list grid-4">
           {visibleCars.map((car, index) => (
             <CarCard
-              key={car.id}
+              key={car._id}
               car={car}
               /* Animation delay chạy từ 0 đến 0.35s cho 8 card */
               delay={index * 0.05}

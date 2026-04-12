@@ -22,9 +22,7 @@ const productSchema = new mongoose.Schema(
       engine: String,
       power: Number,
       torque: Number,
-
-      gear: Number, // số cấp số
-
+      gear: Number,
       topSpeed: Number,
 
       dimensions: {
@@ -34,7 +32,29 @@ const productSchema = new mongoose.Schema(
       },
 
       weight: Number,
-      fuelConsumption: Number
+
+      powertrainType: {
+        type: String,
+        enum: ["gasoline", "electric"],
+        required: true,
+      },
+
+      fuelConsumption: {
+        value: Number,
+        unit: {
+          type: String,
+          enum: ["L/100km", "kWh/100km"],
+        },
+      },
+
+      batteryCapacity: {
+        value: Number,
+        unit: {
+          type: String,
+          enum: ["kWh"],
+          default: "kWh",
+        },
+      },
     },
     required: true,
   },
