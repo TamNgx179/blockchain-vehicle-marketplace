@@ -8,12 +8,15 @@ import {
   verifyCancelOrderController,
   getMyOrdersController,
   getOrderDetailController,
+  getAllOrdersController
 } from "../controllers/OrderController.js";
-import authenticateToken from "../middlewares/authMiddleware.js";
+import authenticateToken, {requireAdmin} from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
 router.post("/create-from-cart", authenticateToken, createOrderFromCart);
+
+router.get("/all-orders", authenticateToken, requireAdmin, getAllOrdersController);
 
 router.get("/my-orders", authenticateToken, getMyOrdersController);
 router.get("/:id", authenticateToken, getOrderDetailController);

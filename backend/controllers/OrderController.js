@@ -6,6 +6,7 @@ import {
   verifyCompleteOrderService,
   verifyCancelOrderService,
   getMyOrdersService,
+  getAllOrdersService,
   getOrderDetailService,
 } from "../service/OrderService.js";
 
@@ -187,6 +188,22 @@ export const getOrderDetailController = async (req, res) => {
     res.status(200).json({
       success: true,
       data: order,
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// ===== GET ALL ORDERS (ADMIN) =====
+export const getAllOrdersController = async (req, res) => {
+  try {
+    const orders = await getAllOrdersService();
+    res.status(200).json({
+      success: true,
+      data: orders,
     });
   } catch (error) {
     res.status(400).json({

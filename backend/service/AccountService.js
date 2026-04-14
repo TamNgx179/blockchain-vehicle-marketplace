@@ -41,31 +41,44 @@ export const editProfileService = async (token, data) => {
   const decoded = verifyToken(token, process.env.JWT_SECRET);
   if (!decoded) throw new Error("Invalid token");
 
-  const updatedUser = await User.findByIdAndUpdate(decoded.id, data, { new: true });
+  // Chỉ lấy ra những trường an toàn cho người dùng sửa
+  const { username, phoneNumber, address } = data;
+  const updateData = { username, phoneNumber, address };
+
+  const updatedUser = await User.findByIdAndUpdate(
+    decoded.id, 
+    { $set: updateData }, // Sử dụng $set để tường minh
+    { new: true, runValidators: true }
+  ).select("-password -refreshToken"); // Không nên trả về field nhạy cảm
 
   return updatedUser;
 };
 
 
 export const updateUserService = async (token, body) => {
-
   const decoded = verifyToken(token, process.env.JWT_SECRET || "default_secret_key");
   if (!decoded) throw new Error("Invalid token");
 
   const userId = decoded.id;
 
-  const allowedFields = ["username", "phoneNumber", "email", "address"];
+  // Cân nhắc bỏ "email" nếu không muốn cho đổi email tùy tiện
+  const allowedFields = ["username", "phoneNumber", "address"]; 
   const updatedData = {};
 
   for (const field of allowedFields) {
     if (body[field] !== undefined) updatedData[field] = body[field];
   }
 
+  // Chặn trường hợp không có gì để cập nhật
+  if (Object.keys(updatedData).length === 0) {
+    throw new Error("No valid fields to update");
+  }
+
   const updatedUser = await User.findByIdAndUpdate(
     userId,
-    updatedData,
+    { $set: updatedData },
     { new: true, runValidators: true }
-  );
+  ).select("-password -refreshToken");
 
   if (!updatedUser) throw new Error("User not found");
 
