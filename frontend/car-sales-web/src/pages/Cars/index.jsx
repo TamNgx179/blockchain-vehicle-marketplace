@@ -4,7 +4,8 @@ import Navbar from "../../components/Navbar/Navbar";
 import Footer from "../../components/Footer/Footer";
 import ProductService from "../../services/ProductService"; // Import Service bạn đã cung cấp
 import "./Cars.css";
-
+import add from '../../assets/icon/add.png';
+import { useCart } from "../../context/CartContext";
 function DualRange({
   min,
   max,
@@ -153,7 +154,7 @@ function Cars() {
   const [showAllFeatures, setShowAllFeatures] = useState(false);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
-
+  const { addToCart } = useCart();
   // Lấy dữ liệu từ API khi component mount
   useEffect(() => {
     const fetchCars = async () => {
@@ -525,50 +526,55 @@ function Cars() {
                 const cardImage = car.thumbnailImage || "/images/car.webp";
 
                 return (
-                  <Link key={car._id} className="cars-item" to={`/product/${car._id}`}>
-                    <div className="cars-item-media">
-                      <img src={cardImage} alt={car.name} loading="lazy" decoding="async" />
-                    </div>
+                  <div key={car._id} className="cars-item" >
+                    <Link to={`/product/${car._id}`}>
+                      <div className="cars-item-media">
+                        <img src={cardImage} alt={car.name} loading="lazy" decoding="async" />
+                      </div>
+                    </Link>
+                    <Link to={`/product/${car._id}`}>
+                      <div className="cars-item-body">
+                        <div className="cars-item-top">
+                          <div className="cars-item-name">{car.name}</div>
+                          <div className="cars-item-brand">
+                            <span className="cars-item-brand-icon" aria-hidden="true"><IconPin /></span>
+                            <span>{car.brand}</span>
+                          </div>
+                        </div>
 
-                    <div className="cars-item-body">
-                      <div className="cars-item-top">
-                        <div className="cars-item-name">{car.name}</div>
-                        <div className="cars-item-brand">
-                          <span className="cars-item-brand-icon" aria-hidden="true"><IconPin /></span>
-                          <span>{car.brand}</span>
+                        <div className="cars-item-specs">
+                          <CarSpecItem icon={<IconYear />} text={`${new Date(car.createdAt).getFullYear()}`} />
+                          <CarSpecItem icon={<IconTransmission />} text={getTransmission(car)} />
+                          <CarSpecItem icon={<IconFuel />} text={getFuel(car)} />
+                          {getDrive(car) ? <CarSpecItem icon={<IconDrive />} text={getDrive(car)} /> : null}
+                          <CarSpecItem icon={<IconPower />} text={`${getPowerHP(car)} HP`} />
+                        </div>
+
+                        <div className="cars-item-meta">
+                          {visibleChips.map((text) => (
+                            <span key={text} className="cars-chip">{text}</span>
+                          ))}
+                          {remaining > 0 ? (
+                            <button
+                              type="button"
+                              className="cars-chip cars-chip-more cars-chip-button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setExpandedTagsById((prev) => ({ ...prev, [car._id]: !isExpanded }));
+                              }}
+                            >
+                              {isExpanded ? "Less" : `${remaining} more`}
+                            </button>
+                          ) : null}
                         </div>
                       </div>
-
-                      <div className="cars-item-specs">
-                        <CarSpecItem icon={<IconYear />} text={`${new Date(car.createdAt).getFullYear()}`} />
-                        <CarSpecItem icon={<IconTransmission />} text={getTransmission(car)} />
-                        <CarSpecItem icon={<IconFuel />} text={getFuel(car)} />
-                        {getDrive(car) ? <CarSpecItem icon={<IconDrive />} text={getDrive(car)} /> : null}
-                        <CarSpecItem icon={<IconPower />} text={`${getPowerHP(car)} HP`} />
-                      </div>
-
-                      <div className="cars-item-meta">
-                        {visibleChips.map((text) => (
-                          <span key={text} className="cars-chip">{text}</span>
-                        ))}
-                        {remaining > 0 ? (
-                          <button
-                            type="button"
-                            className="cars-chip cars-chip-more cars-chip-button"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              setExpandedTagsById((prev) => ({ ...prev, [car._id]: !isExpanded }));
-                            }}
-                          >
-                            {isExpanded ? "Less" : `${remaining} more`}
-                          </button>
-                        ) : null}
-                      </div>
-                    </div>
-
-                    <div className="cars-item-price">{priceText(car.price)}</div>
-                  </Link>
+                    </Link>
+                    <div className="cars-item-price">
+                      <button className="add-to-cart" onClick={() => addToCart(car)}>
+                        <img src={add} alt="Add to cart icon" />
+                      </button>{priceText(car.price)}</div>
+                  </div>
                 );
               })}
             </div>
