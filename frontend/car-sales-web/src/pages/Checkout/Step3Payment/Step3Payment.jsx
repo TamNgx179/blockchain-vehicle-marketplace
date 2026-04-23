@@ -1,7 +1,15 @@
 import React from 'react';
 import './Step3Payment.css';
 
-function Step3Payment({ paymentMethod, setPaymentMethod, paymentDetails, setPaymentDetails, showNotify }) {
+function Step3Payment({
+  paymentMethod,
+  setPaymentMethod,
+  paymentType, // Nhận từ cha
+  setPaymentType, // Nhận từ cha
+  paymentDetails,
+  setPaymentDetails,
+  showNotify
+}) {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -25,7 +33,7 @@ function Step3Payment({ paymentMethod, setPaymentMethod, paymentDetails, setPaym
     <div className="payment-selection">
       <h2>Payment & Contact Information</h2>
 
-      {/* 1. Chọn phương thức */}
+      {/* 1. Chọn phương thức thanh toán tổng quát */}
       <div className="payment-grid">
         <div
           className={`payment-card ${paymentMethod === 'cash' ? 'active' : ''}`}
@@ -50,8 +58,43 @@ function Step3Payment({ paymentMethod, setPaymentMethod, paymentDetails, setPaym
         </div>
       </div>
 
+      {/* 2. CHỌN LOẠI THANH TOÁN (Chỉ hiện khi chọn Blockchain) */}
+      {paymentMethod === 'blockchain' && (
+        <div className="payment-type-selection">
+          <h3>Select Payment Plan</h3>
+          <div className="type-grid">
+            <label className={`type-option ${paymentType === 'full' ? 'selected' : ''}`}>
+              <input
+                type="radio"
+                name="paymentType"
+                value="full"
+                checked={paymentType === 'full'}
+                onChange={() => setPaymentType('full')}
+              />
+              <div className="type-content">
+                <strong>Full Payment</strong>
+                <span>Pay 100% total amount</span>
+              </div>
+            </label>
+
+            <label className={`type-option ${paymentType === 'deposit' ? 'selected' : ''}`}>
+              <input
+                type="radio"
+                name="paymentType"
+                value="deposit"
+                checked={paymentType === 'deposit'}
+                onChange={() => setPaymentType('deposit')}
+              />
+              <div className="type-content">
+                <strong>Deposit</strong>
+                <span>Secure with a small fee</span>
+              </div>
+            </label>
+          </div>
+        </div>
+      )}
+
       <div className="details-form">
-        {/* 2. Phần thông tin chung cho cả 2 phương thức */}
         <h3>Contact Details</h3>
         <div className="input-group">
           <input
@@ -83,7 +126,10 @@ function Step3Payment({ paymentMethod, setPaymentMethod, paymentDetails, setPaym
                 <code>{paymentDetails.walletAddress.substring(0, 10)}...{paymentDetails.walletAddress.slice(-4)}</code>
               </div>
             )}
-            <p className="note">Note: Deposit will be processed in the next step.</p>
+            <p className="note">
+              Note: {paymentType === 'deposit' ? "You chose to Pay Deposit." : "You chose to Pay Full Amount."}
+              Confirm in the next step.
+            </p>
           </div>
         )}
       </div>

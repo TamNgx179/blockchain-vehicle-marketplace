@@ -4,12 +4,14 @@ import Navbar from "../../components/Navbar/Navbar";
 import Footer from "../../components/Footer/Footer";
 import ProductService from "../../services/ProductService"; // Import Service của bạn
 import "./CarDetail.css";
-
+import { useCart } from "../../context/CartContext";
+import add from '../../assets/icon/add.png';
 function CarDetail() {
   const { id } = useParams();
   const [car, setCar] = useState(null); // State lưu dữ liệu từ API
   const [loading, setLoading] = useState(true);
   const [activeHeroImage, setActiveHeroImage] = useState("");
+  const { addToCart } = useCart();
 
   // 1. Gọi API lấy dữ liệu sản phẩm
   useEffect(() => {
@@ -118,6 +120,9 @@ function CarDetail() {
               {coinPriceText ? (
                 <div className="car-detail-price-coin">{coinPriceText}</div>
               ) : null}
+              <button className="add-to-cart" onClick={() => addToCart(car)}>
+                <img src={add} alt="Add to cart icon" />
+              </button>
             </div>
           </div>
 
