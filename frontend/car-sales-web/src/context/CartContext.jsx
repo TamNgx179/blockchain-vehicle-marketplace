@@ -7,14 +7,16 @@ export const CartProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // 1. Tự động đồng bộ giỏ hàng từ Backend khi load trang
   useEffect(() => {
     const fetchCart = async () => {
+      const token = localStorage.getItem("authToken");
+      if (!token) {
+        setCartItems([]);
+        return;
+      }
+
       try {
-        const res = await cartService.getCart();
-        const data = res.data;
-        // Giả sử Backend trả về { items: [ { productId: {...}, quantity: 1 } ] }
-        console.log("Cart data from server:", data);
+        const data = await cartService.getCart();
         if (data && data.items) {
           const formattedItems = data.items
             .filter(item => item.productId) // Chỉ lấy những item có sản phẩm tồn tại
@@ -26,17 +28,30 @@ export const CartProvider = ({ children }) => {
           setCartItems(formattedItems);
         }
       } catch (error) {
+        if (error?.response?.status === 401 || error?.response?.status === 403) {
+          setCartItems([]);
+          return;
+        }
         console.error("Không thể lấy giỏ hàng từ server:", error);
       } finally {
         setLoading(false); // Tắt loading dù thành công hay thất bại
       }
     };
     fetchCart();
+
+    const onAuthChange = () => fetchCart();
+    window.addEventListener("auth-change", onAuthChange);
+    return () => window.removeEventListener("auth-change", onAuthChange);
   }, []);
 
   // 2. Thêm vào giỏ (Cập nhật cả UI và Backend)
   const addToCart = async (car) => {
     try {
+      const token = localStorage.getItem("authToken");
+      if (!token) {
+        alert("Vui lòng đăng nhập để thêm vào giỏ hàng");
+        return;
+      }
       setLoading(true);
       // Gọi API lên Backend trước
       await cartService.addToCart(car._id, 1);
@@ -62,6 +77,8 @@ export const CartProvider = ({ children }) => {
   // 3. Xóa sản phẩm
   const removeFromCart = async (id) => {
     try {
+      const token = localStorage.getItem("authToken");
+      if (!token) return;
       await cartService.removeCartItem(id);
       setCartItems(prev => prev.filter(item => item._id !== id));
     } catch (error) {
@@ -72,6 +89,8 @@ export const CartProvider = ({ children }) => {
   // 4. Cập nhật số lượng
   const updateQuantity = async (id, amount) => {
     try {
+      const token = localStorage.getItem("authToken");
+      if (!token) return;
       const item = cartItems.find(i => i._id === id);
       const newQty = Math.max(1, item.quantity + amount);
 

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useCart } from '../../context/CartContext';
 import Navbar from '../../components/Navbar/Navbar';
 import './Checkout.css';

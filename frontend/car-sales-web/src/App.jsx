@@ -1,6 +1,5 @@
 import { useRef } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom"
-import { useRef } from "react";
 import Home from "./pages/Home"
 import CarDetail from "./pages/CarDetail"
 import Cars from "./pages/Cars"
