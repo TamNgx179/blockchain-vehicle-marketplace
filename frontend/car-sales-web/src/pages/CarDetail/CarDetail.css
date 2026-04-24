@@ -235,7 +235,7 @@
   font-weight: 600;
 }
 
-.car-detail-tech-bullets li + li {
+.car-detail-tech-bullets li+li {
   margin-top: 6px;
 }
 
@@ -341,4 +341,49 @@
   .car-detail-list {
     grid-template-columns: 1fr;
   }
+}
+
+
+/* icon add */
+.car-detail-summary .add-to-cart {
+  color: #fff;
+  border: none;
+  padding: 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  aspect-ratio: 1 / 1;
+  /* Cố định tỉ lệ 1:1 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  margin-left: 0;
+}
+
+.add-to-cart img {
+  width: 20px;
+  height: 20px;
+}
+
+.add-to-cart:hover {
+  background-color: #3080F8;
+  /* Đổi sang màu xanh thương hiệu khi hover */
+  transform: translateY(-2px);
+  /* Nhấc nút lên một chút tạo chiều sâu */
+  box-shadow: 0 4px 12px rgba(48, 128, 248, 0.3);
+  /* Đổ bóng nhẹ cùng tông màu */
+}
+
+/* Hiệu ứng cho icon bên trong khi hover */
+.add-to-cart:hover img {
+  transform: scale(1.15) rotate(-5deg);
+  /* Phóng to và xoay nhẹ icon cho sinh động */
+}
+
+/* Hiệu ứng khi nhấn vào (Active) */
+.add-to-cart:active {
+  transform: translateY(0);
+  /* Nút lún xuống khi bấm */
+  filter: brightness(0.9);
+  /* Làm tối màu đi một chút */
 }

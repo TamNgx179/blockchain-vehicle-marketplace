@@ -1,6 +1,6 @@
 import React from 'react';
 
-function OrderSummary({ cartItems, deliveryFee, step }) {
+function OrderSummary({ cartItems, deliveryFee }) {
   const subtotal = cartItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
   const total = subtotal + deliveryFee;
 

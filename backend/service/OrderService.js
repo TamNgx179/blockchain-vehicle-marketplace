@@ -534,3 +534,8 @@ export const getOrderDetailService = async (userId, orderId) => {
   if (!order) throw new Error("Không tìm thấy order");
   return order;
 };
+
+/* ================= GET ALL ORDERS (ADMIN) ================= */
+export const getAllOrdersService = async () => {
+  return await Order.find().sort({ createdAt: -1 });
+};

@@ -8,10 +8,11 @@
   flex-direction: column;
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   /* --- THÊM SHADOW ĐỂ CARD RÕ RÀNG HƠN --- */
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   /* Tạo viền mặc định trong suốt để khi hover không bị giật khung */
   border: 2px solid transparent;
   height: 100%;
+  justify-content: flex-end;
 }
 
 /* --- HIỆU ỨNG HOVER ĐẸP --- */

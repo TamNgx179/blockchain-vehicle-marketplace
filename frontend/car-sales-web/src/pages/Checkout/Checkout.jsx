@@ -1,10 +1,9 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useCart } from '../../context/CartContext';
 import Navbar from '../../components/Navbar/Navbar';
 import './Checkout.css';
 import Step1CarSelection from './Step1CarSelection/Step1CarSelection';
 import OrderSummary from './OrderSummary/OrderSummary';
-import Notification from '../../components/Notification/Notification'
 import Step2Delivery from './Step2Delivery/Step2Delivery';
 import Step3Payment from './Step3Payment/Step3Payment';
 import Step4Confirmation from './Step4Confirmation/Step4Confirmation';
@@ -12,11 +11,12 @@ import { ethers } from 'ethers';
 import contractABI from '../../config/abi.json';
 import { orderService } from '../../services/orderService';
 
-function Checkout() {
+function Checkout({ notifyRef }) {
+  console.log("Notify Ref in Checkout:", notifyRef);
   const { cartItems, removeFromCart, updateQuantity } = useCart();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false); // Trạng thái chờ xử lý
-  const notifyRef = useRef();
+  const [paymentType, setPaymentType] = useState('full'); // 'full' hoặc 'deposit'
 
   const [selectedIds, setSelectedIds] = useState([]);
   const [paymentMethod, setPaymentMethod] = useState('blockchain'); // Mặc định blockchain cho đúng flow 5.2
@@ -86,7 +86,48 @@ function Checkout() {
       setLoading(false);
     }
   };
+  const handleDepositPayment = async (dbOrderId, blockchainOrderId, depositAmountWei) => {
+    try {
+      setLoading(true);
+      notifyRef.current.show("Confirming Deposit in MetaMask...");
 
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+
+      // Quy đổi depositAmount sang ETH (Giả sử 1 ETH = 2.000.000 USD như code cũ của bạn)
+      // const ETH_PRICE_IN_USD = 2000000.0;
+      // const ethAmount = (depositAmountUSD / ETH_PRICE_IN_USD).toFixed(18);
+      // console.log("Deposit Amount in USD:", depositAmountUSD);
+      // console.log("Deposit Amount in ETH:", ethAmount);
+      const contract = new ethers.Contract(
+        "0xD0CF607f0bCD60B5ed02896e682450eA4dBf5BB0",
+        contractABI.abi,
+        signer
+      );
+
+      // GỌI HÀM payDeposit thay vì payFull
+      const tx = await contract.payDeposit(blockchainOrderId, {
+        // Gửi trực tiếp số Wei, không parseEther, không chia tỷ giá
+        value: depositAmountWei
+      });
+
+      setFinalTxHash(tx.hash);
+      const receipt = await tx.wait();
+
+      if (receipt.status === 1) {
+        // Gọi API Verify Deposit của Backend
+        await orderService.verifyDeposit(dbOrderId, tx.hash);
+        setStep(4);
+      } else {
+        throw new Error("Deposit transaction failed");
+      }
+    } catch (error) {
+      console.error(error);
+      notifyRef.current.show("Deposit Error: " + (error.reason || error.message));
+    } finally {
+      setLoading(false);
+    }
+  };
   const handleNextStep = async () => {
     if (selectedIds.length === 0) {
       notifyRef.current.show("Please select at least one BMW model!");
@@ -114,7 +155,7 @@ function Checkout() {
 
           const orderPayload = {
             selectedItems: selectedIds.filter(id => id), // Đảm bảo mảng sạch
-            paymentType: "full",
+            paymentType: paymentType,
             buyerWallet: paymentDetails.walletAddress,
 
             // Backend yêu cầu Enum: "pickup" hoặc "delivery"
@@ -142,19 +183,31 @@ function Checkout() {
           const orderData = response.data;
 
           // Sau khi backend trả về blockchainOrderId, tiến hành gọi Contract
-          await handleBlockchainPayment(
-            orderData._id,               // Sửa ở đây
-            orderData.blockchainOrderId,  // Sửa ở đây
-            orderData.totalAmount || 0    // Lưu ý: data của bạn dùng totalAmount chứ không phải totalAmountUSD
-          );
+          if (paymentType === 'deposit') {
+            // Gọi hàm Deposit
+            console.log("Initiating Deposit Payment with amount", orderData);
+            await handleDepositPayment(
+              orderData._id,
+              orderData.blockchainOrderId,
+              orderData.depositAmountWei // Backend sẽ tính số tiền cọc dựa trên chính sách sàn
+            );
+          } else {
+            // Gọi hàm Full như cũ
+            await handleBlockchainPayment(
+              orderData._id,
+              orderData.blockchainOrderId,
+              orderData.totalAmountWei
+            );
+          }
         } catch (error) {
-          notifyRef.current.show("Order creation failed: " + error.message);
+          notifyRef.current.show("Order failed: " + error.message);
         } finally {
           setLoading(false);
         }
-        return;
       }
+      return;
     }
+
 
     if (step < 4) setStep(step + 1);
   };
@@ -169,7 +222,7 @@ function Checkout() {
     switch (step) {
       case 1: return <Step1CarSelection cartItems={cartItems} removeFromCart={removeFromCart} updateQuantity={updateQuantity} selectedIds={selectedIds} toggleSelectCar={toggleSelectCar} showNotify={(msg) => notifyRef.current?.show(msg)} />;
       case 2: return <Step2Delivery deliveryMethod={deliveryMethod} setDeliveryMethod={setDeliveryMethod} paymentDetails={paymentDetails} setPaymentDetails={setPaymentDetails} showNotify={(msg) => notifyRef.current?.show(msg)} />;
-      case 3: return <Step3Payment paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod} paymentDetails={paymentDetails} setPaymentDetails={setPaymentDetails} showNotify={(msg) => notifyRef.current?.show(msg)} />;
+      case 3: return <Step3Payment paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod} paymentType={paymentType} setPaymentType={setPaymentType} paymentDetails={paymentDetails} setPaymentDetails={setPaymentDetails} showNotify={(msg) => notifyRef.current?.show(msg)} />;
       case 4: return <Step4Confirmation paymentDetails={paymentDetails} txHash={finalTxHash} showNotify={(msg) => notifyRef.current?.show(msg)} />;
       default: return null;
     }
@@ -178,7 +231,6 @@ function Checkout() {
   return (
     <>
       <Navbar />
-      <Notification ref={notifyRef} />
       <div className="checkout-page">
         <div id="purchasing-progress">
           <ol id="step-purchasing">
