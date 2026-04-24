@@ -27,22 +27,38 @@ const app = express();
 connectDB();
 
 // Middleware cơ bản
-app.use(cors());
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      const allowedOrigins = new Set([
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://192.168.0.4:5173",
+      ]);
+
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.has(origin)) return callback(null, true);
+
+      return callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // Cấu hình Session
 app.use(session({
-  secret: process.env.SESSION_SECRET || "your_secret_key",
-  resave: false,
-  saveUninitialized: false,
-  cookie: { secure: false, maxAge: 24 * 60 * 60 * 1000 },
+    secret: process.env.SESSION_SECRET || "your_secret_key",
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: false, maxAge: 24 * 60 * 60 * 1000 },
 }));
 
 // Khởi tạo Passport
 app.use(passport.initialize());
-app.use(passport.session());
+app.use(passport.session()); 
 
 // Phục vụ file tĩnh (Xem ảnh)
 app.use('/images', express.static(path.join(__dirname, 'public/images')));

@@ -1,18 +1,17 @@
-import axios from 'axios';
+import axios from "axios";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 const api = axios.create({
-  baseURL: "http://localhost:3000/api",
+  baseURL: `${API_URL}/api`,
   headers: {
     "Content-Type": "application/json",
   },
-  // withCredentials: true
+  withCredentials: true,
 });
 
-// Tự động gắn token từ localStorage vào Header trước khi gửi request
 api.interceptors.request.use((config) => {
-  // mã token mỗi lần đăng nhập mỗi khác , đâu là dùng tạm lấy từ post man 
-  localStorage.setItem('token', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ZGFiYWYyYTQyMDc2NTcyMDJkYjcxZiIsInVzZXJuYW1lIjoiMjM1MjAxOTUiLCJpc2FkbWluIjpmYWxzZSwiaWF0IjoxNzc2OTc3MTUxLCJleHAiOjE3NzY5ODA3NTF9.t04JcA1EIIOZZmfaQqBaEMJxlzQ8HScLpxU3vOt81l8');
-  const token = localStorage.getItem('token'); // Hoặc nơi bạn lưu token
+  const token = localStorage.getItem("authToken");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }

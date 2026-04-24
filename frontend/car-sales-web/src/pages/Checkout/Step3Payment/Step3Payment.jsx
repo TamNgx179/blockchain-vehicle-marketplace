@@ -21,7 +21,7 @@ function Step3Payment({
       try {
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
         setPaymentDetails(prev => ({ ...prev, walletAddress: accounts[0] }));
-      } catch (error) {
+      } catch {
         showNotify("User denied account access or error occurred");
       }
     } else {
