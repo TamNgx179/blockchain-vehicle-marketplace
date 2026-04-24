@@ -345,7 +345,7 @@
 
 
 /* icon add */
-.add-to-cart {
+.car-detail-summary .add-to-cart {
   color: #fff;
   border: none;
   padding: 10px;
@@ -357,6 +357,7 @@
   align-items: center;
   justify-content: center;
   width: 40px;
+  margin-left: 0;
 }
 
 .add-to-cart img {

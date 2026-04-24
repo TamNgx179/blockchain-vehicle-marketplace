@@ -153,23 +153,24 @@ JavaScript
 Ví dụ cấu trúc thư mục:
 
 ```
-car-sales-web
+car-sales-web/
 │
-├── public
+├── node_modules/
+├── public/
 │
-├── src
-│   ├── assets
-│   ├── components
-│   ├── layouts
-│   ├── pages
-│   ├── services
-│   ├── hooks
-│   ├── utils
+├── src/
+│   ├── assets/
+│   ├── App.css
 │   ├── App.jsx
+│   ├── index.css
 │   └── main.jsx
 │
+├── .gitignore
+├── eslint.config.js
+├── index.html
 ├── package.json
 ├── vite.config.js
+├── yarn.lock
 └── README.md
 ```
 
