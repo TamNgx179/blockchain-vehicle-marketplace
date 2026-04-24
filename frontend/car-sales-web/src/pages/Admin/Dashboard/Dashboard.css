@@ -1,0 +1,472 @@
+/* Container chính */
+.dashboard-container {
+  padding: 2rem;
+  background-color: #f8fafc;
+  min-height: 100vh;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Header */
+.dashboard-header {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .dashboard-header {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+.header-title h1 {
+  font-size: 1.875rem;
+  font-weight: 800;
+  color: #1e293b;
+  letter-spacing: -0.025em;
+  margin: 0;
+}
+
+.header-title p {
+  color: #64748b;
+  margin-top: 0.25rem;
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.btn-export {
+  padding: 0.5rem 1rem;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #475569;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-refresh {
+  padding: 0.5rem 1rem;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+  transition: all 0.2s;
+}
+
+/* Stat Cards Grid */
+.stat-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+@media (min-width: 640px) {
+  .stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .stat-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.stat-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 1rem;
+  border: 1px solid #f1f5f9;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.stat-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.icon-box {
+  padding: 0.625rem;
+  border-radius: 0.75rem;
+}
+
+.trend-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 0.25rem 0.5rem;
+  background: #ecfdf5;
+  color: #059669;
+  border-radius: 9999px;
+}
+
+.stat-value h4 {
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: #1e293b;
+  margin-top: 0.25rem;
+  margin-bottom: 0;
+}
+
+/* Charts Section */
+.charts-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  margin-bottom: 2rem;
+
+}
+
+.charts-grid>div {
+  min-width: 0;
+  /* Giúp flex/grid item không bị tràn và cho phép con của nó lấy 100% width */
+}
+
+@media (min-width: 1024px) {
+  .charts-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .revenue-chart-container {
+    grid-column: span 2;
+  }
+}
+
+/* Container bao quanh biểu đồ doanh thu */
+.revenue-chart-wrapper {
+  width: 100%;
+  height: 320px;
+  /* Chiều cao cố định */
+  min-height: 320px;
+  /* Quan trọng: Giúp Recharts thấy kích thước ngay lập tức */
+  position: relative;
+  display: block;
+}
+
+/* Container bao quanh biểu đồ tròn */
+.pie-chart-wrapper {
+  width: 100%;
+  height: 256px;
+  min-height: 256px;
+  position: relative;
+  display: block;
+}
+
+.chart-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 1rem;
+  border: 1px solid #f1f5f9;
+}
+
+/* Container bao quanh để định vị icon mũi tên */
+.custom-select {
+  position: relative;
+  display: inline-block;
+  width: 200px;
+}
+
+.chart-select {
+  /* Quan trọng: Xóa giao diện mặc định của hệ điều hành */
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+
+  width: 100%;
+  padding: 10px 15px;
+  font-size: 14px;
+  font-family: 'Segoe UI', sans-serif;
+  color: #333;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  outline: none;
+}
+
+/* Hiệu ứng khi hover hoặc focus */
+.chart-select:hover {
+  border-color: #007bff;
+}
+
+.chart-select:focus {
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
+  border-color: #007bff;
+}
+
+/* Tạo icon mũi tên tùy chỉnh */
+.arrow {
+  position: absolute;
+  top: 50%;
+  right: 15px;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid #888;
+  /* Màu mũi tên */
+  pointer-events: none;
+  /* Để khi click vào mũi tên vẫn mở được select */
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.chart-title {
+  font-weight: 700;
+  color: #334155;
+  font-size: 1.125rem;
+}
+
+/* Table Section */
+.bottom-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+}
+
+@media (min-width: 1024px) {
+  .bottom-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.table-container {
+  background: white;
+  border-radius: 1rem;
+  border: 1px solid #f1f5f9;
+  overflow: hidden;
+}
+
+.table-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #f8fafc;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.recent-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.recent-table th {
+  background: #f8fafc;
+  color: #94a3b8;
+  font-size: 11px;
+  text-transform: uppercase;
+  padding: 1rem 1.5rem;
+}
+
+.recent-table td {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #f8fafc;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.avatar-circle {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.75rem;
+}
+
+.status-pill {
+  padding: 0.25rem 0.625rem;
+  border-radius: 0.5rem;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+/* Blockchain Card */
+.blockchain-card {
+  background: #0f172a;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  color: white;
+}
+
+.blockchain-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+.blockchain-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.progress-bar-bg {
+  width: 100%;
+  background: #334155;
+  height: 0.5rem;
+  border-radius: 9999px;
+  margin-top: 0.5rem;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  background: #3b82f6;
+  height: 100%;
+  transition: width 1s ease-in-out;
+}
+
+/* Colors & Animations */
+.text-blue-600 {
+  color: #2563eb;
+}
+
+.bg-blue-100 {
+  background-color: #dbeafe;
+}
+
+.text-emerald-600 {
+  color: #059669;
+}
+
+.bg-emerald-100 {
+  background-color: #d1fae5;
+}
+
+.text-amber-600 {
+  color: #d97706;
+}
+
+.bg-amber-100 {
+  background-color: #fef3c7;
+}
+
+.text-indigo-600 {
+  color: #4f46e5;
+}
+
+.bg-indigo-100 {
+  background-color: #e0e7ff;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Màu sắc trạng thái - CSS Thuần */
+.status-completed {
+  background-color: #d1fae5;
+  color: #047857;
+}
+
+.status-processing {
+  background-color: #dbeafe;
+  color: #1d4ed8;
+}
+
+.status-pending {
+  background-color: #fef3c7;
+  color: #b45309;
+}
+
+.status-cancelled {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.status-default {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+/* Class chung cho label trạng thái (bo góc, font chữ) */
+.status-pill {
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  display: inline-block;
+}
+
+.btn-text {
+  /* Thiết lập cơ bản */
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  /* Tạo hiệu ứng mượt mà "đi theo" */
+
+  /* Màu sắc chủ đạo (Xanh) */
+  background-color: #007bff;
+  color: white;
+
+  /* Đổ bóng nhẹ để tạo độ khối */
+  box-shadow: 0 4px 6px rgba(0, 123, 255, 0.2);
+
+  /* Đảm bảo nút nằm trên một đường thẳng nếu là thẻ a */
+  display: inline-block;
+  text-decoration: none;
+}
+
+/* Hiệu ứng "đi theo" khi di chuột (Hover) */
+.btn-text:hover {
+  background-color: #0056b3;
+  /* Xanh đậm hơn một chút */
+  transform: translateY(-3px);
+  /* Nút bay lên nhẹ */
+  box-shadow: 0 8px 15px rgba(0, 123, 255, 0.4);
+  /* Bóng đổ đậm và rộng hơn */
+}
+
+/* Hiệu ứng khi nhấn giữ (Active) */
+.btn-text:active {
+  transform: translateY(-1px);
+  /* Lún xuống một chút khi bấm */
+  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+}
