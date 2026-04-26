@@ -62,6 +62,11 @@
   background-color: var(--primary-hover);
 }
 
+.order-list-container .refresh-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
 /* --- TABLE MAIN --- */
 .order-list-container .table-responsive {
   overflow-x: auto;
@@ -95,6 +100,10 @@
 
 .order-list-container .admin-table tr.row-expanded {
   background-color: var(--bg-expanded);
+}
+
+.order-list-container .admin-table tr.row-processing {
+  background-color: #f0f9ff;
 }
 
 /* --- BADGES (Trạng thái) --- */
@@ -151,6 +160,33 @@
   cursor: pointer;
   background-color: transparent;
   transition: all 0.2s ease;
+}
+
+.order-list-container .btn-action:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.order-list-container .btn-action.is-loading {
+  opacity: 1;
+  background-color: #eef2ff;
+}
+
+.order-list-container .spin-icon {
+  animation: order-spin 0.9s linear infinite;
+}
+
+.order-list-container .action-status {
+  color: var(--primary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+@keyframes order-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .order-list-container .btn-confirm {

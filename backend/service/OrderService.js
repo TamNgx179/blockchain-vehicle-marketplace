@@ -8,9 +8,12 @@ import { ethers } from "ethers";
 import { verifyDeposit } from "../service/DepositVerifier.js";
 import {
   createOrderOnChain,
+  confirmOrderOnChain,
+  cancelOrderOnChain,
   verifyTransaction,
   getTransactionDetail,
   getOrderByBlockchainOrderId,
+  getServerWalletAddress,
   CONTRACT_PAYMENT_TYPE,
   CONTRACT_ORDER_STATUS,
 } from "../service/BlockchainService.js";
@@ -52,6 +55,21 @@ const ADMIN_ORDER_SORT_FIELDS = [
   "expiresAt",
   "blockchainOrderId",
 ];
+
+const assertAdmin = (actor) => {
+  if (!actor?.isadmin) {
+    throw new Error("Admin permission required");
+  }
+};
+
+const assertServerSellerWallet = (order) => {
+  const serverWallet = getServerWalletAddress();
+  if (serverWallet.toLowerCase() !== order.sellerWallet.toLowerCase()) {
+    throw new Error(
+      "Ví server không khớp sellerWallet của đơn hàng. Vui lòng kiểm tra SELLER_WALLET và SEPOLIA_PRIVATE_KEY trong .env"
+    );
+  }
+};
 
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -536,6 +554,29 @@ export const verifySellerConfirmService = async (orderId, txHash) => {
   }
 };
 
+/* ================= ADMIN CONFIRM ON CHAIN ================= */
+export const adminConfirmOrderService = async (actor, orderId) => {
+  assertAdmin(actor);
+
+  const order = await Order.findById(orderId);
+  if (!order) throw new Error("Không tìm thấy order");
+
+  if (!["deposit_paid", "pending_payment"].includes(order.status)) {
+    throw new Error("Order chưa ở trạng thái có thể seller confirm");
+  }
+
+  assertServerSellerWallet(order);
+
+  const result = await confirmOrderOnChain(order.blockchainOrderId);
+  const updatedOrder = await verifySellerConfirmService(orderId, result.txHash);
+
+  return {
+    order: updatedOrder,
+    txHash: result.txHash,
+    blockNumber: result.blockNumber,
+  };
+};
+
 /* ================= VERIFY COMPLETE ================= */
 export const verifyCompleteOrderService = async (userId, orderId, txHash) => {
   const session = await mongoose.startSession();
@@ -656,6 +697,35 @@ export const verifyCancelOrderService = async (actor, orderId, txHash) => {
     session.endSession();
     throw err;
   }
+};
+
+/* ================= ADMIN CANCEL ON CHAIN ================= */
+export const adminCancelOrderService = async (actor, orderId) => {
+  assertAdmin(actor);
+
+  const order = await Order.findById(orderId);
+  if (!order) throw new Error("Không tìm thấy order");
+
+  if (order.status === "completed") {
+    throw new Error("Order đã completed, không thể hủy");
+  }
+  if (order.status === "cancelled") {
+    throw new Error("Order đã bị hủy trước đó");
+  }
+  if (!["pending_deposit", "pending_payment", "deposit_paid"].includes(order.status)) {
+    throw new Error("Order không còn ở trạng thái có thể hủy");
+  }
+
+  assertServerSellerWallet(order);
+
+  const result = await cancelOrderOnChain(order.blockchainOrderId);
+  const updatedOrder = await verifyCancelOrderService(actor, orderId, result.txHash);
+
+  return {
+    order: updatedOrder,
+    txHash: result.txHash,
+    blockNumber: result.blockNumber,
+  };
 };
 
 /* ================= GET MY ORDERS ================= */
