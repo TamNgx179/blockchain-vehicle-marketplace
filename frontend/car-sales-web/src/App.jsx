@@ -14,6 +14,8 @@ const OrderList = lazy(() => import("./pages/Admin/Orders/OrderList"));
 const ProductList = lazy(() => import("./pages/Admin/Products/ProductList"));
 const MyOrders = lazy(() => import("./pages/MyOrders/MyOrders"));
 const Profile = lazy(() => import("./pages/Profile/Profile"));
+const Contact = lazy(() => import("./pages/Contact/Contact"));
+const AdminContactList = lazy(() => import("./pages/Admin/Contacts/ContactList"));
 import ProductEdit from "./pages/Admin/ProductEdit/ProductEdit";
 // --- 1. PROTECTED ROUTE (Cho User đã đăng nhập) ---
 const PrivateRoute = ({ children }) => {
@@ -72,6 +74,7 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/cars" element={<Cars />} />
             <Route path="/product/:id" element={<CarDetail />} />
+            <Route path="/contact" element={<Contact />} />
 
             {/* PRIVATE */}
             <Route path="/checkout" element={<PrivateRoute><Checkout notifyRef={notifyRef} /></PrivateRoute>} />
@@ -92,6 +95,7 @@ function App() {
 
               {/* path="/admin/orders" -> Hiện danh sách đơn */}
               <Route path="orders" element={<OrderList />} />
+              <Route path="contacts" element={<AdminContactList />} />
 
               {/* path="/admin/products" -> Hiện danh sách sản phẩm */}
               <Route path="products" element={<ProductList />} />

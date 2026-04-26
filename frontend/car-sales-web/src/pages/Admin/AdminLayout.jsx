@@ -4,6 +4,7 @@ import {
   ChevronLeft,
   Menu,
   LayoutDashboard,
+  MessageSquareText,
   ShoppingBag,
   Package,
   LogOut
@@ -43,6 +44,12 @@ const AdminLayout = () => {
               <Link to="/admin/orders" className={isActive("/admin/orders") ? "active" : ""}>
                 <ShoppingBag size={20} />
                 <span>Quản lý đơn hàng</span>
+              </Link>
+            </li>
+            <li>
+              <Link to="/admin/contacts" className={isActive("/admin/contacts") ? "active" : ""}>
+                <MessageSquareText size={20} />
+                <span>Quản lý liên hệ</span>
               </Link>
             </li>
             <li>
