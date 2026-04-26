@@ -1,6 +1,5 @@
 import signin from "../../assets/icon/signin.png";
 import trolley from "../../assets/icon/trolley.png";
-import insurance from "../../assets/icon/insurance.png";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useMemo, useSyncExternalStore, useState } from "react";
 import { useCart } from "../../context/CartContext";
@@ -56,7 +55,6 @@ function Navbar() {
 
   return (
     <nav className="navbar">
-      {/* Logo */}
       <NavLink to="/" id="Logo" onClick={closeMenu}>
         <img
           src="/images/LogoWeb-removebg-preview.webp"
@@ -65,7 +63,6 @@ function Navbar() {
         />
       </NavLink>
 
-      {/* Hamburger */}
       <div
         className={`menu-toggle ${menuOpen ? "active" : ""}`}
         onClick={() => setMenuOpen(!menuOpen)}
@@ -75,7 +72,6 @@ function Navbar() {
         <span></span>
       </div>
 
-      {/* Main Menu */}
       <ul className={`nav_block2 ${menuOpen ? "open" : ""}`}>
         <li>
           <NavLink to="/" onClick={closeMenu}>
@@ -102,7 +98,6 @@ function Navbar() {
         </li>
       </ul>
 
-      {/* Right side */}
       <div className="nav-right">
         <NavLink
           to="/checkout"
@@ -117,27 +112,13 @@ function Navbar() {
 
         <div className="popup-login">
           {isAuthed ? (
-            <>
-              <NavLink to="/reset-password" onClick={closeMenu}>
-                <img src={insurance} alt="Reset password" loading="lazy" />
-                <span>Reset password</span>
-              </NavLink>
-              <NavLink to="/" onClick={onLogout}>
-                <img
-                  src={signin}
-                  alt="Signin"
-                  loading="lazy"
-                />
-                <span>{authUsername ? `Logout (${authUsername})` : "Logout"}</span>
-              </NavLink>
-            </>
+            <NavLink to="/" onClick={onLogout}>
+              <img src={signin} alt="Signin" loading="lazy" />
+              <span>{authUsername ? `Logout (${authUsername})` : "Logout"}</span>
+            </NavLink>
           ) : (
             <NavLink to="/login" onClick={closeMenu}>
-              <img
-                src={signin}
-                alt="Signin"
-                loading="lazy"
-              />
+              <img src={signin} alt="Signin" loading="lazy" />
               <span>Sign in</span>
             </NavLink>
           )}
