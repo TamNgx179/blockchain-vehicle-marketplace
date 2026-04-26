@@ -31,6 +31,27 @@ function toEnglishMessage(message, fallback) {
   return MESSAGE_MAP[message] || message;
 }
 
+function getTokenPayload(token) {
+  try {
+    const payload = token?.split(".")?.[1];
+    if (!payload) return null;
+
+    const normalizedPayload = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const paddedPayload = normalizedPayload.padEnd(
+      Math.ceil(normalizedPayload.length / 4) * 4,
+      "="
+    );
+
+    return JSON.parse(window.atob(paddedPayload));
+  } catch {
+    return null;
+  }
+}
+
+function getPostLoginPath(token) {
+  return getTokenPayload(token)?.isadmin ? "/admin" : "/";
+}
+
 function Auth({ initialMode = "login" }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -66,10 +87,10 @@ function Auth({ initialMode = "login" }) {
 
     localStorage.setItem("authToken", token);
     if (email) localStorage.setItem("authEmail", email);
-    if (username) localStorage.setItem("authUsername", username);
+    localStorage.setItem("authUsername", username || getTokenPayload(token)?.username || "");
     window.dispatchEvent(new Event("auth-change"));
     setMessage("Login successful");
-    navigate("/", { replace: true });
+    navigate(getPostLoginPath(token), { replace: true });
   }, [location.search, navigate]);
 
   const isOtpStep = useMemo(() => mode === "signup" && Boolean(pendingEmail), [mode, pendingEmail]);
@@ -110,12 +131,15 @@ function Auth({ initialMode = "login" }) {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(toEnglishMessage(json?.message, "Login failed"));
+      if (!json?.token) throw new Error("Login failed");
 
-      localStorage.setItem("authToken", json.token || "");
+      const tokenPayload = getTokenPayload(json.token);
+      localStorage.setItem("authToken", json.token);
       localStorage.setItem("authEmail", loginForm.email);
+      localStorage.setItem("authUsername", tokenPayload?.username || "");
       window.dispatchEvent(new Event("auth-change"));
       setMessage(toEnglishMessage(json?.message, "Login successful"));
-      navigate("/", { replace: true });
+      navigate(getPostLoginPath(json.token), { replace: true });
     } catch (err) {
       setError(toEnglishMessage(err?.message, "Login failed"));
     } finally {

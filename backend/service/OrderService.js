@@ -595,12 +595,13 @@ export const verifyCompleteOrderService = async (userId, orderId, txHash) => {
 };
 
 /* ================= VERIFY CANCEL ================= */
-export const verifyCancelOrderService = async (userId, orderId, txHash) => {
+export const verifyCancelOrderService = async (actor, orderId, txHash) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
-    const order = await Order.findOne({ _id: orderId, userId }).session(session);
+    const query = actor?.isadmin ? { _id: orderId } : { _id: orderId, userId: actor?.id };
+    const order = await Order.findOne(query).session(session);
 
     if (!order) throw new Error("Không tìm thấy order");
     if (order.status === "completed") {
@@ -613,6 +614,18 @@ export const verifyCancelOrderService = async (userId, orderId, txHash) => {
     const txCheck = await verifyTransaction(txHash);
     if (!txCheck.exists) throw new Error("Transaction không tồn tại");
     if (!txCheck.success) throw new Error("Transaction thất bại");
+
+    const tx = await getTransactionDetail(txHash);
+    if (!tx) throw new Error("Không lấy được transaction");
+
+    const txFrom = tx.from?.toLowerCase();
+    const allowedWallets = [order.buyerWallet, order.sellerWallet]
+      .filter(Boolean)
+      .map((wallet) => wallet.toLowerCase());
+
+    if (!txFrom || !allowedWallets.includes(txFrom)) {
+      throw new Error("Transaction hủy đơn không phải do buyer hoặc seller thực hiện");
+    }
 
     const contractOrder = await getOrderByBlockchainOrderId(order.blockchainOrderId);
 

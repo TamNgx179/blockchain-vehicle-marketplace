@@ -15,14 +15,14 @@ const ProductList = lazy(() => import("./pages/Admin/Products/ProductList"));
 import ProductEdit from "./pages/Admin/ProductEdit/ProductEdit";
 // --- 1. PROTECTED ROUTE (Cho User đã đăng nhập) ---
 const PrivateRoute = ({ children }) => {
-  const token = localStorage.getItem("token"); // Đổi thành "token" cho khớp với AuthService
+  const token = localStorage.getItem("authToken");
   return token ? children : <Navigate to="/login" replace />;
 };
 
 // --- 2. ADMIN ROUTE (Check quyền qua API) ---
 const AdminRoute = ({ children }) => {
   const [isAdmin, setIsAdmin] = useState(null);
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem("authToken");
 
   useEffect(() => {
     const verifyAdmin = async () => {

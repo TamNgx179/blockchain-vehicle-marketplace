@@ -1,7 +1,63 @@
 import React, { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, Eye, CheckSquare } from 'lucide-react';
+import { ethers } from 'ethers';
 import { orderService } from '../../../services/OrderService';
+import contractABI from '../../../config/abi.json';
 import './OrderList.css';
+
+const CONTRACT_ADDRESS = "0xD0CF607f0bCD60B5ed02896e682450eA4dBf5BB0";
+
+const buildSellerWalletMessage = (sellerWallet, connectedWallet, action = "thực hiện thao tác này") => [
+  `Tài khoản quản trị cần kết nối ví người bán trong MetaMask trước khi ${action}.`,
+  `Ví người bán của đơn: ${sellerWallet || "N/A"}`,
+  `Ví MetaMask hiện tại: ${connectedWallet || "chưa kết nối"}`,
+  "Vui lòng mở MetaMask, chọn đúng account showroom rồi bấm lại."
+].join("\n");
+
+const getVietnameseErrorMessage = (error, fallback) => {
+  const rawMessage = String(
+    error?.response?.data?.message ||
+    error?.reason ||
+    error?.shortMessage ||
+    error?.message ||
+    ""
+  );
+  const normalized = rawMessage.toLowerCase();
+
+  if (!rawMessage) return fallback;
+  if (error?.code === "ACTION_REJECTED" || normalized.includes("user rejected")) {
+    return "Bạn đã từ chối ký giao dịch trên MetaMask.";
+  }
+  if (normalized.includes("insufficient funds")) {
+    return "Ví không đủ ETH để thanh toán phí gas hoặc thực hiện giao dịch.";
+  }
+  if (normalized.includes("not seller")) {
+    return "Ví đang kết nối không phải ví người bán của đơn hàng này.";
+  }
+  if (normalized.includes("not buyer")) {
+    return "Ví đang kết nối không phải ví người mua của đơn hàng này.";
+  }
+  if (normalized.includes("order not paid")) {
+    return "Đơn hàng chưa được thanh toán trên Smart Contract.";
+  }
+  if (normalized.includes("invalid status")) {
+    return "Trạng thái đơn hàng trên Smart Contract chưa phù hợp để thực hiện thao tác này.";
+  }
+  if (normalized.includes("order not found")) {
+    return "Không tìm thấy đơn hàng trên Smart Contract.";
+  }
+  if (normalized.includes("cannot cancel now")) {
+    return "Không thể hủy đơn hàng ở trạng thái hiện tại.";
+  }
+  if (normalized.includes("execution reverted")) {
+    return "Giao dịch bị Smart Contract từ chối. Vui lòng kiểm tra trạng thái đơn hàng và ví đang kết nối.";
+  }
+  if (normalized.includes("network") || normalized.includes("chain")) {
+    return "Mạng blockchain trên MetaMask chưa đúng. Vui lòng chuyển sang mạng Sepolia.";
+  }
+
+  return rawMessage;
+};
 
 const OrderList = () => {
   const [orders, setOrders] = useState([]);
@@ -74,15 +130,60 @@ const OrderList = () => {
 
   // 1. Hàm XÁC NHẬN đơn
   const handleConfirmOrder = async (order) => {
-    const txHash = order.fullTxHash || order.depositTxHash;
-    if (!txHash) return alert("Đơn hàng này chưa có mã giao dịch (txHash)!");
+    if (!order.blockchainOrderId) {
+      return alert("Đơn hàng này chưa có mã định danh Blockchain!");
+    }
+
+    if (!order.sellerWallet) {
+      return alert("Đơn hàng này chưa có địa chỉ ví người bán để xác nhận.");
+    }
+
+    if (!window.ethereum) {
+      return alert("Trình duyệt chưa có MetaMask. Vui lòng cài đặt hoặc bật MetaMask để xác nhận đơn hàng.");
+    }
 
     try {
-      await orderService.verifySellerConfirm(order._id, txHash);
+      const accounts = await window.ethereum.request({
+        method: "eth_requestAccounts",
+      });
+      const connectedWallet = accounts?.[0];
+
+      if (!connectedWallet) {
+        return alert(buildSellerWalletMessage(order.sellerWallet, "", "xác nhận đơn"));
+      }
+
+      if (connectedWallet.toLowerCase() !== order.sellerWallet.toLowerCase()) {
+        return alert(
+          buildSellerWalletMessage(
+            order.sellerWallet,
+            connectedWallet,
+            "xác nhận đơn"
+          )
+        );
+      }
+
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner(connectedWallet);
+
+      const contract = new ethers.Contract(
+        CONTRACT_ADDRESS,
+        contractABI.abi,
+        signer
+      );
+
+      const tx = await contract.confirmOrder(order.blockchainOrderId);
+      const receipt = await tx.wait();
+
+      if (receipt.status !== 1) {
+        throw new Error("Giao dịch xác nhận trên Blockchain thất bại");
+      }
+
+      await orderService.verifySellerConfirm(order._id, tx.hash);
       alert("Xác nhận đơn hàng thành công!");
       fetchOrders();
     } catch (error) {
-      alert("Có lỗi xảy ra khi xác nhận đơn hàng.");
+      console.error("Lỗi khi xác nhận đơn hàng:", error);
+      alert(getVietnameseErrorMessage(error, "Có lỗi xảy ra khi xác nhận đơn hàng."));
     }
   };
 
@@ -96,22 +197,68 @@ const OrderList = () => {
       alert("Hoàn tất đơn hàng thành công!");
       fetchOrders();
     } catch (error) {
-      alert("Có lỗi xảy ra khi hoàn tất đơn hàng.");
+      console.error("Lỗi khi hoàn tất đơn hàng:", error);
+      alert(getVietnameseErrorMessage(error, "Có lỗi xảy ra khi hoàn tất đơn hàng."));
     }
   };
 
   // 3. Hàm HỦY đơn
   const handleCancelOrder = async (order) => {
     if (!window.confirm("Bạn có chắc chắn muốn hủy đơn hàng này?")) return;
-    const txHash = order.fullTxHash || order.depositTxHash;
-    if (!txHash) return alert("Đơn hàng này chưa có mã giao dịch (txHash)!");
+
+    if (!order.blockchainOrderId) {
+      return alert("Đơn hàng này chưa có mã định danh Blockchain!");
+    }
+
+    if (!order.sellerWallet) {
+      return alert("Đơn hàng này chưa có địa chỉ ví người bán để hủy.");
+    }
+
+    if (!window.ethereum) {
+      return alert("Trình duyệt chưa có MetaMask. Vui lòng cài đặt hoặc bật MetaMask để hủy đơn hàng.");
+    }
 
     try {
-      await orderService.verifyCancel(order._id, txHash);
+      const accounts = await window.ethereum.request({
+        method: "eth_requestAccounts",
+      });
+      const connectedWallet = accounts?.[0];
+
+      if (!connectedWallet) {
+        return alert(buildSellerWalletMessage(order.sellerWallet, "", "hủy đơn"));
+      }
+
+      if (connectedWallet.toLowerCase() !== order.sellerWallet.toLowerCase()) {
+        return alert(
+          buildSellerWalletMessage(
+            order.sellerWallet,
+            connectedWallet,
+            "hủy đơn"
+          )
+        );
+      }
+
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner(connectedWallet);
+      const contract = new ethers.Contract(
+        CONTRACT_ADDRESS,
+        contractABI.abi,
+        signer
+      );
+
+      const tx = await contract.cancelOrder(order.blockchainOrderId);
+      const receipt = await tx.wait();
+
+      if (receipt.status !== 1) {
+        throw new Error("Giao dịch hủy đơn trên Blockchain thất bại");
+      }
+
+      await orderService.verifyCancel(order._id, tx.hash);
       alert("Hủy đơn hàng thành công!");
       fetchOrders();
     } catch (error) {
-      alert("Có lỗi xảy ra khi hủy đơn hàng.");
+      console.error("Lỗi khi hủy đơn hàng:", error);
+      alert(getVietnameseErrorMessage(error, "Có lỗi xảy ra khi hủy đơn hàng."));
     }
   };
 
@@ -181,6 +328,7 @@ const OrderList = () => {
                 // Điều kiện: Đã trả tiền (>0)
                 const isPaid = order.paidAmount > 0;
                 const isExpanded = expandedOrderId === order._id;
+                const canCancel = ['pending_deposit', 'pending_payment', 'deposit_paid'].includes(status);
                 return (
                   <React.Fragment key={order._id}>
                     <tr key={order._id} className={isExpanded ? 'row-expanded' : ''}>
@@ -216,8 +364,8 @@ const OrderList = () => {
                         )}
 
                         {/* 3. NÚT HỦY (Cancel) */}
-                        {/* Hiện cho mọi đơn chưa hoàn tất hoặc đã hủy từ trước */}
-                        {status !== 'completed' && status !== 'cancelled' && (
+                        {/* Smart Contract chỉ cho buyer hoặc seller hủy trước khi seller xác nhận đơn. */}
+                        {canCancel && (
                           <button
                             className="btn-action btn-cancel"
                             onClick={() => handleCancelOrder(order)}

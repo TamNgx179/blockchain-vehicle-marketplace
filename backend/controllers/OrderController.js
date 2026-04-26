@@ -150,7 +150,7 @@ export const verifyCancelOrderController = async (req, res) => {
       });
     }
 
-    const order = await verifyCancelOrderService(req.user.id, req.params.id, txHash);
+    const order = await verifyCancelOrderService(req.user, req.params.id, txHash);
 
     res.status(200).json({
       success: true,
