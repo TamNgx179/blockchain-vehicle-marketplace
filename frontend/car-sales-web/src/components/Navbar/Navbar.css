@@ -131,8 +131,45 @@
 .nav-right {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 14px;
   flex-shrink: 0;
+}
+
+/* ORDER HISTORY */
+.order-history-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 2px solid #000;
+  border-radius: 4px;
+  color: #000;
+  background: #fff;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  transition: .3s;
+  white-space: nowrap;
+}
+
+.order-history-link img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+.order-history-link:hover,
+.order-history-link.active {
+  background: #000;
+  color: #fff;
+}
+
+.order-history-link:hover img,
+.order-history-link.active img {
+  filter: invert(1);
 }
 
 /* CART */
@@ -272,7 +309,7 @@
   }
 
   .nav-right {
-    gap: 10px;
+    gap: 9px;
     margin-left: auto;
   }
 
@@ -326,6 +363,22 @@
     width: 14px;
   }
 
+  .order-history-link {
+    width: 34px;
+    height: 34px;
+    min-height: 34px;
+    padding: 0;
+  }
+
+  .order-history-link span {
+    display: none;
+  }
+
+  .order-history-link img {
+    width: 20px;
+    height: 20px;
+  }
+
   .trolley img {
     width: 20px;
   }
@@ -350,5 +403,16 @@
 
   .trolley img {
     width: 17px;
+  }
+
+  .order-history-link {
+    width: 31px;
+    height: 31px;
+    min-height: 31px;
+  }
+
+  .order-history-link img {
+    width: 18px;
+    height: 18px;
   }
 }
