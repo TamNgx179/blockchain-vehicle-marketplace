@@ -894,3 +894,277 @@
   filter: brightness(0.9);
   /* Làm tối màu đi một chút */
 }
+
+/* ===============================
+   RESPONSIVE IMPROVED
+=============================== */
+
+/* Desktop nhỏ / tablet ngang */
+@media (max-width: 1200px) {
+  .cars-page {
+    zoom: 1;
+  }
+
+  .cars-hero-text h1 {
+    font-size: 48px;
+  }
+
+  .cars-layout {
+    grid-template-columns: 280px 1fr;
+    gap: 22px;
+  }
+
+  .cars-item {
+    grid-template-columns: 180px 1fr 120px;
+  }
+}
+
+/* Tablet */
+@media (max-width: 992px) {
+  .cars-hero {
+    padding: 28px 0;
+  }
+
+  .cars-hero-inner {
+    grid-template-columns: 1fr;
+    text-align: center;
+    gap: 24px;
+  }
+
+  .cars-hero-media {
+    justify-content: center;
+  }
+
+  .cars-hero-media img {
+    max-height: 260px;
+  }
+
+  .cars-hero-text h1 {
+    font-size: 42px;
+    line-height: 1.15;
+  }
+
+  .cars-layout {
+    grid-template-columns: 1fr;
+    padding: 24px 5% 60px;
+  }
+
+  .cars-filter-card {
+    position: static;
+  }
+
+  .cars-results-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .cars-results-pager {
+    flex-wrap: wrap;
+  }
+
+  .cars-item {
+    grid-template-columns: 170px 1fr;
+    gap: 16px;
+  }
+
+  .cars-item-price {
+    grid-column: 1 / -1;
+    text-align: left;
+    margin-top: 8px;
+  }
+}
+
+/* Mobile lớn */
+@media (max-width: 768px) {
+  .cars-page {
+    zoom: 1;
+  }
+
+  .cars-hero {
+    padding: 24px 0;
+  }
+
+  .cars-hero-inner {
+    padding: 0 16px;
+  }
+
+  .cars-hero-text h1 {
+    font-size: 34px;
+  }
+
+  .cars-layout {
+    padding: 22px 16px 50px;
+    gap: 18px;
+  }
+
+  .cars-filter-card {
+    padding: 16px;
+    border-radius: 16px;
+  }
+
+  .cars-results-title {
+    font-size: 22px;
+  }
+
+  .cars-results-subtitle {
+    font-size: 14px;
+  }
+
+  .cars-item {
+    grid-template-columns: 1fr;
+    padding: 14px;
+  }
+
+  .cars-item-media {
+    height: 180px;
+  }
+
+  .cars-item-top {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .cars-item-name {
+    font-size: 18px;
+  }
+
+  .cars-item-specs {
+    gap: 10px;
+  }
+
+  .cars-item-meta {
+    gap: 8px;
+  }
+
+  .cars-chip {
+    font-size: 10px;
+    padding: 7px 10px;
+  }
+
+  .cars-item-price {
+    font-size: 20px;
+  }
+
+  .cars-pager-pages {
+    flex-wrap: wrap;
+  }
+
+  .cars-page-btn,
+  .cars-pager-btn {
+    padding: 8px 10px;
+    min-width: 36px;
+  }
+
+  .cars-make-tags {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Mobile nhỏ */
+@media (max-width: 576px) {
+  .cars-hero-text h1 {
+    font-size: 28px;
+  }
+
+  .cars-hero-media img {
+    max-height: 180px;
+  }
+
+  .cars-filter-title {
+    font-size: 16px;
+  }
+
+  .cars-filter-label {
+    font-size: 10px;
+  }
+
+  .cars-filter-input,
+  .cars-filter-select {
+    padding: 10px;
+    font-size: 13px;
+  }
+
+  .cars-model-row {
+    grid-template-columns: 1fr 40px;
+  }
+
+  .cars-model-go {
+    width: 40px;
+    height: 40px;
+  }
+
+  .cars-item-media {
+    height: 150px;
+  }
+
+  .cars-item-name {
+    font-size: 17px;
+  }
+
+  .cars-item-spec {
+    font-size: 11px;
+  }
+
+  .cars-item-price {
+    font-size: 18px;
+  }
+
+  .cars-make-modal {
+    padding: 14px;
+    border-radius: 14px;
+  }
+
+  .cars-make-tags {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .cars-selected-make {
+    grid-template-columns: 38px 1fr 32px;
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .cars-selected-make-logo,
+  .cars-selected-make-fallback {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+/* Mobile cực nhỏ */
+@media (max-width: 400px) {
+  .cars-layout,
+  .cars-hero-inner {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .cars-hero-text h1 {
+    font-size: 24px;
+  }
+
+  .cars-results-title {
+    font-size: 20px;
+  }
+
+  .cars-item {
+    padding: 12px;
+  }
+
+  .cars-chip {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .add-to-cart {
+    width: 36px;
+    padding: 8px;
+  }
+
+  .add-to-cart img {
+    width: 18px;
+    height: 18px;
+  }
+}
