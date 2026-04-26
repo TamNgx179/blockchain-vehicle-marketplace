@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Activity,
@@ -98,7 +98,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
-  const fetchDashboardData = async (days = revenueDays) => {
+  const fetchDashboardData = useCallback(async (days) => {
     setLoading(true);
     setErrorMessage("");
 
@@ -128,11 +128,15 @@ const Dashboard = () => {
     setRecentOrders(dataOf(4, []));
     setBlockchain(dataOf(5, null));
     setLoading(false);
-  };
+  }, []);
 
   useEffect(() => {
-    fetchDashboardData(revenueDays);
-  }, [revenueDays]);
+    const id = setTimeout(() => {
+      fetchDashboardData(revenueDays);
+    }, 0);
+
+    return () => clearTimeout(id);
+  }, [fetchDashboardData, revenueDays]);
 
   const statusData = useMemo(() => {
     const list = Array.isArray(orderStatus) ? orderStatus : [];

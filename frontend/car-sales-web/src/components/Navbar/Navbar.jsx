@@ -1,5 +1,6 @@
 import signin from "../../assets/icon/signin.png";
 import trolley from "../../assets/icon/trolley.png";
+import insurance from "../../assets/icon/insurance.png";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useMemo, useSyncExternalStore, useState } from "react";
 import { useCart } from "../../context/CartContext";
@@ -115,20 +116,31 @@ function Navbar() {
         </NavLink>
 
         <div className="popup-login">
-          <NavLink
-            to={isAuthed ? "/" : "/login"}
-            onClick={isAuthed ? onLogout : closeMenu}
-          >
-            <img src={signin} alt="Signin" loading="lazy" />
-
-            <span>
-              {isAuthed
-                ? authUsername
-                  ? `Logout (${authUsername})`
-                  : "Logout"
-                : "Sign in"}
-            </span>
-          </NavLink>
+          {isAuthed ? (
+            <>
+              <NavLink to="/reset-password" onClick={closeMenu}>
+                <img src={insurance} alt="Reset password" loading="lazy" />
+                <span>Reset password</span>
+              </NavLink>
+              <NavLink to="/" onClick={onLogout}>
+                <img
+                  src={signin}
+                  alt="Signin"
+                  loading="lazy"
+                />
+                <span>{authUsername ? `Logout (${authUsername})` : "Logout"}</span>
+              </NavLink>
+            </>
+          ) : (
+            <NavLink to="/login" onClick={closeMenu}>
+              <img
+                src={signin}
+                alt="Signin"
+                loading="lazy"
+              />
+              <span>Sign in</span>
+            </NavLink>
+          )}
         </div>
       </div>
     </nav>

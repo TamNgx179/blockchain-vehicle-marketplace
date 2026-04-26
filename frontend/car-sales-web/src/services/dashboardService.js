@@ -6,12 +6,8 @@ const DashboardService = {
    * Tương ứng BE: router.get("/summary", ...)
    */
   getSummary: async () => {
-    try {
-      const response = await api.get("/dashboard/summary");
-      return response; // Trả về object chứa totalUsers, totalRevenue, completionRate...
-    } catch (error) {
-      throw error;
-    }
+    const response = await api.get("/dashboard/summary");
+    return response;
   },
 
   /**
@@ -20,14 +16,10 @@ const DashboardService = {
    * Tương ứng BE: router.get("/revenue", ...)
    */
   getRevenue: async (days = 7) => {
-    try {
-      const response = await api.get(`/dashboard/revenue`, {
-        params: { days }
-      });
-      return response; // Trả về mảng [{ _id: "2024-03-20", revenue: 5000 }, ...]
-    } catch (error) {
-      throw error;
-    }
+    const response = await api.get(`/dashboard/revenue`, {
+      params: { days }
+    });
+    return response;
   },
 
   /**
@@ -35,12 +27,8 @@ const DashboardService = {
    * Tương ứng BE: router.get("/top-products", ...)
    */
   getTopProducts: async () => {
-    try {
-      const response = await api.get("/dashboard/top-products");
-      return response; // Trả về mảng [{ name: "Tesla Model S", sold: 10 }, ...]
-    } catch (error) {
-      throw error;
-    }
+    const response = await api.get("/dashboard/top-products");
+    return response;
   },
 
   /**
@@ -48,12 +36,8 @@ const DashboardService = {
    * Tương ứng BE: router.get("/order-status", ...)
    */
   getOrderStatus: async () => {
-    try {
-      const response = await api.get("/dashboard/order-status");
-      return response; // Trả về mảng [{ _id: "pending", count: 5 }, ...]
-    } catch (error) {
-      throw error;
-    }
+    const response = await api.get("/dashboard/order-status");
+    return response;
   },
 
   /**
@@ -61,12 +45,8 @@ const DashboardService = {
    * Tương ứng BE: router.get("/recent-orders", ...)
    */
   getRecentOrders: async () => {
-    try {
-      const response = await api.get("/dashboard/recent-orders");
-      return response;
-    } catch (error) {
-      throw error;
-    }
+    const response = await api.get("/dashboard/recent-orders");
+    return response;
   },
 
   /**
@@ -74,12 +54,8 @@ const DashboardService = {
    * Tương ứng BE: router.get("/blockchain", ...)
    */
   getBlockchainStats: async () => {
-    try {
-      const response = await api.get("/dashboard/blockchain");
-      return response;
-    } catch (error) {
-      throw error;
-    }
+    const response = await api.get("/dashboard/blockchain");
+    return response;
   }
 };
 
