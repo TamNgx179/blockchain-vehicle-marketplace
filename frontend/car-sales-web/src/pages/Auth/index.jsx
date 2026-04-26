@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
 import Footer from "../../components/Footer/Footer";
 import AuthService from "../../services/AuthService";
+import googleLogo from "../../assets/icon/google.webp";
 import "./Auth.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
@@ -460,6 +461,7 @@ function Auth({ initialMode = "login" }) {
                   onClick={handleGoogleLogin}
                   disabled={loading}
                 >
+                  <img src={googleLogo} alt="" aria-hidden="true" />
                   Continue with Google
                 </button>
               </form>
@@ -594,6 +596,7 @@ function Auth({ initialMode = "login" }) {
                   onClick={handleGoogleLogin}
                   disabled={loading}
                 >
+                  <img src={googleLogo} alt="" aria-hidden="true" />
                   Continue with Google
                 </button>
               </form>

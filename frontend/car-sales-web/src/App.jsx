@@ -12,6 +12,8 @@ import AdminLayout from "./pages/Admin/AdminLayout";
 const AdminDashboard = lazy(() => import("./pages/Admin/Dashboard/Dashboard"));
 const OrderList = lazy(() => import("./pages/Admin/Orders/OrderList"));
 const ProductList = lazy(() => import("./pages/Admin/Products/ProductList"));
+const MyOrders = lazy(() => import("./pages/MyOrders/MyOrders"));
+const Profile = lazy(() => import("./pages/Profile/Profile"));
 import ProductEdit from "./pages/Admin/ProductEdit/ProductEdit";
 // --- 1. PROTECTED ROUTE (Cho User đã đăng nhập) ---
 const PrivateRoute = ({ children }) => {
@@ -73,6 +75,8 @@ function App() {
 
             {/* PRIVATE */}
             <Route path="/checkout" element={<PrivateRoute><Checkout notifyRef={notifyRef} /></PrivateRoute>} />
+            <Route path="/orders" element={<PrivateRoute><MyOrders /></PrivateRoute>} />
+            <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
 
             {/* ADMIN ONLY */}
             <Route

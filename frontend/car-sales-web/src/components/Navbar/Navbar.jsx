@@ -1,9 +1,8 @@
 import signin from "../../assets/icon/signin.png";
 import trolley from "../../assets/icon/trolley.png";
-import insurance from "../../assets/icon/insurance.png";
-import orderReceiving from "../../assets/icon/order-receiving.png";
 import { NavLink, useNavigate } from "react-router-dom";
-import { useMemo, useSyncExternalStore, useState } from "react";
+import { useEffect, useMemo, useSyncExternalStore, useState } from "react";
+import { LogOut, PackageCheck, Pencil, UserRound, X } from "lucide-react";
 import { useCart } from "../../context/CartContext";
 import "./Navbar.css";
 
@@ -21,12 +20,14 @@ const subscribeAuthStore = (callback) => {
 
 const getAuthTokenSnapshot = () => localStorage.getItem("authToken") || "";
 const getAuthUsernameSnapshot = () => localStorage.getItem("authUsername") || "";
+const getAuthEmailSnapshot = () => localStorage.getItem("authEmail") || "";
 
 function Navbar() {
   const { cartItems } = useCart();
   const navigate = useNavigate();
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const [userPanelOpen, setUserPanelOpen] = useState(false);
 
   const authToken = useSyncExternalStore(
     subscribeAuthStore,
@@ -38,20 +39,44 @@ function Navbar() {
     getAuthUsernameSnapshot
   );
 
+  const authEmail = useSyncExternalStore(
+    subscribeAuthStore,
+    getAuthEmailSnapshot
+  );
+
   const isAuthed = useMemo(() => Boolean(authToken), [authToken]);
 
   const closeMenu = () => setMenuOpen(false);
+  const closeUserPanel = () => setUserPanelOpen(false);
+  const closeNavigation = () => {
+    closeMenu();
+    closeUserPanel();
+  };
+
+  useEffect(() => {
+    if (!userPanelOpen) return;
+
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") {
+        closeUserPanel();
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [userPanelOpen]);
 
   const onLogout = (e) => {
     e.preventDefault();
 
     localStorage.removeItem("authToken");
+    localStorage.removeItem("token");
     localStorage.removeItem("authEmail");
     localStorage.removeItem("authUsername");
 
     window.dispatchEvent(new Event("auth-change"));
 
-    closeMenu();
+    closeNavigation();
     navigate("/", { replace: true });
   };
 
@@ -69,7 +94,10 @@ function Navbar() {
       {/* Hamburger */}
       <div
         className={`menu-toggle ${menuOpen ? "active" : ""}`}
-        onClick={() => setMenuOpen(!menuOpen)}
+        onClick={() => {
+          closeUserPanel();
+          setMenuOpen(!menuOpen);
+        }}
       >
         <span></span>
         <span></span>
@@ -105,24 +133,9 @@ function Navbar() {
 
       {/* Right side */}
       <div className="nav-right">
-        {isAuthed && (
-          <NavLink
-            to="/orders"
-            onClick={closeMenu}
-            className={({ isActive }) =>
-              isActive ? "order-history-link active" : "order-history-link"
-            }
-            title="Đơn hàng của tôi"
-            aria-label="Đơn hàng của tôi"
-          >
-            <img src={orderReceiving} alt="Đơn hàng" loading="lazy" />
-            <span>Đơn hàng</span>
-          </NavLink>
-        )}
-
         <NavLink
           to="/checkout"
-          onClick={closeMenu}
+          onClick={closeNavigation}
           className={({ isActive }) =>
             isActive ? "trolley active" : "trolley"
           }
@@ -131,24 +144,81 @@ function Navbar() {
           <span className="counter">{cartItems.length}</span>
         </NavLink>
 
-        <div className="popup-login">
-          {isAuthed ? (
-            <>
-              <NavLink to="/reset-password" onClick={closeMenu}>
-                <img src={insurance} alt="Reset password" loading="lazy" />
-                <span>Reset password</span>
-              </NavLink>
-              <NavLink to="/" onClick={onLogout}>
-                <img
-                  src={signin}
-                  alt="Signin"
-                  loading="lazy"
-                />
-                <span>{authUsername ? `Logout (${authUsername})` : "Logout"}</span>
-              </NavLink>
-            </>
-          ) : (
-            <NavLink to="/login" onClick={closeMenu}>
+        {isAuthed ? (
+          <>
+            <button
+              type="button"
+              className={`user-menu-button ${userPanelOpen ? "active" : ""}`}
+              onClick={() => {
+                closeMenu();
+                setUserPanelOpen((open) => !open);
+              }}
+              aria-label="Open user menu"
+              aria-expanded={userPanelOpen}
+            >
+              <UserRound size={20} />
+            </button>
+
+            <button
+              type="button"
+              className={`user-sidebar-backdrop ${userPanelOpen ? "open" : ""}`}
+              onClick={closeUserPanel}
+              aria-label="Close user menu"
+              tabIndex={userPanelOpen ? 0 : -1}
+            />
+
+            <aside
+              className={`user-sidebar ${userPanelOpen ? "open" : ""}`}
+              aria-hidden={!userPanelOpen}
+            >
+              <div className="user-sidebar-header">
+                <div className="user-avatar">
+                  <UserRound size={24} />
+                </div>
+                <button type="button" onClick={closeUserPanel} aria-label="Close user menu">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="user-sidebar-profile">
+                <span>Signed in as</span>
+                <strong>{authUsername || "Customer"}</strong>
+                {authEmail && <p>{authEmail}</p>}
+              </div>
+
+              <div className="user-sidebar-links">
+                <NavLink
+                  to="/profile"
+                  onClick={closeNavigation}
+                  className={({ isActive }) =>
+                    isActive ? "user-sidebar-link active" : "user-sidebar-link"
+                  }
+                >
+                  <Pencil size={18} />
+                  Profile
+                </NavLink>
+
+                <NavLink
+                  to="/orders"
+                  onClick={closeNavigation}
+                  className={({ isActive }) =>
+                    isActive ? "user-sidebar-link active" : "user-sidebar-link"
+                  }
+                >
+                  <PackageCheck size={18} />
+                  My orders
+                </NavLink>
+              </div>
+
+              <button type="button" className="user-sidebar-logout" onClick={onLogout}>
+                <LogOut size={18} />
+                Logout
+              </button>
+            </aside>
+          </>
+        ) : (
+          <div className="popup-login">
+            <NavLink to="/login" onClick={closeNavigation}>
               <img
                 src={signin}
                 alt="Signin"
@@ -156,8 +226,8 @@ function Navbar() {
               />
               <span>Sign in</span>
             </NavLink>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </nav>
   );

@@ -113,13 +113,16 @@
 
 .auth-forgot-header {
   text-align: center;
+  display: grid;
+  justify-items: center;
+  gap: 0;
 }
 
 .auth-icon {
   width: 54px;
   height: 54px;
 
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
 
@@ -134,10 +137,12 @@
 }
 
 .auth-back-link {
-  display: inline-flex;
+  justify-self: start;
+  display: flex;
   align-items: center;
 
-  margin: 0 auto 16px 0;
+  width: max-content;
+  margin: 0 0 18px;
   padding: 0;
 
   border: 0;
@@ -154,6 +159,11 @@
 .auth-back-link:hover {
   color: #111;
   transform: translateX(-2px);
+}
+
+.auth-forgot-header .auth-kicker {
+  justify-content: center;
+  margin-bottom: 10px;
 }
 
 /* ===============================
@@ -427,22 +437,11 @@
   box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06) !important;
 }
 
-.auth-google-btn::before {
-  content: "G";
-
-  width: 22px;
-  height: 22px;
-
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  border-radius: 999px;
-  background: #f3f4f6;
-
-  color: #111;
-  font-size: 13px;
-  font-weight: 900;
+.auth-google-btn img {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  object-fit: contain;
 }
 
 .auth-google-btn:hover {

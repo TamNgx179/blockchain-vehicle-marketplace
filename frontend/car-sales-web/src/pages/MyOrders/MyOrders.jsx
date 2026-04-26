@@ -28,34 +28,34 @@ const SEPOLIA_CHAIN_HEX = "0xaa36a7";
 
 const STATUS_CONFIG = {
   pending_deposit: {
-    label: "Chờ đặt cọc",
+    label: "Awaiting deposit",
     tone: "warning",
-    description: "Đơn đã được tạo, bạn cần hoàn tất giao dịch đặt cọc.",
+    description: "Your order has been created. Please complete the deposit payment.",
   },
   pending_payment: {
-    label: "Chờ thanh toán",
+    label: "Awaiting payment",
     tone: "warning",
-    description: "Đơn đang chờ thanh toán hoặc chờ showroom xác nhận giao dịch.",
+    description: "Your order is waiting for payment or showroom confirmation.",
   },
   deposit_paid: {
-    label: "Đã đặt cọc",
+    label: "Deposit paid",
     tone: "info",
-    description: "Tiền cọc đã được xác minh, đơn đang chờ showroom xác nhận.",
+    description: "Your deposit has been verified. The order is waiting for showroom confirmation.",
   },
   processing: {
-    label: "Đang xử lý",
+    label: "Processing",
     tone: "primary",
-    description: "Showroom đã xác nhận. Sau khi nhận xe, bạn có thể hoàn tất giao dịch.",
+    description: "The showroom has confirmed your order. Complete the transaction after receiving the car.",
   },
   completed: {
-    label: "Hoàn tất",
+    label: "Completed",
     tone: "success",
-    description: "Giao dịch đã hoàn tất và được ghi nhận trên hệ thống.",
+    description: "This transaction has been completed and recorded in the system.",
   },
   cancelled: {
-    label: "Đã hủy",
+    label: "Cancelled",
     tone: "danger",
-    description: "Đơn hàng đã được hủy.",
+    description: "This order has been cancelled.",
   },
 };
 
@@ -67,7 +67,7 @@ const formatCurrency = (value) =>
   }).format(Number(value) || 0);
 
 const shortText = (value, start = 8, end = 6) => {
-  if (!value) return "Chưa có";
+  if (!value) return "Not available";
   return `${String(value).slice(0, start)}...${String(value).slice(-end)}`;
 };
 
@@ -81,21 +81,21 @@ const getErrorMessage = (error) => {
   );
   const normalized = raw.toLowerCase();
 
-  if (!raw) return "Có lỗi xảy ra khi xử lý giao dịch.";
+  if (!raw) return "Something went wrong while processing the transaction.";
   if (error?.code === "ACTION_REJECTED" || normalized.includes("user rejected")) {
-    return "Bạn đã từ chối ký giao dịch trên MetaMask.";
+    return "You rejected the transaction in MetaMask.";
   }
   if (normalized.includes("insufficient funds")) {
-    return "Ví không đủ ETH để thanh toán hoặc trả phí gas.";
+    return "Your wallet does not have enough ETH for the payment or gas fee.";
   }
   if (normalized.includes("not buyer")) {
-    return "Ví MetaMask hiện tại không phải ví người mua của đơn hàng này.";
+    return "The connected MetaMask wallet is not the buyer wallet for this order.";
   }
   if (normalized.includes("cannot cancel now")) {
-    return "Đơn hàng không còn ở trạng thái có thể hủy.";
+    return "This order can no longer be cancelled.";
   }
   if (normalized.includes("order not confirmed")) {
-    return "Đơn hàng chưa được showroom xác nhận nên chưa thể hoàn tất.";
+    return "The order has not been confirmed by the showroom yet.";
   }
   return raw;
 };
@@ -120,7 +120,7 @@ function MyOrders() {
       const list = Array.isArray(response) ? response : response?.data || [];
       setOrders(list);
     } catch (error) {
-      console.error("Lỗi khi tải đơn hàng:", error);
+      console.error("Failed to load orders:", error);
       alert(getErrorMessage(error));
     } finally {
       setLoading(false);
@@ -163,7 +163,7 @@ function MyOrders() {
 
   const getContract = async (order) => {
     if (!window.ethereum) {
-      throw new Error("Trình duyệt chưa cài MetaMask.");
+      throw new Error("MetaMask is not installed in this browser.");
     }
 
     const provider = new ethers.BrowserProvider(window.ethereum);
@@ -200,7 +200,7 @@ function MyOrders() {
       order.buyerWallet &&
       connectedWallet.toLowerCase() !== order.buyerWallet.toLowerCase()
     ) {
-      throw new Error("Ví MetaMask hiện tại không phải ví người mua của đơn hàng này.");
+      throw new Error("The connected MetaMask wallet is not the buyer wallet for this order.");
     }
 
     return new ethers.Contract(CONTRACT_ADDRESS, contractArtifact.abi, signer);
@@ -213,7 +213,7 @@ function MyOrders() {
       await handler();
       await fetchOrders();
     } catch (error) {
-      console.error("Lỗi xử lý đơn hàng:", error);
+      console.error("Failed to process order:", error);
       alert(getErrorMessage(error));
     } finally {
       setActionState(null);
@@ -228,7 +228,7 @@ function MyOrders() {
       });
       await tx.wait();
       await orderService.verifyDeposit(order._id, tx.hash);
-      alert("Đặt cọc thành công! Đơn hàng đang chờ showroom xác nhận.");
+      alert("Deposit paid successfully. Your order is waiting for showroom confirmation.");
     });
   };
 
@@ -240,29 +240,29 @@ function MyOrders() {
       });
       await tx.wait();
       await orderService.verifyFullPayment(order._id, tx.hash);
-      alert("Thanh toán thành công! Đơn hàng đang chờ showroom xác nhận.");
+      alert("Payment completed successfully. Your order is waiting for showroom confirmation.");
     });
   };
 
   const handleComplete = (order) => {
-    if (!window.confirm("Bạn xác nhận đã nhận xe và muốn hoàn tất giao dịch?")) return;
+    if (!window.confirm("Have you received the car and want to complete this transaction?")) return;
     runOrderAction(order, "complete", async () => {
       const contract = await getContract(order);
       const tx = await contract.completeOrder(order.blockchainOrderId);
       await tx.wait();
       await orderService.verifyComplete(order._id, tx.hash);
-      alert("Giao dịch đã hoàn tất thành công!");
+      alert("The transaction has been completed successfully.");
     });
   };
 
   const handleCancel = (order) => {
-    if (!window.confirm("Bạn có chắc chắn muốn hủy đơn hàng này?")) return;
+    if (!window.confirm("Are you sure you want to cancel this order?")) return;
     runOrderAction(order, "cancel", async () => {
       const contract = await getContract(order);
       const tx = await contract.cancelOrder(order.blockchainOrderId);
       await tx.wait();
       await orderService.verifyCancel(order._id, tx.hash);
-      alert("Hủy đơn hàng thành công!");
+      alert("Order cancelled successfully.");
     });
   };
 
@@ -275,7 +275,7 @@ function MyOrders() {
       return (
         <button className="order-action primary" onClick={() => handlePayDeposit(order)} disabled={Boolean(actionState)}>
           {isRunning && actionState.action === "payDeposit" ? <LoaderCircle className="spin-icon" size={17} /> : <Wallet size={17} />}
-          Đặt cọc
+          Pay deposit
         </button>
       );
     }
@@ -284,7 +284,7 @@ function MyOrders() {
       return (
         <button className="order-action primary" onClick={() => handlePayFull(order)} disabled={Boolean(actionState)}>
           {isRunning && actionState.action === "payFull" ? <LoaderCircle className="spin-icon" size={17} /> : <CreditCard size={17} />}
-          Thanh toán
+          Pay now
         </button>
       );
     }
@@ -293,7 +293,7 @@ function MyOrders() {
       return (
         <button className="order-action success" onClick={() => handleComplete(order)} disabled={Boolean(actionState)}>
           {isRunning && actionState.action === "complete" ? <LoaderCircle className="spin-icon" size={17} /> : <PackageCheck size={17} />}
-          Đã nhận xe
+          Received car
         </button>
       );
     }
@@ -310,21 +310,21 @@ function MyOrders() {
       <main className="my-orders-page">
         <header className="my-orders-header">
           <div>
-            <p className="my-orders-eyebrow">Lịch sử giao dịch</p>
-            <h1>Đơn hàng của tôi</h1>
-            <p>Theo dõi trạng thái, txHash và hoàn tất giao dịch sau khi nhận xe.</p>
+            <p className="my-orders-eyebrow">Transaction history</p>
+            <h1>My orders</h1>
+            <p>Track order status, txHash, and complete your transaction after receiving the car.</p>
           </div>
           <button className="refresh-orders-btn" onClick={fetchOrders} disabled={loading || Boolean(actionState)}>
             <RefreshCw size={17} className={loading ? "spin-icon" : ""} />
-            Làm mới
+            Refresh
           </button>
         </header>
 
         <section className="order-stats-grid">
-          <StatCard icon={<Clock3 size={22} />} label="Tổng đơn" value={stats.total} />
-          <StatCard icon={<Wallet size={22} />} label="Đang chờ" value={stats.waiting} />
-          <StatCard icon={<ShieldCheck size={22} />} label="Đang xử lý" value={stats.processing} />
-          <StatCard icon={<CheckCircle2 size={22} />} label="Hoàn tất" value={stats.completed} />
+          <StatCard icon={<Clock3 size={22} />} label="Total orders" value={stats.total} />
+          <StatCard icon={<Wallet size={22} />} label="Waiting" value={stats.waiting} />
+          <StatCard icon={<ShieldCheck size={22} />} label="Processing" value={stats.processing} />
+          <StatCard icon={<CheckCircle2 size={22} />} label="Completed" value={stats.completed} />
         </section>
 
         <section className="my-orders-toolbar">
@@ -333,11 +333,11 @@ function MyOrders() {
             <input
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Tìm theo mã đơn, ví, tên xe..."
+              placeholder="Search by order ID, wallet, car name..."
             />
           </div>
           <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
-            <option value="all">Tất cả trạng thái</option>
+            <option value="all">All statuses</option>
             {Object.entries(STATUS_CONFIG).map(([status, config]) => (
               <option key={status} value={status}>
                 {config.label}
@@ -350,10 +350,10 @@ function MyOrders() {
           {loading ? (
             <div className="orders-empty">
               <LoaderCircle className="spin-icon" size={24} />
-              Đang tải đơn hàng...
+              Loading orders...
             </div>
           ) : filteredOrders.length === 0 ? (
-            <div className="orders-empty">Bạn chưa có đơn hàng phù hợp.</div>
+            <div className="orders-empty">No matching orders found.</div>
           ) : (
             filteredOrders.map((order) => {
               const config = STATUS_CONFIG[order.status] || STATUS_CONFIG.pending_deposit;
@@ -369,14 +369,14 @@ function MyOrders() {
                         <strong>#{order._id.slice(-8)}</strong>
                         <span className={`order-status-pill ${config.tone}`}>{config.label}</span>
                       </div>
-                      <h2>{order.items?.[0]?.name || "Đơn hàng xe"}</h2>
-                      <p>{order.items?.length || 0} sản phẩm · Blockchain ID {order.blockchainOrderId}</p>
+                      <h2>{order.items?.[0]?.name || "Vehicle order"}</h2>
+                      <p>{order.items?.length || 0} item(s) - Blockchain ID {order.blockchainOrderId}</p>
                     </div>
 
                     <div className="order-money-box">
-                      <span>Tổng giá trị</span>
+                      <span>Total value</span>
                       <strong>{formatCurrency(order.totalAmount)}</strong>
-                      <small>Đã thanh toán: {formatCurrency(order.paidAmount)}</small>
+                      <small>Paid: {formatCurrency(order.paidAmount)}</small>
                     </div>
 
                     <div className="order-card-actions">
@@ -384,21 +384,21 @@ function MyOrders() {
                       {canCancel(order) && (
                         <button className="order-action danger" onClick={() => handleCancel(order)} disabled={Boolean(actionState)}>
                           {isRunning && actionState.action === "cancel" ? <LoaderCircle className="spin-icon" size={17} /> : <Ban size={17} />}
-                          Hủy đơn
+                          Cancel order
                         </button>
                       )}
                       <button className="order-action ghost" onClick={() => setExpandedOrderId(isExpanded ? "" : order._id)}>
                         <ChevronDown size={17} className={isExpanded ? "rotated" : ""} />
-                        Chi tiết
+                        Details
                       </button>
                     </div>
                   </div>
 
                   <div className="order-progress">
-                    <ProgressStep done label="Tạo đơn" />
-                    <ProgressStep done={["deposit_paid", "processing", "completed"].includes(order.status) || Boolean(order.fullTxHash)} label="Thanh toán" />
-                    <ProgressStep done={["processing", "completed"].includes(order.status)} label="Showroom xác nhận" />
-                    <ProgressStep done={order.status === "completed"} label="Hoàn tất" />
+                    <ProgressStep done label="Order created" />
+                    <ProgressStep done={["deposit_paid", "processing", "completed"].includes(order.status) || Boolean(order.fullTxHash)} label="Payment" />
+                    <ProgressStep done={["processing", "completed"].includes(order.status)} label="Showroom confirmed" />
+                    <ProgressStep done={order.status === "completed"} label="Completed" />
                   </div>
 
                   <p className="order-status-note">{config.description}</p>
@@ -406,7 +406,7 @@ function MyOrders() {
                   {isExpanded && (
                     <div className="order-detail-panel">
                       <div>
-                        <h3>Sản phẩm</h3>
+                        <h3>Products</h3>
                         <ul className="order-items">
                           {(order.items || []).map((item) => (
                             <li key={`${item.productId}-${item.name}`}>
@@ -418,27 +418,27 @@ function MyOrders() {
                       </div>
 
                       <div>
-                        <h3>Nhận xe</h3>
-                        <p>{order.deliveryMethod === "pickup" ? "Nhận tại showroom" : "Giao xe tận nơi"}</p>
+                        <h3>Delivery</h3>
+                        <p>{order.deliveryMethod === "pickup" ? "Pickup at showroom" : "Home delivery"}</p>
                         <p>{order.pickupInfo?.name || order.shippingAddress?.name}</p>
                         <p>{order.pickupInfo?.phone || order.shippingAddress?.phone}</p>
                         {order.shippingAddress?.address && <p>{order.shippingAddress.address}</p>}
-                        {order.pickupInfo?.pickupDate && <p>Ngày hẹn: {new Date(order.pickupInfo.pickupDate).toLocaleDateString("vi-VN")}</p>}
+                        {order.pickupInfo?.pickupDate && <p>Appointment: {new Date(order.pickupInfo.pickupDate).toLocaleDateString("en-US")}</p>}
                       </div>
 
                       <div>
                         <h3>Blockchain</h3>
-                        <p>Ví người mua: <span title={order.buyerWallet}>{shortText(order.buyerWallet, 6, 4)}</span></p>
-                        <p>Ví showroom: <span title={order.sellerWallet}>{shortText(order.sellerWallet, 6, 4)}</span></p>
-                        <p>Loại thanh toán: {order.paymentType === "deposit" ? "Đặt cọc" : "Thanh toán toàn phần"}</p>
-                        <p>Tiền cọc: {formatCurrency(order.depositAmount)}</p>
+                        <p>Buyer wallet: <span title={order.buyerWallet}>{shortText(order.buyerWallet, 6, 4)}</span></p>
+                        <p>Showroom wallet: <span title={order.sellerWallet}>{shortText(order.sellerWallet, 6, 4)}</span></p>
+                        <p>Payment type: {order.paymentType === "deposit" ? "Deposit" : "Full payment"}</p>
+                        <p>Deposit amount: {formatCurrency(order.depositAmount)}</p>
                         {txHash ? (
                           <a className="tx-link" href={`https://sepolia.etherscan.io/tx/${txHash}`} target="_blank" rel="noreferrer">
                             {shortText(txHash, 10, 8)}
                             <ExternalLink size={14} />
                           </a>
                         ) : (
-                          <p>TxHash: Chưa có</p>
+                          <p>TxHash: Not available</p>
                         )}
                       </div>
                     </div>
