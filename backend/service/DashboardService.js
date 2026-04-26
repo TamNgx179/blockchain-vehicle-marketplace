@@ -145,25 +145,74 @@ export const getSummaryService = async () => {
 
 /* ================= REVENUE ================= */
 export const getRevenueService = async (days = 7) => {
-  return await Order.aggregate([
+  const safeDays = Math.min(Math.max(Number(days) || 7, 1), 90);
+  const startDate = new Date();
+  startDate.setHours(0, 0, 0, 0);
+  startDate.setDate(startDate.getDate() - safeDays + 1);
+
+  const formatDateKey = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const rawData = await Order.aggregate([
     {
       $match: {
-        status: "completed",
+        status: { $ne: "cancelled" },
         createdAt: {
-          $gte: new Date(Date.now() - days * 86400000),
+          $gte: startDate,
         },
       },
     },
     {
       $group: {
         _id: {
-          $dateToString: { format: "%Y-%m-%d", date: "$createdAt" },
+          $dateToString: {
+            format: "%Y-%m-%d",
+            date: "$createdAt",
+            timezone: "+07:00",
+          },
         },
-        revenue: { $sum: "$totalAmount" },
+        revenue: { $sum: { $ifNull: ["$paidAmount", 0] } },
+        completedRevenue: {
+          $sum: {
+            $cond: [
+              { $eq: ["$status", "completed"] },
+              { $ifNull: ["$totalAmount", 0] },
+              0,
+            ],
+          },
+        },
+        orderValue: { $sum: { $ifNull: ["$totalAmount", 0] } },
+        orders: { $sum: 1 },
       },
     },
     { $sort: { _id: 1 } },
   ]);
+
+  const dataByDate = new Map(rawData.map((item) => [item._id, item]));
+
+  return Array.from({ length: safeDays }, (_, index) => {
+    const date = new Date(startDate);
+    date.setDate(startDate.getDate() + index);
+    const key = formatDateKey(date);
+    const item = dataByDate.get(key);
+
+    return {
+      _id: key,
+      date: key,
+      label: date.toLocaleDateString("vi-VN", {
+        day: "2-digit",
+        month: "2-digit",
+      }),
+      revenue: item?.revenue || 0,
+      completedRevenue: item?.completedRevenue || 0,
+      orderValue: item?.orderValue || 0,
+      orders: item?.orders || 0,
+    };
+  });
 };
 
 /* ================= TOP PRODUCTS ================= */
