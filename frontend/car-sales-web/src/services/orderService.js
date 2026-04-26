@@ -48,5 +48,11 @@ export const orderService = {
   verifyCancel: async (id, txHash) => {
     const response = await api.post(`/orders/${id}/verify-cancel`, { txHash });
     return response.data;
+  },
+  getAllOrders: async () => {
+    // Lưu ý: Đảm bảo đường dẫn này khớp với prefix router của bạn 
+    // Ví dụ nếu router tổng là app.use('/orders', orderRoutes) thì endpoint là /orders/all-orders
+    const response = await api.get('/orders/all-orders');
+    return response.data;
   }
 };
