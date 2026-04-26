@@ -169,10 +169,10 @@ export const getRevenueService = async (days = 7) => {
 /* ================= TOP PRODUCTS ================= */
 export const getTopProductsService = async () => {
   return await Order.aggregate([
-    { 
-        $match: { 
-            status: { $in: ["deposit_paid", "processing", "completed"] }
-        } 
+    {
+      $match: {
+        status: { $in: ["deposit_paid", "processing", "completed"] }
+      }
     },
     { $unwind: "$items" },
     {

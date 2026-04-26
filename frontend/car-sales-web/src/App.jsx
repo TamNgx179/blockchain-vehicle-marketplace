@@ -8,9 +8,11 @@ import { CartProvider } from "./context/CartContext";
 import Notification from './components/Notification/Notification';
 import Auth from "./pages/Auth";
 import AccountService from "./services/AccountService"; // Import service của bạn
-
+import AdminLayout from "./pages/Admin/AdminLayout";
 const AdminDashboard = lazy(() => import("./pages/Admin/Dashboard/Dashboard"));
-
+const OrderList = lazy(() => import("./pages/Admin/Orders/OrderList"));
+const ProductList = lazy(() => import("./pages/Admin/Products/ProductList"));
+import ProductEdit from "./pages/Admin/ProductEdit/ProductEdit";
 // --- 1. PROTECTED ROUTE (Cho User đã đăng nhập) ---
 const PrivateRoute = ({ children }) => {
   const token = localStorage.getItem("token"); // Đổi thành "token" cho khớp với AuthService
@@ -73,19 +75,29 @@ function App() {
 
             {/* ADMIN ONLY */}
             <Route
-              path="/admin/*"
+              path="/admin"
               element={
                 <AdminRoute>
-                  <AdminDashboard />
+                  <AdminLayout /> {/* Cái khung bảo vệ */}
                 </AdminRoute>
               }
-            />
+            >
+              {/* path="/admin" -> Hiện trang Dashboard (biểu đồ bạn đã viết) */}
+              <Route index element={<AdminDashboard />} />
+
+              {/* path="/admin/orders" -> Hiện danh sách đơn */}
+              <Route path="orders" element={<OrderList />} />
+
+              {/* path="/admin/products" -> Hiện danh sách sản phẩm */}
+              <Route path="products" element={<ProductList />} />
+              <Route path="productEdit/:id" element={<ProductEdit />} />
+            </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
       </BrowserRouter>
-    </CartProvider>
+    </CartProvider >
   );
 }
 
