@@ -6,7 +6,10 @@ import {
   verifyCompleteOrderService,
   verifyCancelOrderService,
   getMyOrdersService,
+  getAllOrdersService,
   getOrderDetailService,
+  adminGetOrdersService,
+  adminGetOrderDetailService,
 } from "../service/OrderService.js";
 
 // ===== CREATE ORDER =====
@@ -93,7 +96,7 @@ export const verifySellerConfirmController = async (req, res) => {
       });
     }
 
-    const order = await verifySellerConfirmService(req.user.id, req.params.id, txHash);
+    const order = await verifySellerConfirmService(req.params.id, txHash);
 
     res.status(200).json({
       success: true,
@@ -147,7 +150,7 @@ export const verifyCancelOrderController = async (req, res) => {
       });
     }
 
-    const order = await verifyCancelOrderService(req.user.id, req.params.id, txHash);
+    const order = await verifyCancelOrderService(req.user, req.params.id, txHash);
 
     res.status(200).json({
       success: true,
@@ -183,6 +186,57 @@ export const getMyOrdersController = async (req, res) => {
 export const getOrderDetailController = async (req, res) => {
   try {
     const order = await getOrderDetailService(req.user.id, req.params.id);
+
+    res.status(200).json({
+      success: true,
+      data: order,
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// ===== GET ALL ORDERS (ADMIN) =====
+export const getAllOrdersController = async (req, res) => {
+  try {
+    const orders = await getAllOrdersService();
+    res.status(200).json({
+      success: true,
+      data: orders,
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// ===== ADMIN: GET ORDERS =====
+export const adminGetOrdersController = async (req, res) => {
+  try {
+    const result = await adminGetOrdersService(req.query);
+
+    res.status(200).json({
+      success: true,
+      data: result.orders,
+      pagination: result.pagination,
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// ===== ADMIN: GET ORDER DETAIL =====
+export const adminGetOrderDetailController = async (req, res) => {
+  try {
+    const order = await adminGetOrderDetailService(req.params.id);
 
     res.status(200).json({
       success: true,

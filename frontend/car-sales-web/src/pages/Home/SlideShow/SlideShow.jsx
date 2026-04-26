@@ -6,11 +6,11 @@ function SlideShow() {
 
   const slides = [
     {
-      avif: "../images/mercedes/MaybachS680/S680-img3",
+      avif: "../images/S680-img3",
       alt: "Mercedes Maybach S680",
     },
     {
-      avif: "../images/porsche/cayenne/cayenne-img2",
+      avif: "../images/cayenne-img2",
       alt: "Porsche Cayenne",
     },
     {

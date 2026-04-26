@@ -1,10 +1,11 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react"; // Thêm useEffect
 import { Link } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
 import Footer from "../../components/Footer/Footer";
-import cars from "../../data/cars";
+import ProductService from "../../services/ProductService"; // Import Service bạn đã cung cấp
 import "./Cars.css";
-
+import add from '../../assets/icon/add.png';
+import { useCart } from "../../context/CartContext";
 function DualRange({
   min,
   max,
@@ -67,19 +68,8 @@ function CarSpecItem({ icon, text }) {
 function IconMileage() {
   return (
     <svg viewBox="0 0 24 24" fill="none">
-      <path
-        d="M4.5 15a7.5 7.5 0 1 1 15 0"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M12 9v4l3 2"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <path d="M4.5 15a7.5 7.5 0 1 1 15 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M12 9v4l3 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -87,24 +77,9 @@ function IconMileage() {
 function IconYear() {
   return (
     <svg viewBox="0 0 24 24" fill="none">
-      <path
-        d="M7 3v3M17 3v3"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M4 8h16"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M6 5h12a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinejoin="round"
-      />
+      <path d="M7 3v3M17 3v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M4 8h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M6 5h12a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -112,30 +87,10 @@ function IconYear() {
 function IconTransmission() {
   return (
     <svg viewBox="0 0 24 24" fill="none">
-      <path
-        d="M12 3v12"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M7 6h10"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M9 21h6"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M12 15l-3 3M12 15l3 3"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
+      <path d="M12 3v12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M7 6h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M9 21h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M12 15l-3 3M12 15l3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
 }
@@ -143,24 +98,9 @@ function IconTransmission() {
 function IconFuel() {
   return (
     <svg viewBox="0 0 24 24" fill="none">
-      <path
-        d="M6 3h9a1 1 0 0 1 1 1v17H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M8 7h6"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M16 8l2 2v8a2 2 0 0 1-2 2"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
+      <path d="M6 3h9a1 1 0 0 1 1 1v17H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M8 7h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M16 8l2 2v8a2 2 0 0 1-2 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
 }
@@ -168,30 +108,10 @@ function IconFuel() {
 function IconDrive() {
   return (
     <svg viewBox="0 0 24 24" fill="none">
-      <path
-        d="M7 14h10"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M5.5 16.5a2 2 0 1 0 0.01 0"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M18.5 16.5a2 2 0 1 0 0.01 0"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M8 7h8l2 5H6l2-5Z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinejoin="round"
-      />
+      <path d="M7 14h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M5.5 16.5a2 2 0 1 0 0.01 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M18.5 16.5a2 2 0 1 0 0.01 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M8 7h8l2 5H6l2-5Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -199,18 +119,8 @@ function IconDrive() {
 function IconPower() {
   return (
     <svg viewBox="0 0 24 24" fill="none">
-      <path
-        d="M12 3v7"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M7.5 5.5a8 8 0 1 0 9 0"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
+      <path d="M12 3v7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M7.5 5.5a8 8 0 1 0 9 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
 }
@@ -218,23 +128,14 @@ function IconPower() {
 function IconPin() {
   return (
     <svg viewBox="0 0 24 24" fill="none">
-      <path
-        d="M12 22s7-5.2 7-12a7 7 0 0 0-14 0c0 6.8 7 12 7 12Z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M12 11.5a2 2 0 1 0 0.01 0"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
+      <path d="M12 22s7-5.2 7-12a7 7 0 0 0-14 0c0 6.8 7 12 7 12Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M12 11.5a2 2 0 1 0 0.01 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
 }
 
 function Cars() {
+  const [carsList, setCarsList] = useState([]); // State lưu danh sách xe từ API
   const [selectedMakes, setSelectedMakes] = useState([]);
   const [isMakeOpen, setIsMakeOpen] = useState(false);
   const [makeQuery, setMakeQuery] = useState("");
@@ -252,12 +153,28 @@ function Cars() {
   const [selectedFeatures, setSelectedFeatures] = useState([]);
   const [showAllFeatures, setShowAllFeatures] = useState(false);
   const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const { addToCart } = useCart();
+  // Lấy dữ liệu từ API khi component mount
+  useEffect(() => {
+    const fetchCars = async () => {
+      try {
+        const data = await ProductService.getAllProducts();
+        setCarsList(data);
+      } catch (error) {
+        console.error("Error fetching cars:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCars();
+  }, []);
 
   const brandList = useMemo(() => {
-    const values = Array.from(new Set(cars.map((c) => c.brand).filter(Boolean)));
+    const values = Array.from(new Set(carsList.map((c) => c.brand).filter(Boolean)));
     values.sort((a, b) => a.localeCompare(b));
     return values;
-  }, []);
+  }, [carsList]);
 
   const filteredBrands = useMemo(() => {
     const q = makeQuery.trim().toLowerCase();
@@ -276,14 +193,7 @@ function Cars() {
 
   const brandLogo = (brand) => {
     const key = String(brand || "").toLowerCase();
-    const known = new Set([
-      "bmw",
-      "honda",
-      "mercedes",
-      "porsche",
-      "toyota",
-      "vinfast",
-    ]);
+    const known = new Set(["bmw", "honda", "mercedes", "porsche", "toyota", "vinfast"]);
     if (!known.has(key)) return null;
     return `/images/logos/${key}-logo.png`;
   };
@@ -306,123 +216,79 @@ function Cars() {
   };
 
   const typeCategories = useMemo(() => {
-    const values = Array.from(new Set(cars.map((c) => c.type).filter(Boolean)));
+    const values = Array.from(new Set(carsList.map((c) => c.category).filter(Boolean)));
     values.sort((a, b) => a.localeCompare(b));
     return values;
-  }, []);
+  }, [carsList]);
 
   const allFeatures = useMemo(() => {
     const set = new Set();
-    cars.forEach((c) => {
+    carsList.forEach((c) => {
       (Array.isArray(c.safety) ? c.safety : []).forEach((x) => set.add(x));
       (Array.isArray(c.convenience) ? c.convenience : []).forEach((x) => set.add(x));
     });
     return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, []);
+  }, [carsList]);
 
   const visibleFeatures = useMemo(() => {
     const q = featureQuery.trim().toLowerCase();
-    const list = q
-      ? allFeatures.filter((f) => f.toLowerCase().includes(q))
-      : allFeatures;
+    const list = q ? allFeatures.filter((f) => f.toLowerCase().includes(q)) : allFeatures;
     return showAllFeatures ? list : list.slice(0, 8);
   }, [allFeatures, featureQuery, showAllFeatures]);
 
   const canShowMoreFeatures = useMemo(() => {
     const q = featureQuery.trim().toLowerCase();
-    const list = q
-      ? allFeatures.filter((f) => f.toLowerCase().includes(q))
-      : allFeatures;
+    const list = q ? allFeatures.filter((f) => f.toLowerCase().includes(q)) : allFeatures;
     return !showAllFeatures && list.length > 8;
   }, [allFeatures, featureQuery, showAllFeatures]);
 
+  // HELPER FUNCTIONS CẬP NHẬT THEO CẤU TRÚC JSON MỚI
   const getPowerHP = (car) => {
-    const raw = car?.specs?.Power;
-    const text = typeof raw === "string" ? raw : String(raw ?? "");
-    const numberText = text.replace(/[^\d]/g, "");
-    const value = Number.parseInt(numberText, 10);
-    return Number.isFinite(value) ? value : 0;
+    const value = car?.specifications?.power;
+    return typeof value === "number" ? value : 0;
   };
 
   const getTransmission = (car) => {
-    const raw = car?.specs?.Gear;
-    const text = typeof raw === "string" ? raw.toLowerCase() : "";
-    if (text.includes("manual")) return "Manual";
-    if (text.includes("automatic") || text.includes("cvt") || text.includes("pdk")) {
-      return "Automatic";
-    }
-    return "Automatic";
+    const gear = car?.specifications?.gear;
+    if (gear === 1 || car?.specifications?.powertrainType === "electric") return "Automatic";
+    return "Manual";
   };
 
   const getFuel = (car) => {
-    if (car?.type === "EV") return "Electric";
-    const raw = car?.specs?.Engine;
-    const text = typeof raw === "string" ? raw.toLowerCase() : "";
-    if (text.includes("electric")) return "Electric";
-    if (text.includes("hybrid")) return "Hybrid";
+    const type = car?.specifications?.powertrainType;
+    if (type === "electric") return "Electric";
+    if (type === "hybrid") return "Hybrid";
     return "Gasoline";
   };
 
   const getDrive = (car) => {
-    const raw = car?.specs?.Engine;
-    const text = typeof raw === "string" ? raw.toLowerCase() : "";
-    if (text.includes("all-wheel") || text.includes("awd")) return "AWD";
+    const engine = car?.specifications?.engine?.toLowerCase() || "";
+    if (engine.includes("awd") || engine.includes("all electric") || engine.includes("dual")) return "AWD";
     return null;
   };
 
   const filteredCars = useMemo(() => {
-    return cars.filter((c) => {
-      const matchMake =
-        selectedMakes.length === 0 ? true : selectedMakes.includes(c.brand);
-      const matchPrice =
-        typeof c.priceUSD === "number"
-          ? c.priceUSD >= priceMin && c.priceUSD <= priceMax
-          : true;
-      const matchMileage =
-        typeof c.mileageKM === "number"
-          ? c.mileageKM >= mileageMin && c.mileageKM <= mileageMax
-          : true;
-      const matchTransmission =
-        transmission === "All" ? true : getTransmission(c) === transmission;
+    return carsList.filter((c) => {
+      const matchMake = selectedMakes.length === 0 ? true : selectedMakes.includes(c.brand);
+      const matchPrice = typeof c.price === "number" ? c.price >= priceMin && c.price <= priceMax : true;
+      // API hiện tại chưa có trường mileageKM, mặc định true hoặc xử lý tùy ý
+      const matchMileage = true;
+      const matchTransmission = transmission === "All" ? true : getTransmission(c) === transmission;
       const matchFuel = fuel === "All" ? true : getFuel(c) === fuel;
       const power = getPowerHP(c);
       const matchPower = power >= powerMin && power <= powerMax;
-      const matchType = vehicleType === "All" ? true : c.type === vehicleType;
+      const matchType = vehicleType === "All" ? true : c.category === vehicleType;
       const matchFeatures =
         selectedFeatures.length === 0
           ? true
           : selectedFeatures.every((f) => {
-              const list = [
-                ...(Array.isArray(c.safety) ? c.safety : []),
-                ...(Array.isArray(c.convenience) ? c.convenience : []),
-              ];
-              return list.includes(f);
-            });
+            const list = [...(Array.isArray(c.safety) ? c.safety : []), ...(Array.isArray(c.convenience) ? c.convenience : [])];
+            return list.includes(f);
+          });
 
-      return (
-        matchMake &&
-        matchPrice &&
-        matchMileage &&
-        matchTransmission &&
-        matchFuel &&
-        matchPower &&
-        matchType &&
-        matchFeatures
-      );
+      return matchMake && matchPrice && matchMileage && matchTransmission && matchFuel && matchPower && matchType && matchFeatures;
     });
-  }, [
-    selectedMakes,
-    priceMin,
-    priceMax,
-    mileageMin,
-    mileageMax,
-    transmission,
-    fuel,
-    powerMin,
-    powerMax,
-    vehicleType,
-    selectedFeatures,
-  ]);
+  }, [carsList, selectedMakes, priceMin, priceMax, transmission, fuel, powerMin, powerMax, vehicleType, selectedFeatures]);
 
   const pageSize = 5;
   const totalPages = Math.max(1, Math.ceil(filteredCars.length / pageSize));
@@ -430,8 +296,8 @@ function Cars() {
   const startIndex = (safePage - 1) * pageSize;
   const visibleCars = filteredCars.slice(startIndex, startIndex + pageSize);
 
-  const heroCar = visibleCars[0] || filteredCars[0] || cars[0];
-  const heroImage = heroCar?.hero || heroCar?.display || "/images/car.webp";
+  const heroCar = visibleCars[0] || filteredCars[0] || carsList[0];
+  const heroImage = heroCar?.heroImage || heroCar?.thumbnailImage || "/images/car.webp";
 
   const priceText = (value) => {
     if (typeof value !== "number") return null;
@@ -450,6 +316,8 @@ function Cars() {
     setPage(1);
   };
 
+  if (loading) return <div className="loading">Loading cars...</div>;
+
   return (
     <>
       <Navbar />
@@ -457,11 +325,7 @@ function Cars() {
         <section className="cars-hero">
           <div className="cars-hero-inner">
             <div className="cars-hero-text">
-              <h1>
-                Find your
-                <br />
-                favorite car
-              </h1>
+              <h1>Find your<br />favorite car</h1>
             </div>
             <div className="cars-hero-media">
               <img src={heroImage} alt="Hero car" loading="eager" decoding="async" />
@@ -507,18 +371,12 @@ function Cars() {
                     })}
                   </div>
                 ) : null}
-                <button
-                  type="button"
-                  className="cars-model-row cars-model-trigger"
-                  onClick={() => setIsMakeOpen(true)}
-                >
+                <button type="button" className="cars-model-row cars-model-trigger" onClick={() => setIsMakeOpen(true)}>
                   <span className="cars-model-select">
                     <span className="cars-model-plus">+</span>
                     <span className="cars-model-value">Add a car</span>
                   </span>
-                  <span className="cars-model-go" aria-hidden="true">
-                    ›
-                  </span>
+                  <span className="cars-model-go" aria-hidden="true">›</span>
                 </button>
               </div>
 
@@ -534,14 +392,8 @@ function Cars() {
                   step={500}
                   valueMin={priceMin}
                   valueMax={priceMax}
-                  onChangeMin={(v) => {
-                    setPriceMin(v);
-                    setPage(1);
-                  }}
-                  onChangeMax={(v) => {
-                    setPriceMax(v);
-                    setPage(1);
-                  }}
+                  onChangeMin={(v) => { setPriceMin(v); setPage(1); }}
+                  onChangeMax={(v) => { setPriceMax(v); setPage(1); }}
                 />
               </div>
 
@@ -557,27 +409,14 @@ function Cars() {
                   step={500}
                   valueMin={mileageMin}
                   valueMax={mileageMax}
-                  onChangeMin={(v) => {
-                    setMileageMin(v);
-                    setPage(1);
-                  }}
-                  onChangeMax={(v) => {
-                    setMileageMax(v);
-                    setPage(1);
-                  }}
+                  onChangeMin={(v) => { setMileageMin(v); setPage(1); }}
+                  onChangeMax={(v) => { setMileageMax(v); setPage(1); }}
                 />
               </div>
 
               <div className="cars-filter-group">
                 <div className="cars-filter-label">Transmission</div>
-                <select
-                  className="cars-filter-select"
-                  value={transmission}
-                  onChange={(e) => {
-                    setTransmission(e.target.value);
-                    setPage(1);
-                  }}
-                >
+                <select className="cars-filter-select" value={transmission} onChange={(e) => { setTransmission(e.target.value); setPage(1); }}>
                   <option value="All">All</option>
                   <option value="Automatic">Automatic</option>
                   <option value="Manual">Manual</option>
@@ -586,14 +425,7 @@ function Cars() {
 
               <div className="cars-filter-group">
                 <div className="cars-filter-label">Fuel</div>
-                <select
-                  className="cars-filter-select"
-                  value={fuel}
-                  onChange={(e) => {
-                    setFuel(e.target.value);
-                    setPage(1);
-                  }}
-                >
+                <select className="cars-filter-select" value={fuel} onChange={(e) => { setFuel(e.target.value); setPage(1); }}>
                   <option value="All">All</option>
                   <option value="Gasoline">Gasoline</option>
                   <option value="Hybrid">Hybrid</option>
@@ -613,32 +445,17 @@ function Cars() {
                   step={10}
                   valueMin={powerMin}
                   valueMax={powerMax}
-                  onChangeMin={(v) => {
-                    setPowerMin(v);
-                    setPage(1);
-                  }}
-                  onChangeMax={(v) => {
-                    setPowerMax(v);
-                    setPage(1);
-                  }}
+                  onChangeMin={(v) => { setPowerMin(v); setPage(1); }}
+                  onChangeMax={(v) => { setPowerMax(v); setPage(1); }}
                 />
               </div>
 
               <div className="cars-filter-group">
                 <div className="cars-filter-label">Vehicle type</div>
-                <select
-                  className="cars-filter-select"
-                  value={vehicleType}
-                  onChange={(e) => {
-                    setVehicleType(e.target.value);
-                    setPage(1);
-                  }}
-                >
+                <select className="cars-filter-select" value={vehicleType} onChange={(e) => { setVehicleType(e.target.value); setPage(1); }}>
                   <option value="All">All</option>
                   {typeCategories.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
+                    <option key={t} value={t}>{t}</option>
                   ))}
                 </select>
               </div>
@@ -648,10 +465,7 @@ function Cars() {
                 <input
                   className="cars-filter-input"
                   value={featureQuery}
-                  onChange={(e) => {
-                    setFeatureQuery(e.target.value);
-                    setShowAllFeatures(false);
-                  }}
+                  onChange={(e) => { setFeatureQuery(e.target.value); setShowAllFeatures(false); }}
                   placeholder="Search for feature"
                 />
                 <div className="cars-feature-list">
@@ -659,24 +473,14 @@ function Cars() {
                     const checked = selectedFeatures.includes(feature);
                     return (
                       <label key={feature} className="cars-feature-item">
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => toggleFeature(feature)}
-                        />
+                        <input type="checkbox" checked={checked} onChange={() => toggleFeature(feature)} />
                         <span>{feature}</span>
                       </label>
                     );
                   })}
                 </div>
                 {canShowMoreFeatures ? (
-                  <button
-                    type="button"
-                    className="cars-feature-more"
-                    onClick={() => setShowAllFeatures(true)}
-                  >
-                    More feature
-                  </button>
+                  <button type="button" className="cars-feature-more" onClick={() => setShowAllFeatures(true)}>More feature</button>
                 ) : null}
               </div>
 
@@ -698,37 +502,16 @@ function Cars() {
             <div className="cars-results-header">
               <div className="cars-results-title">Available Car</div>
               <div className="cars-results-pager">
-                <button
-                  type="button"
-                  className="cars-pager-btn"
-                  disabled={safePage <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                >
-                  Previous
-                </button>
+                <button type="button" className="cars-pager-btn" disabled={safePage <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>Previous</button>
                 <div className="cars-pager-pages">
                   {Array.from({ length: totalPages }).slice(0, 7).map((_, i) => {
                     const p = i + 1;
                     return (
-                      <button
-                        key={p}
-                        type="button"
-                        className={`cars-page-btn ${p === safePage ? "active" : ""}`}
-                        onClick={() => setPage(p)}
-                      >
-                        {p}
-                      </button>
+                      <button key={p} type="button" className={`cars-page-btn ${p === safePage ? "active" : ""}`} onClick={() => setPage(p)}>{p}</button>
                     );
                   })}
                 </div>
-                <button
-                  type="button"
-                  className="cars-pager-btn"
-                  disabled={safePage >= totalPages}
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                >
-                  Next
-                </button>
+                <button type="button" className="cars-pager-btn" disabled={safePage >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>Next</button>
               </div>
             </div>
 
@@ -736,84 +519,62 @@ function Cars() {
 
             <div className="cars-list">
               {visibleCars.map((car) => {
-                const chipItems = [
-                  ...(Array.isArray(car.safety) ? car.safety : []),
-                  ...(Array.isArray(car.convenience) ? car.convenience : []),
-                ];
-                const isExpanded = Boolean(expandedTagsById[car.id]);
+                const chipItems = [...(Array.isArray(car.safety) ? car.safety : []), ...(Array.isArray(car.convenience) ? car.convenience : [])];
+                const isExpanded = Boolean(expandedTagsById[car._id]);
                 const visibleChips = isExpanded ? chipItems : chipItems.slice(0, 4);
                 const remaining = Math.max(0, chipItems.length - 4);
-                const cardImage = car.display || car.hero || "/images/car.webp";
-                const transmissionText = getTransmission(car);
-                const fuelText = getFuel(car);
-                const power = getPowerHP(car);
-                const drive = getDrive(car);
+                const cardImage = car.thumbnailImage || "/images/car.webp";
 
                 return (
-                  <Link key={car.id} className="cars-item" to={`/product/${car.id}`}>
-                    <div className="cars-item-media">
-                      <img
-                        src={cardImage}
-                        alt={car.name}
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    </div>
+                  <div key={car._id} className="cars-item" >
+                    <Link to={`/product/${car._id}`}>
+                      <div className="cars-item-media">
+                        <img src={cardImage} alt={car.name} loading="lazy" decoding="async" />
+                      </div>
+                    </Link>
+                    <Link to={`/product/${car._id}`}>
+                      <div className="cars-item-body">
+                        <div className="cars-item-top">
+                          <div className="cars-item-name">{car.name}</div>
+                          <div className="cars-item-brand">
+                            <span className="cars-item-brand-icon" aria-hidden="true"><IconPin /></span>
+                            <span>{car.brand}</span>
+                          </div>
+                        </div>
 
-                    <div className="cars-item-body">
-                      <div className="cars-item-top">
-                        <div className="cars-item-name">{car.name}</div>
-                        <div className="cars-item-brand">
-                          <span className="cars-item-brand-icon" aria-hidden="true">
-                            <IconPin />
-                          </span>
-                          <span>{car.brand}</span>
+                        <div className="cars-item-specs">
+                          <CarSpecItem icon={<IconYear />} text={`${new Date(car.createdAt).getFullYear()}`} />
+                          <CarSpecItem icon={<IconTransmission />} text={getTransmission(car)} />
+                          <CarSpecItem icon={<IconFuel />} text={getFuel(car)} />
+                          {getDrive(car) ? <CarSpecItem icon={<IconDrive />} text={getDrive(car)} /> : null}
+                          <CarSpecItem icon={<IconPower />} text={`${getPowerHP(car)} HP`} />
+                        </div>
+
+                        <div className="cars-item-meta">
+                          {visibleChips.map((text) => (
+                            <span key={text} className="cars-chip">{text}</span>
+                          ))}
+                          {remaining > 0 ? (
+                            <button
+                              type="button"
+                              className="cars-chip cars-chip-more cars-chip-button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setExpandedTagsById((prev) => ({ ...prev, [car._id]: !isExpanded }));
+                              }}
+                            >
+                              {isExpanded ? "Less" : `${remaining} more`}
+                            </button>
+                          ) : null}
                         </div>
                       </div>
-
-                      <div className="cars-item-specs">
-                        {typeof car.mileageKM === "number" ? (
-                          <CarSpecItem
-                            icon={<IconMileage />}
-                            text={`${car.mileageKM.toLocaleString("en-US")} km`}
-                          />
-                        ) : null}
-                        {typeof car.year === "number" ? (
-                          <CarSpecItem icon={<IconYear />} text={`${car.year}`} />
-                        ) : null}
-                        <CarSpecItem icon={<IconTransmission />} text={transmissionText} />
-                        <CarSpecItem icon={<IconFuel />} text={fuelText} />
-                        {drive ? <CarSpecItem icon={<IconDrive />} text={drive} /> : null}
-                        <CarSpecItem icon={<IconPower />} text={`${power} HP`} />
-                      </div>
-
-                      <div className="cars-item-meta">
-                        {visibleChips.map((text) => (
-                          <span key={text} className="cars-chip">
-                            {text}
-                          </span>
-                        ))}
-                        {remaining > 0 ? (
-                          <button
-                            type="button"
-                            className="cars-chip cars-chip-more cars-chip-button"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              setExpandedTagsById((prev) => ({
-                                ...(prev || {}),
-                                [car.id]: !isExpanded,
-                              }));
-                            }}
-                          >
-                            {isExpanded ? "Less" : `${remaining} more`}
-                          </button>
-                        ) : null}
-                      </div>
-                    </div>
-
-                    <div className="cars-item-price">{priceText(car.priceUSD)}</div>
-                  </Link>
+                    </Link>
+                    <div className="cars-item-price">
+                      <button className="add-to-cart" onClick={() => addToCart(car)}>
+                        <img src={add} alt="Add to cart icon" />
+                      </button>{priceText(car.price)}</div>
+                  </div>
                 );
               })}
             </div>
@@ -821,44 +582,18 @@ function Cars() {
         </div>
 
         {isMakeOpen ? (
-          <div
-            className="cars-make-overlay"
-            role="dialog"
-            aria-modal="true"
-            onMouseDown={(e) => {
-              if (e.target === e.currentTarget) setIsMakeOpen(false);
-            }}
-          >
+          <div className="cars-make-overlay" role="dialog" aria-modal="true" onMouseDown={(e) => { if (e.target === e.currentTarget) setIsMakeOpen(false); }}>
             <div className="cars-make-modal">
               <div className="cars-make-header">
                 <div className="cars-make-title">Select make</div>
                 <div className="cars-make-actions">
-                  <button
-                    type="button"
-                    className="cars-make-done"
-                    onClick={() => setIsMakeOpen(false)}
-                  >
-                    Done
-                  </button>
-                  <button
-                    type="button"
-                    className="cars-make-close"
-                    onClick={() => setIsMakeOpen(false)}
-                  >
-                    ×
-                  </button>
+                  <button type="button" className="cars-make-done" onClick={() => setIsMakeOpen(false)}>Done</button>
+                  <button type="button" className="cars-make-close" onClick={() => setIsMakeOpen(false)}>×</button>
                 </div>
               </div>
-
               <div className="cars-make-search">
-                <span className="cars-make-search-icon" aria-hidden="true">
-                  ⌕
-                </span>
-                <input
-                  value={makeQuery}
-                  onChange={(e) => setMakeQuery(e.target.value)}
-                  placeholder="Make or model"
-                />
+                <span className="cars-make-search-icon" aria-hidden="true">⌕</span>
+                <input value={makeQuery} onChange={(e) => setMakeQuery(e.target.value)} placeholder="Make or model" />
               </div>
 
               <div className="cars-make-section">
@@ -868,21 +603,8 @@ function Cars() {
                     const logo = brandLogo(brand);
                     const active = selectedMakes.includes(brand);
                     return (
-                      <button
-                        key={brand}
-                        type="button"
-                        className={`cars-make-tag ${active ? "active" : ""}`}
-                        onClick={() => {
-                          toggleMake(brand);
-                        }}
-                      >
-                        {logo ? (
-                          <img src={logo} alt={brand} />
-                        ) : (
-                          <span className="cars-make-tag-fallback">
-                            {brand.slice(0, 1).toUpperCase()}
-                          </span>
-                        )}
+                      <button key={brand} type="button" className={`cars-make-tag ${active ? "active" : ""}`} onClick={() => toggleMake(brand)}>
+                        {logo ? <img src={logo} alt={brand} /> : <span className="cars-make-tag-fallback">{brand.slice(0, 1).toUpperCase()}</span>}
                       </button>
                     );
                   })}
@@ -892,14 +614,7 @@ function Cars() {
               <div className="cars-make-section cars-make-list-wrap">
                 <div className="cars-make-section-title">ALL BRANDS</div>
                 <div className="cars-make-list">
-                  <button
-                    type="button"
-                    className={`cars-make-row ${selectedMakes.length === 0 ? "active" : ""}`}
-                    onClick={() => {
-                      setSelectedMakes([]);
-                      setPage(1);
-                    }}
-                  >
+                  <button type="button" className={`cars-make-row ${selectedMakes.length === 0 ? "active" : ""}`} onClick={() => { setSelectedMakes([]); setPage(1); }}>
                     <span className="cars-make-row-logo cars-make-row-fallback">A</span>
                     <span className="cars-make-row-name">All</span>
                   </button>
@@ -907,21 +622,8 @@ function Cars() {
                     const logo = brandLogo(brand);
                     const active = selectedMakes.includes(brand);
                     return (
-                      <button
-                        key={brand}
-                        type="button"
-                        className={`cars-make-row ${active ? "active" : ""}`}
-                        onClick={() => {
-                          toggleMake(brand);
-                        }}
-                      >
-                        {logo ? (
-                          <img className="cars-make-row-logo" src={logo} alt={brand} />
-                        ) : (
-                          <span className="cars-make-row-logo cars-make-row-fallback">
-                            {brand.slice(0, 1).toUpperCase()}
-                          </span>
-                        )}
+                      <button key={brand} type="button" className={`cars-make-row ${active ? "active" : ""}`} onClick={() => toggleMake(brand)}>
+                        {logo ? <img className="cars-make-row-logo" src={logo} alt={brand} /> : <span className="cars-make-row-logo cars-make-row-fallback">{brand.slice(0, 1).toUpperCase()}</span>}
                         <span className="cars-make-row-name">{brand}</span>
                       </button>
                     );

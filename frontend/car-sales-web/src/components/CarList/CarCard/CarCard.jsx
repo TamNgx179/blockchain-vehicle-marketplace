@@ -10,10 +10,10 @@ function CarCard({ car, delay }) {
       className="car-card reveal-up active"
       style={{ "--reveal-delay": `${delay}s` }}
     >
-      <Link to={`/product/${car.id}`}>
+      <Link to={`/product/${car._id}`}>
         <img
           className="thumb-img"
-          src={car.display}
+          src={car.thumbnailImage}
           alt={car.name}
           loading="lazy"
           decoding="async"
@@ -24,9 +24,9 @@ function CarCard({ car, delay }) {
       <div className="body">
         <div className="title">
           <h3>{car.name}</h3>
-          <p className="id" style={{ display: 'none' }}>{car.id}</p>
+          <p className="id" style={{ display: 'none' }}>{car._id}</p>
           {/* Navigate to the SPA product detail route */}
-          <Link className="cta" to={`/product/${car.id}`}>
+          <Link className="cta" to={`/product/${car._id}`}>
             Shop now
           </Link>
         </div>

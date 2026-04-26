@@ -1,6 +1,7 @@
 import Cart from "../models/CartModel.js";
 import Order from "../models/OrderModel.js";
 import Product from "../models/ProductModel.js";
+import User from "../models/AuthModel.js";
 import mongoose from "mongoose";
 import { ethers } from "ethers";
 
@@ -27,6 +28,127 @@ const convertUsdToWei = (usdAmount) => {
   const ethAmount = (Number(usdAmount) / usdPerEth).toFixed(18);
   return ethers.parseEther(ethAmount).toString();
 };
+
+const ORDER_STATUSES = [
+  "pending_deposit",
+  "pending_payment",
+  "deposit_paid",
+  "processing",
+  "completed",
+  "cancelled",
+];
+
+const PAYMENT_TYPES = ["deposit", "full"];
+const DELIVERY_METHODS = ["pickup", "delivery"];
+const DEPOSIT_STATUSES = ["pending", "paid"];
+const ADMIN_ORDER_SORT_FIELDS = [
+  "createdAt",
+  "updatedAt",
+  "totalAmount",
+  "paidAmount",
+  "status",
+  "paymentType",
+  "deliveryMethod",
+  "expiresAt",
+  "blockchainOrderId",
+];
+
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const parseList = (value) => {
+  if (!value) return [];
+  const rawValues = Array.isArray(value) ? value : String(value).split(",");
+  return rawValues.map((item) => item.trim()).filter(Boolean);
+};
+
+const assertAllowedValues = (field, values, allowedValues) => {
+  const invalidValue = values.find((value) => !allowedValues.includes(value));
+  if (invalidValue) {
+    throw new Error(`${field} khong hop le: ${invalidValue}`);
+  }
+};
+
+const applyListFilter = (filter, field, values, allowedValues) => {
+  if (!values.length) return;
+  assertAllowedValues(field, values, allowedValues);
+  filter[field] = values.length === 1 ? values[0] : { $in: values };
+};
+
+const parsePositiveInteger = (value, fallback, maxValue, field) => {
+  if (value === undefined || value === null || value === "") return fallback;
+
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isInteger(parsed) || parsed < 1) {
+    throw new Error(`${field} phai la so nguyen duong`);
+  }
+
+  return Math.min(parsed, maxValue);
+};
+
+const parseAmount = (value, field) => {
+  if (value === undefined || value === null || value === "") return undefined;
+
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    throw new Error(`${field} khong hop le`);
+  }
+
+  return parsed;
+};
+
+const parseDate = (value, field, endOfDay = false) => {
+  if (!value) return undefined;
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error(`${field} khong hop le`);
+  }
+
+  if (endOfDay) parsed.setHours(23, 59, 59, 999);
+  return parsed;
+};
+
+const buildAdminSearchFilter = async (search) => {
+  const term = String(search || "").trim();
+  if (!term) return null;
+
+  const escapedTerm = escapeRegex(term);
+  const regexFilter = { $regex: escapedTerm, $options: "i" };
+  const orConditions = [
+    { "items.name": regexFilter },
+    { buyerWallet: regexFilter },
+    { sellerWallet: regexFilter },
+  ];
+
+  if (mongoose.Types.ObjectId.isValid(term)) {
+    const objectId = new mongoose.Types.ObjectId(term);
+    orConditions.push({ _id: objectId }, { userId: objectId });
+  }
+
+  const numericTerm = Number(term);
+  if (Number.isFinite(numericTerm)) {
+    orConditions.push({ blockchainOrderId: numericTerm });
+  }
+
+  const users = await User.find({
+    $or: [
+      { username: regexFilter },
+      { email: regexFilter },
+      { phoneNumber: regexFilter },
+    ],
+  })
+    .select("_id")
+    .lean();
+
+  if (users.length) {
+    orConditions.push({ userId: { $in: users.map((user) => user._id) } });
+  }
+
+  return { $or: orConditions };
+};
+
+const populateAdminOrderUser = (query) =>
+  query.populate("userId", "username email phoneNumber address isadmin");
 
 /* ================= CREATE ORDER ================= */
 export const createOrderFromCartService = async (userId, body) => {
@@ -363,12 +485,12 @@ export const verifyFullPaymentService = async (userId, orderId, txHash) => {
 };
 
 /* ================= VERIFY SELLER CONFIRM ================= */
-export const verifySellerConfirmService = async (userId, orderId, txHash) => {
+export const verifySellerConfirmService = async (orderId, txHash) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
-    const order = await Order.findOne({ _id: orderId, userId }).session(session);
+    const order = await Order.findById(orderId).session(session);
 
     if (!order) throw new Error("Không tìm thấy order");
 
@@ -473,12 +595,13 @@ export const verifyCompleteOrderService = async (userId, orderId, txHash) => {
 };
 
 /* ================= VERIFY CANCEL ================= */
-export const verifyCancelOrderService = async (userId, orderId, txHash) => {
+export const verifyCancelOrderService = async (actor, orderId, txHash) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
-    const order = await Order.findOne({ _id: orderId, userId }).session(session);
+    const query = actor?.isadmin ? { _id: orderId } : { _id: orderId, userId: actor?.id };
+    const order = await Order.findOne(query).session(session);
 
     if (!order) throw new Error("Không tìm thấy order");
     if (order.status === "completed") {
@@ -491,6 +614,18 @@ export const verifyCancelOrderService = async (userId, orderId, txHash) => {
     const txCheck = await verifyTransaction(txHash);
     if (!txCheck.exists) throw new Error("Transaction không tồn tại");
     if (!txCheck.success) throw new Error("Transaction thất bại");
+
+    const tx = await getTransactionDetail(txHash);
+    if (!tx) throw new Error("Không lấy được transaction");
+
+    const txFrom = tx.from?.toLowerCase();
+    const allowedWallets = [order.buyerWallet, order.sellerWallet]
+      .filter(Boolean)
+      .map((wallet) => wallet.toLowerCase());
+
+    if (!txFrom || !allowedWallets.includes(txFrom)) {
+      throw new Error("Transaction hủy đơn không phải do buyer hoặc seller thực hiện");
+    }
 
     const contractOrder = await getOrderByBlockchainOrderId(order.blockchainOrderId);
 
@@ -532,5 +667,96 @@ export const getMyOrdersService = async (userId) => {
 export const getOrderDetailService = async (userId, orderId) => {
   const order = await Order.findOne({ _id: orderId, userId });
   if (!order) throw new Error("Không tìm thấy order");
+  return order;
+};
+
+/* ================= GET ALL ORDERS (ADMIN) ================= */
+export const getAllOrdersService = async () => {
+  return await Order.find().sort({ createdAt: -1 });
+};
+
+/* ================= ADMIN: GET ORDERS ================= */
+export const adminGetOrdersService = async (query = {}) => {
+  const filter = {};
+
+  applyListFilter(filter, "status", parseList(query.status), ORDER_STATUSES);
+  applyListFilter(
+    filter,
+    "paymentType",
+    parseList(query.paymentType),
+    PAYMENT_TYPES
+  );
+  applyListFilter(
+    filter,
+    "deliveryMethod",
+    parseList(query.deliveryMethod),
+    DELIVERY_METHODS
+  );
+  applyListFilter(
+    filter,
+    "depositStatus",
+    parseList(query.depositStatus),
+    DEPOSIT_STATUSES
+  );
+
+  const fromDate = parseDate(query.fromDate, "fromDate");
+  const toDate = parseDate(query.toDate, "toDate", true);
+  if (fromDate || toDate) {
+    filter.createdAt = {};
+    if (fromDate) filter.createdAt.$gte = fromDate;
+    if (toDate) filter.createdAt.$lte = toDate;
+  }
+
+  const minTotal = parseAmount(query.minTotal, "minTotal");
+  const maxTotal = parseAmount(query.maxTotal, "maxTotal");
+  if (minTotal !== undefined || maxTotal !== undefined) {
+    filter.totalAmount = {};
+    if (minTotal !== undefined) filter.totalAmount.$gte = minTotal;
+    if (maxTotal !== undefined) filter.totalAmount.$lte = maxTotal;
+  }
+
+  const searchFilter = await buildAdminSearchFilter(query.search);
+  if (searchFilter) {
+    filter.$or = searchFilter.$or;
+  }
+
+  const page = parsePositiveInteger(query.page, 1, 100000, "page");
+  const limit = parsePositiveInteger(query.limit, 10, 100, "limit");
+  const skip = (page - 1) * limit;
+
+  const sortBy = ADMIN_ORDER_SORT_FIELDS.includes(query.sortBy)
+    ? query.sortBy
+    : "createdAt";
+  const sortOrder = query.sortOrder === "asc" ? 1 : -1;
+
+  const [orders, total] = await Promise.all([
+    populateAdminOrderUser(Order.find(filter))
+      .sort({ [sortBy]: sortOrder })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    Order.countDocuments(filter),
+  ]);
+
+  return {
+    orders,
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+};
+
+/* ================= ADMIN: GET ORDER DETAIL ================= */
+export const adminGetOrderDetailService = async (orderId) => {
+  if (!mongoose.Types.ObjectId.isValid(orderId)) {
+    throw new Error("Order ID khong hop le");
+  }
+
+  const order = await populateAdminOrderUser(Order.findById(orderId)).lean();
+  if (!order) throw new Error("Khong tim thay order");
+
   return order;
 };

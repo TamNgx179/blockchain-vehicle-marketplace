@@ -1,7 +1,7 @@
 import React from 'react';
 
-function OrderSummary({ cartItems, deliveryFee, step }) {
-  const subtotal = cartItems.reduce((acc, item) => acc + (item.priceUSD * item.quantity), 0);
+function OrderSummary({ cartItems, deliveryFee }) {
+  const subtotal = cartItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
   const total = subtotal + deliveryFee;
 
   return (
@@ -12,9 +12,9 @@ function OrderSummary({ cartItems, deliveryFee, step }) {
           <label>Items ({cartItems.length})</label>
           <ol className="list-car-selected">
             {cartItems.map((item) => (
-              <li key={item.id}>
+              <li key={item._id}>
                 {item.name} (x{item.quantity})
-                <span> ${(item.priceUSD * item.quantity).toLocaleString()}</span>
+                <span> ${(item.price * item.quantity).toLocaleString()}</span>
               </li>
             ))}
           </ol>
@@ -30,8 +30,6 @@ function OrderSummary({ cartItems, deliveryFee, step }) {
           <label><strong>Total</strong></label>
           <label id="total-fee"><strong>${total.toLocaleString()}</strong></label>
         </div>
-
-        {step === 4 && <button type="submit" id="Purchase" className="btn-purchase">Purchase</button>}
       </div>
     </div>
   );

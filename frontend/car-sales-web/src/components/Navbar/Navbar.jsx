@@ -1,11 +1,39 @@
 import signin from '../../assets/icon/signin.png';
 import trolley from '../../assets/icon/trolley.png';
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
+import { useMemo, useSyncExternalStore } from "react";
 import { useCart } from "../../context/CartContext";
 import "./Navbar.css";
 
+const subscribeAuthStore = (callback) => {
+  const handler = () => callback();
+  window.addEventListener("storage", handler);
+  window.addEventListener("auth-change", handler);
+  return () => {
+    window.removeEventListener("storage", handler);
+    window.removeEventListener("auth-change", handler);
+  };
+};
+
+const getAuthTokenSnapshot = () => localStorage.getItem("authToken") || "";
+const getAuthUsernameSnapshot = () => localStorage.getItem("authUsername") || "";
+
 function Navbar() {
   const { cartItems } = useCart();
+  const navigate = useNavigate();
+  const authToken = useSyncExternalStore(subscribeAuthStore, getAuthTokenSnapshot);
+  const authUsername = useSyncExternalStore(subscribeAuthStore, getAuthUsernameSnapshot);
+  const isAuthed = useMemo(() => Boolean(authToken), [authToken]);
+
+  const onLogout = (e) => {
+    e.preventDefault();
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("authEmail");
+    localStorage.removeItem("authUsername");
+    window.dispatchEvent(new Event("auth-change"));
+    navigate("/", { replace: true });
+  };
+
   return (
     <nav className="navbar">
       {/* Use NavLink to prevent full page reloads */}
@@ -53,13 +81,13 @@ function Navbar() {
         </NavLink>
         {/* Auth shortcut */}
         <div className="popup-login">
-          <NavLink to="/auth">
+          <NavLink to={isAuthed ? "/" : "/login"} onClick={isAuthed ? onLogout : undefined}>
             <img
               src={signin}
               alt="Signin"
               loading="lazy"
             />
-            <span>Sign in</span>
+            <span>{isAuthed ? (authUsername ? `Logout (${authUsername})` : "Logout") : "Sign in"}</span>
           </NavLink>
         </div>
       </div>

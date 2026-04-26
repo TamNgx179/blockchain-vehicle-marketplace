@@ -1,37 +1,41 @@
-.notification-overlay {
+/* 1. LỚP BAO NGOÀI CÙNG: Quản lý vị trí và việc xếp chồng */
+.notification-container {
   position: fixed;
   top: 60px;
+  /* Giữ vị trí top cũ của bạn */
   right: 25px;
+  /* Giữ vị trí right cũ của bạn */
   z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  /* Khoảng cách giữa các thông báo khi hiện nhiều cái */
+  pointer-events: none;
+  /* Không chặn click chuột vào các nút bên dưới nếu trống */
+}
 
-  /* Nền trắng và viền nhẹ */
+/* 2. ITEM THÔNG BÁO: Giữ nguyên thiết kế "notification-overlay" cũ của bạn */
+.notification-item {
+  pointer-events: auto;
+  /* Cho phép tương tác (nếu cần) */
+  position: relative;
+  /* Đổi từ fixed sang relative để nó nằm trong dòng chảy của flexbox */
+
+  /* Giữ nguyên thiết kế gốc của bạn */
   background: #ffffff;
   border: 1px solid #e5e5e5;
   border-left: 5px solid #0066bf;
-  /* Màu xanh BMW đặc trưng */
-
+  /* Màu xanh BMW */
   padding: 16px 24px;
   min-width: 320px;
   border-radius: 4px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-  /* Đổ bóng nhẹ sang trọng */
 
-  /* Hiệu ứng trượt vào vì return null không dùng transition được */
+  /* Giữ nguyên hiệu ứng trượt vào */
   animation: slideInNotification 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
-@keyframes slideInNotification {
-  from {
-    transform: translateX(120%);
-    opacity: 0;
-  }
-
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
+/* 3. NỘI DUNG (Giữ nguyên 100%) */
 .notification-content {
   display: flex;
   align-items: center;
@@ -60,7 +64,7 @@
   font-weight: 500;
 }
 
-/* Thanh Progress chạy lùi */
+/* 4. THANH PROGRESS (Giữ nguyên logic chạy lùi của bạn) */
 .notification-progress {
   position: absolute;
   bottom: 0;
@@ -78,6 +82,19 @@
   width: 100%;
   animation: shrinkProgress linear forwards;
   animation-duration: inherit;
+}
+
+/* 5. KEYFRAMES (Giữ nguyên) */
+@keyframes slideInNotification {
+  from {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 
 @keyframes shrinkProgress {
