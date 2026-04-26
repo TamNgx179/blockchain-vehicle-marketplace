@@ -119,8 +119,12 @@ const ProductImage = ({ src, alt }) => {
   const [fallbackUsed, setFallbackUsed] = useState(false);
 
   useEffect(() => {
-    setCurrentSrc(normalizeImagePath(src));
-    setFallbackUsed(false);
+    const id = setTimeout(() => {
+      setCurrentSrc(normalizeImagePath(src));
+      setFallbackUsed(false);
+    }, 0);
+
+    return () => clearTimeout(id);
   }, [src]);
 
   return (
