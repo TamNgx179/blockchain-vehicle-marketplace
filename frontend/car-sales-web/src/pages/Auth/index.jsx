@@ -11,11 +11,13 @@ const MESSAGE_MAP = {
   "Đăng nhập thất bại": "Login failed",
   "Đăng ký thất bại": "Sign up failed",
   "OTP đã được gửi tới email": "OTP has been sent to your email",
+  "OTP đã được gửi đến email của bạn": "OTP has been sent to your email",
   "OTP sent to email. Please verify your account.": "OTP has been sent to your email. Please verify your account.",
   "Xác thực OTP thất bại": "OTP verification failed",
   "Xác thực thành công": "Verification successful",
   "Xác thực thành công, hãy đăng nhập": "Verification successful. Please sign in.",
   "Email chưa được xác thực": "Email has not been verified yet",
+  "Email không tồn tại trong hệ thống": "Email does not exist",
   "Username or Email already exists": "Username or email already exists",
   "Passwords do not match": "Passwords do not match",
   "Password is invalid": "Password is invalid",
@@ -24,6 +26,8 @@ const MESSAGE_MAP = {
   "OTP không tồn tại hoặc đã hết hạn": "OTP does not exist or has expired",
   "OTP đã hết hạn": "OTP has expired",
   "OTP không chính xác": "Incorrect OTP",
+  "OTP không hợp lệ hoặc đã hết hạn": "OTP does not exist or has expired",
+  "Mật khẩu đã được cập nhật thành công": "Password updated successfully",
   "Invalid OTP": "Invalid OTP",
 };
 
@@ -64,7 +68,13 @@ function Auth({ initialMode = "login" }) {
 
   const [pendingEmail, setPendingEmail] = useState("");
   const [otp, setOtp] = useState("");
-
+  const [resetOtpSent, setResetOtpSent] = useState(false);
+  const [resetForm, setResetForm] = useState({
+    email: "",
+    otp: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
   const [loginForm, setLoginForm] = useState({
     email: "",
     password: "",
@@ -75,15 +85,6 @@ function Auth({ initialMode = "login" }) {
     email: "",
     password: "",
     resPassword: "",
-  });
-
-  // ===== FORGOT PASSWORD =====
-  const [forgotStep, setForgotStep] = useState(1); // 1 email, 2 reset
-  const [forgotForm, setForgotForm] = useState({
-    email: "",
-    otp: "",
-    newPassword: "",
-    confirmPassword: "",
   });
 
   const isOtpStep = useMemo(
@@ -118,11 +119,19 @@ function Auth({ initialMode = "login" }) {
     setMode(next);
     setMessage("");
     setError("");
-    setForgotStep(1);
 
     if (next !== "signup") {
       setPendingEmail("");
       setOtp("");
+    }
+    if (next !== "reset") {
+      setResetOtpSent(false);
+      setResetForm({
+        email: "",
+        otp: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
     }
   };
 
@@ -134,11 +143,9 @@ function Auth({ initialMode = "login" }) {
     setSignupForm((p) => ({ ...p, [field]: value }));
   };
 
-  const onChangeForgot = (field, value) => {
-    setForgotForm((p) => ({ ...p, [field]: value }));
+  const onChangeReset = (field, value) => {
+    setResetForm((prev) => ({ ...prev, [field]: value }));
   };
-
-  // ===== LOGIN =====
   const submitLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -227,8 +234,7 @@ function Auth({ initialMode = "login" }) {
     }
   };
 
-  // ===== FORGOT PASSWORD STEP 1 =====
-  const submitForgotEmail = async (e) => {
+  const submitForgotPassword = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
@@ -237,52 +243,70 @@ function Auth({ initialMode = "login" }) {
     try {
       const res = await fetch(`${API_URL}/api/users/forgot-password`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: forgotForm.email }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email: resetForm.email }),
       });
-
       const json = await res.json();
-      if (!res.ok) throw new Error(toEnglishMessage(json?.message, "Failed"));
+      if (!res.ok) throw new Error(toEnglishMessage(json?.message, "Failed to send OTP"));
 
-      setForgotStep(2);
-      setMessage("OTP sent to email");
+      setResetOtpSent(true);
+      setMessage(toEnglishMessage(json?.message, "OTP has been sent to your email"));
     } catch (err) {
-      setError(toEnglishMessage(err?.message, "Failed"));
+      setError(toEnglishMessage(err?.message, "Failed to send OTP"));
     } finally {
       setLoading(false);
     }
   };
 
-  // ===== FORGOT PASSWORD STEP 2 =====
   const submitResetPassword = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
     setMessage("");
 
-    try {
-      if (forgotForm.newPassword !== forgotForm.confirmPassword) {
-        throw new Error("Passwords do not match");
-      }
+    const newPassword = resetForm.newPassword;
+    const confirmPassword = resetForm.confirmPassword;
+    if (!newPassword || newPassword.length < 8) {
+      setLoading(false);
+      setError("Password must be at least 8 characters long");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setLoading(false);
+      setError("Passwords do not match");
+      return;
+    }
 
+    try {
       const res = await fetch(`${API_URL}/api/users/reset-password`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
-          email: forgotForm.email,
-          otp: forgotForm.otp,
-          password: forgotForm.newPassword,
+          email: resetForm.email,
+          otp: resetForm.otp,
+          newPassword,
         }),
       });
-
       const json = await res.json();
-      if (!res.ok) throw new Error(toEnglishMessage(json?.message, "Reset failed"));
+      if (!res.ok) throw new Error(toEnglishMessage(json?.message, "Password reset failed"));
 
-      setMessage("Password reset successful");
+      const email = resetForm.email;
+      setResetOtpSent(false);
+      setResetForm({
+        email: "",
+        otp: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+      setLoginForm((prev) => ({ ...prev, email }));
       setMode("login");
-      setForgotStep(1);
+      setMessage(toEnglishMessage(json?.message, "Password updated successfully"));
     } catch (err) {
-      setError(toEnglishMessage(err?.message, "Reset failed"));
+      setError(toEnglishMessage(err?.message, "Password reset failed"));
     } finally {
       setLoading(false);
     }
@@ -293,74 +317,296 @@ function Auth({ initialMode = "login" }) {
       <Navbar />
       <main className="auth-page">
         <section className="auth-hero">
-          <div className="auth-card">
-
-            {/* ===== TABS ===== */}
-            <div className="auth-tabs">
-              <button onClick={() => switchMode("login")} className={mode === "login" ? "active" : ""}>Login</button>
-              <button onClick={() => switchMode("signup")} className={mode === "signup" ? "active" : ""}>Sign up</button>
-              <button onClick={() => switchMode("forgot")} className={mode === "forgot" ? "active" : ""}>Forgot</button>
+          <div className="auth-hero-inner">
+            <div className="auth-copy">
+              <div className="auth-kicker">Electric Car Store</div>
+              <h1>
+                {mode === "login"
+                  ? "Welcome back"
+                  : mode === "reset"
+                    ? "Reset your password"
+                    : "Create your account"}
+              </h1>
+              <p>
+                {mode === "reset"
+                  ? "Enter your email to receive an OTP and set a new password."
+                  : "Sign in to continue exploring our cars, or create a new account to start your buying journey."}
+              </p>
+              <div className="auth-copy-links">
+                <Link to="/cars">View cars</Link>
+                <Link to="/">Back home</Link>
+              </div>
             </div>
 
-            {message && <div className="auth-alert auth-success">{message}</div>}
-            {error && <div className="auth-alert auth-error">{error}</div>}
+            <div className="auth-card">
+              <div className="auth-tabs">
+                {mode === "reset" ? (
+                  <button type="button" className="active" onClick={() => switchMode("reset")}>
+                    Reset password
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      className={mode === "login" ? "active" : ""}
+                      onClick={() => switchMode("login")}
+                    >
+                      Login
+                    </button>
+                    <button
+                      type="button"
+                      className={mode === "signup" ? "active" : ""}
+                      onClick={() => switchMode("signup")}
+                    >
+                      Sign up
+                    </button>
+                    <button
+                      type="button"
+                      className={mode === "reset" ? "active" : ""}
+                      onClick={() => switchMode("reset")}
+                    >
+                      Reset password
+                    </button>
+                  </>
+                )}
+              </div>
 
-            {/* ===== LOGIN ===== */}
-            {mode === "login" && (
-              <form onSubmit={submitLogin} className="auth-form">
-                <input placeholder="Email" value={loginForm.email} onChange={(e) => onChangeLogin("email", e.target.value)} />
-                <input type="password" placeholder="Password" value={loginForm.password} onChange={(e) => onChangeLogin("password", e.target.value)} />
+              {message ? <div className="auth-alert auth-success">{message}</div> : null}
+              {error ? <div className="auth-alert auth-error">{error}</div> : null}
 
-                <button type="submit">Login</button>
+              {mode === "login" ? (
+                <form className="auth-form" onSubmit={submitLogin}>
+                  <label className="auth-field">
+                    <span>Email</span>
+                    <input
+                      type="email"
+                      value={loginForm.email}
+                      onChange={(e) => onChangeLogin("email", e.target.value)}
+                      placeholder="you@example.com"
+                      required
+                      disabled={loading}
+                    />
+                  </label>
 
-                <button type="button" onClick={() => setMode("forgot")}>
-                  Forgot password?
-                </button>
-              </form>
-            )}
+                  <label className="auth-field">
+                    <span>Password</span>
+                    <input
+                      type="password"
+                      value={loginForm.password}
+                      onChange={(e) => onChangeLogin("password", e.target.value)}
+                      placeholder="Enter password"
+                      required
+                      disabled={loading}
+                    />
+                  </label>
 
-            {/* ===== FORGOT ===== */}
-            {mode === "forgot" && forgotStep === 1 && (
-              <form onSubmit={submitForgotEmail} className="auth-form">
-                <input
-                  placeholder="Email"
-                  value={forgotForm.email}
-                  onChange={(e) => onChangeForgot("email", e.target.value)}
-                />
-                <button type="submit">Send OTP</button>
-                <button type="button" onClick={() => setMode("login")}>Back</button>
-              </form>
-            )}
+                  <button
+                    type="button"
+                    className="auth-secondary"
+                    onClick={() => {
+                      setResetOtpSent(false);
+                      switchMode("reset");
+                      setResetForm((prev) => ({ ...prev, email: loginForm.email }));
+                    }}
+                    disabled={loading}
+                  >
+                    Forgot password?
+                  </button>
 
-            {mode === "forgot" && forgotStep === 2 && (
-              <form onSubmit={submitResetPassword} className="auth-form">
-                <input placeholder="OTP" value={forgotForm.otp} onChange={(e) => onChangeForgot("otp", e.target.value)} />
-                <input type="password" placeholder="New password" value={forgotForm.newPassword} onChange={(e) => onChangeForgot("newPassword", e.target.value)} />
-                <input type="password" placeholder="Confirm password" value={forgotForm.confirmPassword} onChange={(e) => onChangeForgot("confirmPassword", e.target.value)} />
+                  <button type="submit" className="auth-submit" disabled={loading}>
+                    {loading ? "Signing in..." : "Login"}
+                  </button>
+                </form>
+              ) : null}
 
-                <button type="submit">Reset password</button>
-              </form>
-            )}
+              {mode === "signup" && !isOtpStep ? (
+                <form className="auth-form" onSubmit={submitSignup}>
+                  <label className="auth-field">
+                    <span>Username</span>
+                    <input
+                      type="text"
+                      value={signupForm.username}
+                      onChange={(e) => onChangeSignup("username", e.target.value)}
+                      placeholder="Enter username"
+                      required
+                      disabled={loading}
+                    />
+                  </label>
 
-            {/* ===== SIGNUP + OTP (giữ nguyên logic cũ của bạn) ===== */}
-            {mode === "signup" && !isOtpStep && (
-              <form onSubmit={submitSignup} className="auth-form">
-                <input placeholder="Username" value={signupForm.username} onChange={(e) => onChangeSignup("username", e.target.value)} />
-                <input placeholder="Email" value={signupForm.email} onChange={(e) => onChangeSignup("email", e.target.value)} />
-                <input type="password" placeholder="Password" value={signupForm.password} onChange={(e) => onChangeSignup("password", e.target.value)} />
-                <input type="password" placeholder="Confirm" value={signupForm.resPassword} onChange={(e) => onChangeSignup("resPassword", e.target.value)} />
+                  <label className="auth-field">
+                    <span>Email</span>
+                    <input
+                      type="email"
+                      value={signupForm.email}
+                      onChange={(e) => onChangeSignup("email", e.target.value)}
+                      placeholder="you@example.com"
+                      required
+                      disabled={loading}
+                    />
+                  </label>
 
-                <button type="submit">Create account</button>
-              </form>
-            )}
+                  <label className="auth-field">
+                    <span>Password</span>
+                    <input
+                      type="password"
+                      value={signupForm.password}
+                      onChange={(e) => onChangeSignup("password", e.target.value)}
+                      placeholder="Create password"
+                      required
+                      disabled={loading}
+                    />
+                  </label>
 
-            {mode === "signup" && isOtpStep && (
-              <form onSubmit={submitOtp} className="auth-form">
-                <input value={otp} onChange={(e) => setOtp(e.target.value)} placeholder="OTP" />
-                <button type="submit">Verify OTP</button>
-              </form>
-            )}
+                  <label className="auth-field">
+                    <span>Confirm password</span>
+                    <input
+                      type="password"
+                      value={signupForm.resPassword}
+                      onChange={(e) => onChangeSignup("resPassword", e.target.value)}
+                      placeholder="Confirm password"
+                      required
+                      disabled={loading}
+                    />
+                  </label>
 
+                  <button type="submit" className="auth-submit" disabled={loading}>
+                    {loading ? "Creating..." : "Create account"}
+                  </button>
+                </form>
+              ) : null}
+
+              {mode === "signup" && isOtpStep ? (
+                <form className="auth-form" onSubmit={submitOtp}>
+                  <div className="auth-otp-copy">
+                    Enter the OTP sent to <strong>{pendingEmail}</strong>.
+                  </div>
+
+                  <label className="auth-field">
+                    <span>OTP</span>
+                    <input
+                      type="text"
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value)}
+                      placeholder="6-digit OTP"
+                      required
+                      disabled={loading}
+                    />
+                  </label>
+
+                  <button type="submit" className="auth-submit" disabled={loading}>
+                    {loading ? "Verifying..." : "Verify OTP"}
+                  </button>
+
+                  <button
+                    type="button"
+                    className="auth-secondary"
+                    onClick={() => {
+                      setPendingEmail("");
+                      setOtp("");
+                      setMessage("");
+                      setError("");
+                    }}
+                    disabled={loading}
+                  >
+                    Back to sign up
+                  </button>
+                </form>
+              ) : null}
+
+              {mode === "reset" ? (
+                resetOtpSent ? (
+                  <form className="auth-form" onSubmit={submitResetPassword}>
+                    <label className="auth-field">
+                      <span>Email</span>
+                      <input
+                        type="email"
+                        value={resetForm.email}
+                        onChange={(e) => onChangeReset("email", e.target.value)}
+                        placeholder="you@example.com"
+                        required
+                        disabled={loading}
+                      />
+                    </label>
+
+                    <label className="auth-field">
+                      <span>OTP</span>
+                      <input
+                        type="text"
+                        value={resetForm.otp}
+                        onChange={(e) => onChangeReset("otp", e.target.value)}
+                        placeholder="6-digit OTP"
+                        required
+                        disabled={loading}
+                      />
+                    </label>
+
+                    <label className="auth-field">
+                      <span>New password</span>
+                      <input
+                        type="password"
+                        value={resetForm.newPassword}
+                        onChange={(e) => onChangeReset("newPassword", e.target.value)}
+                        placeholder="Create a new password"
+                        required
+                        disabled={loading}
+                      />
+                    </label>
+
+                    <label className="auth-field">
+                      <span>Confirm password</span>
+                      <input
+                        type="password"
+                        value={resetForm.confirmPassword}
+                        onChange={(e) => onChangeReset("confirmPassword", e.target.value)}
+                        placeholder="Confirm new password"
+                        required
+                        disabled={loading}
+                      />
+                    </label>
+
+                    <button type="submit" className="auth-submit" disabled={loading}>
+                      {loading ? "Updating..." : "Update password"}
+                    </button>
+
+                    <button
+                      type="button"
+                      className="auth-secondary"
+                      onClick={() => setResetOtpSent(false)}
+                      disabled={loading}
+                    >
+                      Back
+                    </button>
+                  </form>
+                ) : (
+                  <form className="auth-form" onSubmit={submitForgotPassword}>
+                    <label className="auth-field">
+                      <span>Email</span>
+                      <input
+                        type="email"
+                        value={resetForm.email}
+                        onChange={(e) => onChangeReset("email", e.target.value)}
+                        placeholder="you@example.com"
+                        required
+                        disabled={loading}
+                      />
+                    </label>
+
+                    <button type="submit" className="auth-submit" disabled={loading}>
+                      {loading ? "Sending..." : "Send OTP"}
+                    </button>
+
+                    <button
+                      type="button"
+                      className="auth-secondary"
+                      onClick={() => switchMode("login")}
+                      disabled={loading}
+                    >
+                      Back to login
+                    </button>
+                  </form>
+                )
+              ) : null}
+            </div>
           </div>
         </section>
       </main>

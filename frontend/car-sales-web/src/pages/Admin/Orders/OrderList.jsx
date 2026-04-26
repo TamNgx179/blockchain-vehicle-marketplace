@@ -148,21 +148,6 @@ const OrderList = () => {
     }
   };
 
-  // 2. Hàm HOÀN TẤT đơn
-  const handleCompleteOrder = async (order) => {
-    const txHash = order.fullTxHash || order.depositTxHash;
-    if (!txHash) return alert("Đơn hàng này chưa có mã giao dịch (txHash)!");
-
-    try {
-      await orderService.verifyComplete(order._id, txHash);
-      alert("Hoàn tất đơn hàng thành công!");
-      fetchOrders();
-    } catch (error) {
-      console.error("Lỗi khi hoàn tất đơn hàng:", error);
-      alert(getVietnameseErrorMessage(error, "Có lỗi xảy ra khi hoàn tất đơn hàng."));
-    }
-  };
-
   // 3. Hàm HỦY đơn
   const handleCancelOrder = async (order) => {
     if (processingAction) return;

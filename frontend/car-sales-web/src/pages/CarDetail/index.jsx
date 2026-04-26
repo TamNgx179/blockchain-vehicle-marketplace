@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
 import Footer from "../../components/Footer/Footer";
 import ProductService from "../../services/ProductService"; // Import Service của bạn
+import ReviewService from "../../services/reviewService";
 import "./CarDetail.css";
 import { useCart } from "../../context/CartContext";
 import add from '../../assets/icon/add.png';
@@ -12,6 +13,14 @@ function CarDetail() {
   const [loading, setLoading] = useState(true);
   const [activeHeroImage, setActiveHeroImage] = useState("");
   const { addToCart } = useCart();
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewsError, setReviewsError] = useState("");
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewSubmitError, setReviewSubmitError] = useState("");
+  const [reviewSubmitMessage, setReviewSubmitMessage] = useState("");
 
   // 1. Gọi API lấy dữ liệu sản phẩm
   useEffect(() => {
@@ -30,6 +39,24 @@ function CarDetail() {
     };
 
     if (id) fetchProduct();
+  }, [id]);
+
+  useEffect(() => {
+    const fetchReviews = async () => {
+      if (!id) return;
+      setReviewsLoading(true);
+      setReviewsError("");
+      try {
+        const res = await ReviewService.getReviewsByProductId(id);
+        setReviews(Array.isArray(res?.data) ? res.data : []);
+      } catch (error) {
+        setReviewsError(error?.response?.data?.message || "Unable to load reviews");
+      } finally {
+        setReviewsLoading(false);
+      }
+    };
+
+    fetchReviews();
   }, [id]);
 
   // Logic xử lý dữ liệu dựa trên cấu trúc JSON mới của bạn
@@ -88,6 +115,68 @@ function CarDetail() {
     }).format(car.price / usdPerEth)} ETH`
     : null;
 
+  const authToken = localStorage.getItem("authToken");
+  const authUsername = localStorage.getItem("authUsername") || "You";
+  const ratingValue = Number.isFinite(Number(car?.averageRating))
+    ? Number(car.averageRating)
+    : reviews.length
+      ? reviews.reduce((sum, item) => sum + Number(item?.rating || 0), 0) / reviews.length
+      : 0;
+
+  const reviewCountValue = Number.isFinite(Number(car?.reviewCount))
+    ? Number(car.reviewCount)
+    : reviews.length;
+
+  const ratingText = reviewCountValue
+    ? `${ratingValue.toFixed(1)} / 5 (${reviewCountValue})`
+    : "No reviews";
+
+  const renderStars = (value) => {
+    const normalized = Math.max(0, Math.min(5, Number(value) || 0));
+    const full = Math.round(normalized);
+    return "★★★★★".slice(0, full) + "☆☆☆☆☆".slice(0, 5 - full);
+  };
+
+  const submitReview = async (e) => {
+    e.preventDefault();
+    setReviewSubmitError("");
+    setReviewSubmitMessage("");
+
+    if (!authToken) {
+      setReviewSubmitError("Please sign in to leave a review");
+      return;
+    }
+
+    const numericRating = Number(reviewRating);
+    if (!Number.isFinite(numericRating) || numericRating < 1 || numericRating > 5) {
+      setReviewSubmitError("Rating must be between 1 and 5");
+      return;
+    }
+
+    try {
+      setReviewSubmitting(true);
+      await ReviewService.createReview({
+        productId: id,
+        rating: numericRating,
+        comment: reviewComment?.trim() || "",
+      });
+
+      setReviewSubmitMessage("Review submitted successfully");
+      setReviewComment("");
+
+      const [product, reviewsRes] = await Promise.all([
+        ProductService.getProductById(id),
+        ReviewService.getReviewsByProductId(id),
+      ]);
+      setCar(product);
+      setReviews(Array.isArray(reviewsRes?.data) ? reviewsRes.data : []);
+    } catch (error) {
+      setReviewSubmitError(error?.response?.data?.message || "Failed to submit review");
+    } finally {
+      setReviewSubmitting(false);
+    }
+  };
+
   return (
     <>
       <Navbar />
@@ -115,6 +204,12 @@ function CarDetail() {
                 <span>{car.brand}</span>
                 <span>•</span>
                 <span>{car.category}</span> {/* Đổi car.type thành car.category cho khớp JSON */}
+              </div>
+              <div className="car-detail-rating">
+                <span className="car-detail-stars" aria-label={ratingText}>
+                  {renderStars(ratingValue)}
+                </span>
+                <span className="car-detail-rating-text">{ratingText}</span>
               </div>
               {usdPriceText ? <div className="car-detail-price">{usdPriceText}</div> : null}
               {coinPriceText ? (
@@ -200,6 +295,97 @@ function CarDetail() {
               </div>
             </section>
           ) : null}
+
+          <section className="car-detail-section">
+            <h2 className="car-detail-section-title">Reviews</h2>
+
+            <div className="car-detail-review-card">
+              {!authToken ? (
+                <div className="car-detail-review-auth">
+                  <span>Please sign in to write a review.</span>
+                  <Link to="/login">Sign in</Link>
+                </div>
+              ) : (
+                <form className="car-detail-review-form" onSubmit={submitReview}>
+                  <div className="car-detail-review-form-top">
+                    <div className="car-detail-review-author">{authUsername}</div>
+                    <label className="car-detail-review-rating">
+                      <span>Rating</span>
+                      <select
+                        value={reviewRating}
+                        onChange={(e) => setReviewRating(Number(e.target.value))}
+                        disabled={reviewSubmitting}
+                      >
+                        <option value={5}>5</option>
+                        <option value={4}>4</option>
+                        <option value={3}>3</option>
+                        <option value={2}>2</option>
+                        <option value={1}>1</option>
+                      </select>
+                    </label>
+                  </div>
+
+                  <textarea
+                    className="car-detail-review-textarea"
+                    value={reviewComment}
+                    onChange={(e) => setReviewComment(e.target.value)}
+                    placeholder="Write your comment (optional)"
+                    rows={4}
+                    disabled={reviewSubmitting}
+                  />
+
+                  {reviewSubmitError ? (
+                    <div className="car-detail-review-error">{reviewSubmitError}</div>
+                  ) : null}
+                  {reviewSubmitMessage ? (
+                    <div className="car-detail-review-success">{reviewSubmitMessage}</div>
+                  ) : null}
+
+                  <button className="car-detail-review-submit" type="submit" disabled={reviewSubmitting}>
+                    {reviewSubmitting ? "Submitting..." : "Submit review"}
+                  </button>
+                </form>
+              )}
+            </div>
+
+            {reviewsLoading ? (
+              <div className="car-detail-review-state">Loading reviews...</div>
+            ) : reviewsError ? (
+              <div className="car-detail-review-state car-detail-review-error">{reviewsError}</div>
+            ) : reviews.length === 0 ? (
+              <div className="car-detail-review-state">No reviews yet.</div>
+            ) : (
+              <div className="car-detail-review-list">
+                {reviews
+                  .slice()
+                  .sort((a, b) => new Date(b?.createdAt || 0) - new Date(a?.createdAt || 0))
+                  .map((review) => (
+                    <div key={review?._id} className="car-detail-review-item">
+                      <div className="car-detail-review-item-top">
+                        <div className="car-detail-review-item-user">
+                          {review?.userId?.username || "User"}
+                        </div>
+                        <div className="car-detail-review-item-stars">
+                          {renderStars(review?.rating)}
+                        </div>
+                      </div>
+                      {review?.comment ? (
+                        <div className="car-detail-review-item-comment">{review.comment}</div>
+                      ) : (
+                        <div className="car-detail-review-item-comment car-detail-review-item-muted">
+                          (No comment)
+                        </div>
+                      )}
+                      <div className="car-detail-review-item-date">
+                        {review?.createdAt
+                          ? new Date(review.createdAt).toLocaleString("en-US")
+                          : ""}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </section>
         </div>
       </main>
       <Footer />

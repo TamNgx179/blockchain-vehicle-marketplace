@@ -7,7 +7,7 @@ import Checkout from './pages/Checkout/Checkout';
 import { CartProvider } from "./context/CartContext";
 import Notification from './components/Notification/Notification';
 import Auth from "./pages/Auth";
-import AccountService from "./services/AccountService"; // Import service của bạn
+import AccountService from "./services/accountService"; // Import service của bạn
 import AdminLayout from "./pages/Admin/AdminLayout";
 const AdminDashboard = lazy(() => import("./pages/Admin/Dashboard/Dashboard"));
 const OrderList = lazy(() => import("./pages/Admin/Orders/OrderList"));
@@ -66,11 +66,12 @@ function App() {
             {/* PUBLIC */}
             <Route path="/login" element={<Auth initialMode="login" />} />
             <Route path="/signup" element={<Auth initialMode="signup" />} />
+            <Route path="/reset-password" element={<Auth initialMode="reset" />} />
+            <Route path="/" element={<Home />} />
+            <Route path="/cars" element={<Cars />} />
+            <Route path="/product/:id" element={<CarDetail />} />
 
             {/* PRIVATE */}
-            <Route path="/" element={<PrivateRoute><Home /></PrivateRoute>} />
-            <Route path="/cars" element={<PrivateRoute><Cars /></PrivateRoute>} />
-            <Route path="/product/:id" element={<PrivateRoute><CarDetail /></PrivateRoute>} />
             <Route path="/checkout" element={<PrivateRoute><Checkout notifyRef={notifyRef} /></PrivateRoute>} />
 
             {/* ADMIN ONLY */}

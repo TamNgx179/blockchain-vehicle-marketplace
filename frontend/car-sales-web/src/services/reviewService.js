@@ -9,14 +9,8 @@ const ReviewService = {
    * trong body thì bạn thêm vào object này.
    */
   createReview: async (reviewData) => {
-    try {
-      // Backend yêu cầu productId, userId, rating, comment
-      const response = await api.post("/reviews/create", reviewData);
-      return response; // Trả về thông tin review vừa tạo
-    } catch (error) {
-      // Trả về lỗi cụ thể (ví dụ: "User đã đánh giá sản phẩm này")
-      throw error;
-    }
+    const response = await api.post("/reviews/create", reviewData);
+    return response;
   },
 
   /**
@@ -25,12 +19,8 @@ const ReviewService = {
    * @param {string} productId - ID của xe/sản phẩm
    */
   getReviewsByProductId: async (productId) => {
-    try {
-      const response = await api.get(`/reviews/product/${productId}`);
-      return response; // Trả về mảng reviews kèm thông tin username
-    } catch (error) {
-      throw error;
-    }
+    const response = await api.get(`/reviews/product/${productId}`);
+    return response;
   },
 };
 
