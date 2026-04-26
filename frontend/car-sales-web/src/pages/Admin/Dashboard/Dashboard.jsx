@@ -211,7 +211,9 @@ const Dashboard = () => {
         <div className="table-container animate-fade-in" style={{ animationDelay: '0.2s' }}>
           <div className="table-header">
             <h3 className="chart-title">Giao dịch gần đây</h3>
-            <button className="btn-text">Xem tất cả</button>
+            <Link to="/admin/orders" className="btn-text">
+              Xem tất cả
+            </Link>
           </div>
           <div style={{ overflowX: 'auto' }}>
             <table className="recent-table">
