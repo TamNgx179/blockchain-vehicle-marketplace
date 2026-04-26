@@ -5,6 +5,18 @@
   text-align: left;
 }
 
+@media (max-width: 768px) {
+  .popular-container {
+    padding: 40px 5% 25px;
+  }
+}
+
+@media (max-width: 576px) {
+  .popular-container {
+    padding: 30px 4% 20px;
+  }
+}
+
 .popular-container h1 {
   font-family: 'Poppins', sans-serif;
   font-size: 32px;
@@ -15,14 +27,38 @@
   /* Giữ nguyên chữ hoa chữ thường như ảnh */
 }
 
+@media (max-width: 768px) {
+  .popular-container h1 {
+    font-size: 28px;
+    margin-bottom: 15px;
+  }
+}
+
+@media (max-width: 576px) {
+  .popular-container h1 {
+    font-size: 22px;
+    margin-bottom: 12px;
+  }
+}
+
 .popular {
   display: flex;
   justify-content: flex-start;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 10px;
+  margin-bottom: -10px;
 }
 
 .reveal {
   display: flex;
   gap: 12px;
+}
+
+@media (max-width: 576px) {
+  .reveal {
+    gap: 8px;
+  }
 }
 
 /* --- STYLE NÚT MẶC ĐỊNH (TRẮNG) --- */
@@ -40,6 +76,16 @@
   transition: all 0.25s ease;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
   /* Đổ bóng nhẹ như ảnh */
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+@media (max-width: 576px) {
+  .category {
+    padding: 8px 16px;
+    font-size: 12px;
+    border-radius: 40px;
+  }
 }
 
 /* --- HIỆU ỨNG HOVER: TRẮNG BIẾN THÀNH ĐEN --- */
@@ -61,15 +107,4 @@
 /* Khi nút đang active rồi thì hover không cần biến đổi nữa */
 .category.active:hover {
   transform: translateY(0);
-}
-
-/* Responsive cho mobile */
-@media (max-width: 768px) {
-  .popular-container {
-    padding-left: 20px;
-  }
-
-  .reveal {
-    flex-wrap: wrap;
-  }
 }

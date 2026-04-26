@@ -1,66 +1,68 @@
-/* Style cho từng thẻ xe */
+/* ===============================
+   CAR CARD
+=============================== */
+
 .car-card {
   background: #ffffff;
   border-radius: 16px;
-  /* Bo góc lớn theo mẫu image_6.png */
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-  /* --- THÊM SHADOW ĐỂ CARD RÕ RÀNG HƠN --- */
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  /* Tạo viền mặc định trong suốt để khi hover không bị giật khung */
-  border: 2px solid transparent;
-  height: 100%;
   justify-content: flex-end;
+  min-height: 300px;
+  height: 100%;
+
+  border: 2px solid transparent;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
-/* --- HIỆU ỨNG HOVER ĐẸP --- */
+/* Hover */
 .car-card:hover {
   transform: translateY(-5px);
-  /* Nhấc nhẹ thẻ lên */
-  /* Hiệu ứng viền xanh DodgerBlue giống ảnh image_6.png */
   border-color: #1e90ff;
-  /* Đổ bóng đậm hơn một chút để tạo chiều sâu */
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
 }
 
-/* Khu vực chứa ảnh xe - Sửa lỗi ảnh bị khuyết và chiều rộng chưa đúng */
+/* ===============================
+   IMAGE
+=============================== */
+
 .car-card .thumb-img {
   width: 100%;
-  /* Đảm bảo ảnh luôn chiếm hết chiều rộng của khung chứa */
   height: auto;
-  /* Chiều cao tự động để giữ nguyên tỷ lệ ảnh */
   max-height: 200px;
-  /* Chiều cao tối đa cho ảnh, bạn có thể tăng giảm tùy ý */
-  /* --- QUAN TRỌNG: Giữ nguyên tỉ lệ xe, KHÔNG BỊ CẮT MẤT --- */
   object-fit: contain;
-  /* Khoảng trống xung quanh ảnh để xe không chạm viền */
-  padding: 0px;
-  background-color: #ffffff;
+  padding: 0;
+  background: #ffffff;
 }
 
-/* Phần nội dung dưới ảnh */
+/* ===============================
+   BODY
+=============================== */
+
 .car-card .body {
   padding: 15px 20px 20px;
-  text-align: left;
   display: flex;
-  flex-direction: row;
   justify-content: space-between;
-  gap: 5px;
-
+  align-items: flex-start;
+  gap: 8px;
+  text-align: left;
 }
 
 .car-card .body h3 {
-  font-family: 'Poppins', sans-serif;
+  margin: 0;
+  font-family: "Poppins", sans-serif;
   font-size: 16px;
-  /* Kích thước chữ tiêu đề */
   font-weight: 700;
   color: #111;
-  margin: 0;
 }
 
-/* Link Shop now */
+/* ===============================
+   CTA
+=============================== */
+
 .car-card .cta {
   font-size: 16px;
   font-weight: 700;
@@ -68,66 +70,148 @@
   text-decoration: none;
   display: inline-flex;
   align-items: center;
-  transition: color 0.2s;
-  padding: 0;
-  margin: 0;
+  transition: color 0.2s ease;
 }
 
 .car-card .cta::after {
-  content: ' →';
-  /* Thêm mũi tên phía sau */
+  content: " →";
   margin-left: 5px;
-  transition: transform 0.2s;
+  transition: transform 0.2s ease;
 }
 
 .car-card .cta:hover {
   color: #1e90ff;
-  /* Đổi sang màu xanh khi hover shop now */
 }
 
 .car-card .cta:hover::after {
   transform: translateX(4px);
-  /* Mũi tên trượt sang phải */
 }
 
-/* icon add */
+/* ===============================
+   ADD TO CART
+=============================== */
+
 .add-to-cart {
-  color: #fff;
   border: none;
+  background: #cbd5e0;
+  color: #fff;
   padding: 10px;
-  border-radius: 5px;
+  border-radius: 6px;
   cursor: pointer;
+
   aspect-ratio: 1 / 1;
-  /* Cố định tỉ lệ 1:1 */
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+
+  transition: all 0.25s ease;
 }
 
 .add-to-cart img {
   width: 20px;
   height: 20px;
+  transition: all 0.25s ease;
 }
 
 .add-to-cart:hover {
-  background-color: #3080F8;
-  /* Đổi sang màu xanh thương hiệu khi hover */
+  background: #3080f8;
   transform: translateY(-2px);
-  /* Nhấc nút lên một chút tạo chiều sâu */
   box-shadow: 0 4px 12px rgba(48, 128, 248, 0.3);
-  /* Đổ bóng nhẹ cùng tông màu */
 }
 
-/* Hiệu ứng cho icon bên trong khi hover */
 .add-to-cart:hover img {
   transform: scale(1.15) rotate(-5deg);
-  /* Phóng to và xoay nhẹ icon cho sinh động */
 }
 
-/* Hiệu ứng khi nhấn vào (Active) */
 .add-to-cart:active {
   transform: translateY(0);
-  /* Nút lún xuống khi bấm */
   filter: brightness(0.9);
-  /* Làm tối màu đi một chút */
+}
+
+/* ===============================
+   TABLET
+=============================== */
+
+@media (max-width: 768px) {
+  .car-card {
+    min-height: 285px;
+  }
+
+  .car-card .thumb-img {
+    max-height: 170px;
+  }
+
+  .car-card .body {
+    padding: 14px 16px 16px;
+  }
+
+  .car-card .body h3,
+  .car-card .cta {
+    font-size: 15px;
+  }
+}
+
+/* ===============================
+   MOBILE
+=============================== */
+
+@media (max-width: 576px) {
+  .car-card {
+    min-height: 270px;
+    border-radius: 12px;
+  }
+
+  .car-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.12);
+  }
+
+  .car-card .thumb-img {
+    max-height: 150px;
+  }
+
+  .car-card .body {
+    padding: 12px 15px 15px;
+    gap: 10px;
+  }
+
+  .car-card .body h3 {
+    font-size: 14px;
+  }
+
+  .car-card .cta {
+    font-size: 13px;
+  }
+
+  .add-to-cart {
+    padding: 8px;
+  }
+
+  .add-to-cart img {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+/* ===============================
+   EXTRA SMALL
+=============================== */
+
+@media (max-width: 400px) {
+  .car-card {
+    min-height: 250px;
+  }
+
+  .car-card .thumb-img {
+    max-height: 130px;
+  }
+
+  .car-card .body h3 {
+    font-size: 13px;
+  }
+
+  .car-card .cta {
+    font-size: 12px;
+  }
 }

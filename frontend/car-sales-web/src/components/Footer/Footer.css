@@ -1,49 +1,85 @@
 .footer {
   background-color: #e9ecef;
-  /* Màu nền xám nhạt như trong ảnh */
-  padding: 20px 0 10px 0;
-  font-family: 'Poppins', sans-serif;
+  padding: 20px 0 10px;
+  font-family: "Poppins", sans-serif;
   color: #333;
+  width: 100%;
+  overflow: hidden;
 }
 
+/* ===============================
+   LAYOUT
+=============================== */
 .footer-container {
   max-width: 1200px;
   margin: 0 auto;
+  padding: 0 5%;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding: 0 5%;
   gap: 50px;
+  box-sizing: border-box;
 }
 
-/* Logo */
 .footer-avata {
   flex: 1;
+  display: flex;
+  justify-content: center;
 }
 
 .footer-logo-img {
   width: 150px;
+  max-width: 100%;
   height: auto;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+  display: block;
 }
 
-/* Layout chia cột */
 .footer-content {
   flex: 3;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 40px;
+  width: 100%;
 }
 
-.footer-heading {
+.footer-column {
+  width: 100%;
+  min-width: 0;
+}
+
+/* ===============================
+   TITLE
+=============================== */
+.footer-toggle {
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin-bottom: 15px;
   font-size: 18px;
   font-weight: 700;
-  margin-bottom: 25px;
   color: #000;
-  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: default;
+  text-align: left;
 }
 
-/* Lists */
+.footer-toggle span {
+  display: none;
+}
+
+/* ===============================
+   DROPDOWN
+=============================== */
+.footer-dropdown {
+  overflow: hidden;
+}
+
+/* ===============================
+   LINKS / LIST
+=============================== */
 .footer-links,
 .footer-contact {
   list-style: none;
@@ -51,57 +87,64 @@
   margin: 0;
 }
 
-.footer-links li {
-  margin-bottom: 12px;
-}
-
-.footer-links li a {
-  text-decoration: none;
-  color: #555;
-  font-size: 15px;
-  transition: all 0.3s ease;
-}
-
-.footer-links li a:hover {
-  color: #ff4d4d;
-  /* Màu accent đỏ */
-  padding-left: 5px;
-}
-
-/* Contact & Icons */
+.footer-links li,
 .footer-contact li {
-  margin-bottom: 15px;
-  font-size: 15px;
+  margin-bottom: 10px;
+}
+
+.footer-links a {
+  color: #333;
+  text-decoration: none;
+  font-size: 14px;
+  transition: 0.3s ease;
+  word-break: break-word;
+}
+
+.footer-links a:hover {
+  color: #0066cc;
+  padding-left: 4px;
+}
+
+/* ===============================
+   CONTACT
+=============================== */
+.footer-contact li {
   display: flex;
   align-items: center;
   gap: 10px;
+  font-size: 14px;
+  flex-wrap: wrap;
 }
 
+/* ===============================
+   SOCIAL
+=============================== */
 .social-icons {
   display: flex;
   gap: 15px;
-  margin-top: 20px;
+  margin-top: 15px;
+  flex-wrap: wrap;
 }
 
 .social-icons img {
-  width: 32px;
-  height: 32px;
-  transition: transform 0.3s ease;
+  width: 24px;
+  height: 24px;
   cursor: pointer;
+  transition: transform 0.3s ease;
 }
 
 .social-icons img:hover {
-  transform: translateY(-5px);
+  transform: translateY(-4px);
 }
 
-/* Divider & Bottom */
+/* ===============================
+   BOTTOM
+=============================== */
 .footer-divider {
   border: 0;
   border-top: 1px solid #ccc;
-  margin: 20px 0 10px 0;
   width: 90%;
-  margin-left: auto;
-  margin-right: auto;
+  margin: 20px auto 10px;
 }
 
 .footer-bottom {
@@ -109,26 +152,126 @@
   font-size: 14px;
   font-weight: 600;
   color: #666;
+  padding: 0 10px;
 }
 
-/* Responsive cho điện thoại */
+/* ===============================
+   TABLET
+=============================== */
+@media (max-width: 1024px) {
+  .footer-container {
+    gap: 30px;
+    padding: 0 4%;
+  }
+
+  .footer-content {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 30px;
+  }
+}
+
+/* ===============================
+   MOBILE
+=============================== */
 @media (max-width: 768px) {
+  .footer {
+    padding: 16px 0 8px;
+  }
+
   .footer-container {
     flex-direction: column;
     align-items: center;
     text-align: center;
+    gap: 25px;
+  }
+
+  .footer-avata,
+  .footer-content {
+    width: 100%;
+  }
+
+  .footer-logo-img {
+    width: 120px;
   }
 
   .footer-content {
     grid-template-columns: 1fr;
-    gap: 30px;
+    gap: 14px;
   }
 
+  .footer-column {
+    border-bottom: 1px solid #d8d8d8;
+    padding-bottom: 10px;
+  }
+
+  .footer-toggle {
+    font-size: 16px;
+    margin-bottom: 0;
+    padding: 12px 0;
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .footer-toggle span {
+    display: block;
+    font-size: 18px;
+  }
+
+  .footer-dropdown {
+    max-height: 0;
+    opacity: 0;
+    transition: all 0.35s ease;
+  }
+
+  .footer-dropdown.open {
+    max-height: 500px;
+    opacity: 1;
+    padding-top: 10px;
+  }
+
+  .footer-links li,
   .footer-contact li {
-    justify-content: center;
+    margin-bottom: 8px;
   }
 
+  .footer-links a,
+  .footer-contact li {
+    font-size: 13px;
+  }
+
+  .footer-contact li,
   .social-icons {
     justify-content: center;
+  }
+
+  .social-icons img {
+    width: 20px;
+    height: 20px;
+  }
+
+  .footer-bottom {
+    font-size: 12px;
+  }
+}
+
+/* ===============================
+   SMALL MOBILE
+=============================== */
+@media (max-width: 480px) {
+  .footer-logo-img {
+    width: 100px;
+  }
+
+  .footer-toggle {
+    font-size: 15px;
+  }
+
+  .footer-links a,
+  .footer-contact li {
+    font-size: 12px;
+  }
+
+  .footer-bottom {
+    font-size: 11px;
   }
 }

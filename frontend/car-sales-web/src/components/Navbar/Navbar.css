@@ -182,13 +182,180 @@
   filter: invert(1);
 }
 
-/* Responsive */
-@media (max-width: 1024px) {
+/* ===================================
+   RESPONSIVE CHUẨN CHO JSX NÀY
+   Giữ 1 hàng - không xuống dòng
+=================================== */
+
+/* Desktop nhỏ */
+@media (max-width: 1200px) {
   .navbar {
     padding: 0 4%;
   }
 
   .nav_block2 {
-    gap: 15px;
+    gap: 20px;
+  }
+
+  .nav_block2 li a {
+    font-size: 13px;
+  }
+}
+
+/* Tablet */
+@media (max-width: 992px) {
+  .navbar {
+    padding: 0 18px;
+    height: 62px;
+    gap: 16px;
+  }
+
+  #Logo img {
+    width: 72px;
+    height: 72px;
+  }
+
+  .nav_block2 {
+    gap: 14px;
+    flex: 1;
+    justify-content: center;
+    min-width: 0;
+  }
+
+  .nav_block2 li a {
+    font-size: 12px;
+    letter-spacing: 0;
+  }
+
+  .nav-right {
+    gap: 14px;
+  }
+
+  .popup-login a {
+    padding: 6px 12px;
+    font-size: 11px;
+  }
+}
+
+/* Mobile lớn */
+@media (max-width: 768px) {
+  .navbar {
+    padding: 0 12px;
+    height: 58px;
+    gap: 10px;
+    flex-wrap: nowrap;
+  }
+
+  #Logo {
+    flex-shrink: 0;
+  }
+
+  #Logo img {
+    width: 58px;
+    height: 58px;
+  }
+
+  .nav_block2 {
+    flex: 1;
+    min-width: 0;
+    gap: 10px;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none;
+  }
+
+  .nav_block2::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nav_block2 li {
+    flex-shrink: 0;
+  }
+
+  .nav_block2 li a {
+    font-size: 11px;
+    padding: 6px 0;
+  }
+
+  .nav-right {
+    flex-shrink: 0;
+    gap: 10px;
+  }
+
+  .popup-login a {
+    padding: 5px 8px;
+    font-size: 10px;
+    gap: 5px;
+  }
+
+  .popup-login img {
+    width: 13px;
+  }
+
+  .trolley img {
+    width: 19px;
+  }
+
+  .counter {
+    width: 15px;
+    height: 15px;
+    font-size: 8px;
+    top: -6px;
+    right: -7px;
+  }
+}
+
+/* Mobile nhỏ */
+@media (max-width: 576px) {
+  .navbar {
+    padding: 0 8px;
+    gap: 8px;
+  }
+
+  #Logo img {
+    width: 52px;
+    height: 52px;
+  }
+
+  .nav_block2 {
+    gap: 8px;
+  }
+
+  .nav_block2 li a {
+    font-size: 10px;
+  }
+
+  .popup-login a span {
+    display: none; /* chỉ hiện icon login */
+  }
+
+  .popup-login a {
+    padding: 6px;
+    min-width: 34px;
+    justify-content: center;
+  }
+
+  .popup-login img {
+    width: 14px;
+  }
+
+  .nav-right {
+    gap: 8px;
+  }
+}
+
+/* Mobile cực nhỏ */
+@media (max-width: 420px) {
+  .nav_block2 li a {
+    font-size: 9px;
+  }
+
+  .trolley img {
+    width: 17px;
+  }
+
+  #Logo img {
+    width: 46px;
+    height: 46px;
   }
 }
