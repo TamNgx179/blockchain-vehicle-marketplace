@@ -31,7 +31,7 @@ router.get(
 
     // Sau khi xác thực thành công, chuyển hướng về frontend với token và thông tin người dùng (URL fe)
     res.redirect(
-      `http://localhost:5173/login?token=${token}&username=${req.user.username}&email=${req.user.email}`
+      `https://blockchain-vehicle-marketplace.netlify.app/login?token=${token}&username=${req.user.username}&email=${req.user.email}`
     );
   }
 );
