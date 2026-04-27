@@ -64,6 +64,8 @@
   border-radius: 18px;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
   padding: 18px 16px;
+  overflow: hidden;
+  word-break: break-word;
 }
 
 .cars-filter-title {
@@ -72,6 +74,8 @@
   font-weight: 900;
   color: #111;
   margin-bottom: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .cars-filter-group+.cars-filter-group {
@@ -96,6 +100,8 @@
   padding: 12px 12px;
   font-weight: 700;
   outline: none;
+  box-sizing: border-box;
+  font-size: 14px;
 }
 
 .cars-filter-input:focus {
@@ -111,6 +117,8 @@
   outline: none;
   background: #ffffff;
   appearance: none;
+  box-sizing: border-box;
+  font-size: 14px;
 }
 
 .cars-filter-select:focus {
@@ -256,11 +264,13 @@
   place-items: center;
   padding: 18px;
   z-index: 50;
+  overflow-x: hidden;
 }
 
 .cars-make-modal {
   width: min(520px, 100%);
   max-height: min(620px, 90vh);
+  box-sizing: border-box;
   background: #fff;
   border-radius: 16px;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
@@ -268,6 +278,7 @@
   display: grid;
   grid-template-rows: auto auto auto 1fr;
   gap: 12px;
+  overflow: hidden;
 }
 
 .cars-make-header {
@@ -311,6 +322,8 @@
 
 .cars-make-search {
   position: relative;
+  width: 100%;
+  min-width: 0;
 }
 
 .cars-make-search-icon {
@@ -323,7 +336,9 @@
 }
 
 .cars-make-search input {
+  display: block;
   width: 100%;
+  box-sizing: border-box;
   height: 40px;
   padding: 0 12px 0 34px;
   border-radius: 12px;
@@ -348,7 +363,7 @@
 }
 
 .cars-make-tag {
-  height: 48px;
+  height: 64px;
   border-radius: 12px;
   border: 1px solid #e6e6e6;
   background: #fff;
@@ -362,14 +377,14 @@
 }
 
 .cars-make-tag img {
-  width: 26px;
-  height: 26px;
+  width: 44px;
+  height: 44px;
   object-fit: contain;
 }
 
 .cars-make-tag-fallback {
-  width: 26px;
-  height: 26px;
+  width: 44px;
+  height: 44px;
   border-radius: 999px;
   display: grid;
   place-items: center;
@@ -391,10 +406,11 @@
 .cars-make-row {
   width: 100%;
   display: grid;
-  grid-template-columns: 34px 1fr;
+  grid-template-columns: 52px 1fr;
   align-items: center;
-  gap: 10px;
-  padding: 10px 10px;
+  gap: 14px;
+  min-height: 66px;
+  padding: 12px 14px;
   border-radius: 12px;
   border: 1px solid transparent;
   background: transparent;
@@ -412,14 +428,14 @@
 }
 
 .cars-make-row-logo {
-  width: 28px;
-  height: 28px;
+  width: 42px;
+  height: 42px;
   object-fit: contain;
 }
 
 .cars-make-row-fallback {
-  width: 28px;
-  height: 28px;
+  width: 42px;
+  height: 42px;
   border-radius: 999px;
   display: grid;
   place-items: center;
@@ -655,6 +671,88 @@
   gap: 18px;
 }
 
+.cars-skeleton-card {
+  pointer-events: none;
+}
+
+.cars-skeleton-media,
+.cars-skeleton-line,
+.cars-skeleton-specs span,
+.cars-skeleton-chips span,
+.cars-skeleton-price {
+  border-radius: 12px;
+  background: linear-gradient(90deg, #f2f2f2 25%, #e7e7e7 38%, #f2f2f2 63%);
+  background-size: 400% 100%;
+  animation: cars-skeleton-pulse 1.2s ease-in-out infinite;
+}
+
+.cars-skeleton-media {
+  width: 100%;
+  height: 130px;
+}
+
+.cars-skeleton-body {
+  display: grid;
+  gap: 12px;
+}
+
+.cars-skeleton-line {
+  height: 18px;
+}
+
+.cars-skeleton-line-lg {
+  width: min(260px, 75%);
+}
+
+.cars-skeleton-line-sm {
+  width: min(160px, 48%);
+}
+
+.cars-skeleton-specs,
+.cars-skeleton-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.cars-skeleton-specs span {
+  width: 72px;
+  height: 16px;
+}
+
+.cars-skeleton-chips span {
+  width: 96px;
+  height: 28px;
+  border-radius: 999px;
+}
+
+.cars-skeleton-price {
+  width: 112px;
+  height: 28px;
+  justify-self: end;
+  align-self: end;
+}
+
+.cars-empty-state {
+  border: 1px solid #eee;
+  border-radius: 16px;
+  padding: 26px;
+  background: #ffffff;
+  color: #555;
+  font-weight: 800;
+  text-align: center;
+}
+
+@keyframes cars-skeleton-pulse {
+  0% {
+    background-position: 100% 0;
+  }
+
+  100% {
+    background-position: 0 0;
+  }
+}
+
 .cars-item {
   display: grid;
   grid-template-columns: 210px 1fr 140px;
@@ -722,6 +820,19 @@
 .cars-item-brand-icon svg {
   width: 18px;
   height: 18px;
+}
+
+.cars-item-stock {
+  width: fit-content;
+  margin-top: 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #333333;
+  border: 1px solid #e5e7eb;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .cars-item-specs {
@@ -885,4 +996,435 @@
   /* Nút lún xuống khi bấm */
   filter: brightness(0.9);
   /* Làm tối màu đi một chút */
+}
+
+.add-to-cart:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.add-to-cart:disabled:hover {
+  background: #cbd5e0;
+  transform: none;
+  box-shadow: none;
+}
+
+.add-to-cart:disabled:hover img {
+  transform: none;
+}
+
+/* ===============================
+   RESPONSIVE IMPROVED
+=============================== */
+
+/* Desktop nhỏ / tablet ngang */
+@media (max-width: 1200px) {
+  .cars-page {
+    zoom: 1;
+  }
+
+  .cars-hero-text h1 {
+    font-size: 48px;
+  }
+
+  .cars-layout {
+    grid-template-columns: 280px 1fr;
+    gap: 22px;
+  }
+
+  .cars-item {
+    grid-template-columns: 180px 1fr 120px;
+  }
+}
+
+/* Tablet */
+@media (max-width: 992px) {
+  .cars-hero {
+    padding: 28px 0;
+  }
+
+  .cars-hero-inner {
+    grid-template-columns: 1fr;
+    text-align: center;
+    gap: 24px;
+  }
+
+  .cars-hero-media {
+    justify-content: center;
+  }
+
+  .cars-hero-media img {
+    max-height: 260px;
+  }
+
+  .cars-hero-text h1 {
+    font-size: 42px;
+    line-height: 1.15;
+  }
+
+  .cars-layout {
+    grid-template-columns: 1fr;
+    padding: 24px 5% 60px;
+  }
+
+  .cars-filter-card {
+    position: static;
+  }
+
+  .cars-results-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .cars-results-pager {
+    flex-wrap: wrap;
+  }
+
+  .cars-item {
+    grid-template-columns: 170px 1fr;
+    gap: 16px;
+  }
+
+  .cars-item-price {
+    grid-column: 1 / -1;
+    text-align: left;
+    margin-top: 8px;
+  }
+}
+
+/* Mobile lớn */
+@media (max-width: 768px) {
+  .cars-page {
+    zoom: 1;
+  }
+
+  .cars-hero {
+    padding: 24px 0;
+  }
+
+  .cars-hero-inner {
+    padding: 0 16px;
+  }
+
+  .cars-hero-text h1 {
+    font-size: 34px;
+  }
+
+  .cars-layout {
+    padding: 22px 16px 50px;
+    gap: 18px;
+  }
+
+  .cars-filter-card {
+    padding: 16px;
+    border-radius: 16px;
+  }
+
+  .cars-results-title {
+    font-size: 22px;
+  }
+
+  .cars-results-subtitle {
+    font-size: 14px;
+  }
+
+  .cars-item {
+    grid-template-columns: 1fr;
+    padding: 14px;
+  }
+
+  .cars-item-media {
+    height: 180px;
+  }
+
+  .cars-item-top {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .cars-item-name {
+    font-size: 18px;
+  }
+
+  .cars-item-stock {
+  width: fit-content;
+  margin-top: 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #333333;
+  border: 1px solid #e5e7eb;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.cars-item-specs {
+    gap: 10px;
+  }
+
+  .cars-item-meta {
+    gap: 8px;
+  }
+
+  .cars-chip {
+    font-size: 10px;
+    padding: 7px 10px;
+  }
+
+  .cars-item-price {
+    font-size: 20px;
+  }
+
+  .cars-pager-pages {
+    flex-wrap: wrap;
+  }
+
+  .cars-page-btn,
+  .cars-pager-btn {
+    padding: 8px 10px;
+    min-width: 36px;
+  }
+
+  .cars-make-tags {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Mobile nhỏ */
+@media (max-width: 576px) {
+  .cars-hero-text h1 {
+    font-size: 28px;
+  }
+
+  .cars-hero-media img {
+    max-height: 180px;
+  }
+
+  .cars-filter-title {
+    font-size: 16px;
+  }
+
+  .cars-filter-label {
+    font-size: 10px;
+  }
+
+  .cars-filter-input,
+  .cars-filter-select {
+    padding: 10px;
+    font-size: 13px;
+  }
+
+  .cars-model-row {
+    grid-template-columns: 1fr 40px;
+  }
+
+  .cars-model-go {
+    width: 40px;
+    height: 40px;
+  }
+
+  .cars-item-media {
+    height: 150px;
+  }
+
+  .cars-item-name {
+    font-size: 17px;
+  }
+
+  .cars-item-spec {
+    font-size: 11px;
+  }
+
+  .cars-item-price {
+    font-size: 18px;
+  }
+
+  .cars-make-modal {
+    padding: 14px;
+    border-radius: 14px;
+  }
+
+  .cars-make-tags {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .cars-selected-make {
+    grid-template-columns: 38px 1fr 32px;
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .cars-selected-make-logo,
+  .cars-selected-make-fallback {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+/* Mobile cực nhỏ */
+@media (max-width: 400px) {
+  .cars-layout,
+  .cars-hero-inner {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .cars-hero-text h1 {
+    font-size: 24px;
+  }
+
+  .cars-results-title {
+    font-size: 20px;
+  }
+
+  .cars-item {
+    padding: 12px;
+  }
+
+  .cars-chip {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .add-to-cart {
+    width: 36px;
+    padding: 8px;
+  }
+
+  .add-to-cart img {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+/* ===============================
+   REMOVE LINK UNDERLINES
+=============================== */
+
+.cars-page a,
+.cars-page a:visited,
+.cars-page a:hover,
+.cars-page a:active {
+  text-decoration: none;
+  color: inherit;
+}
+
+.cars-item a,
+.cars-item a:visited,
+.cars-item a:hover,
+.cars-item a:active {
+  text-decoration: none;
+  color: inherit;
+}
+
+.cars-item-name,
+.cars-item-brand,
+.cars-item-spec,
+.cars-chip {
+  text-decoration: none;
+}
+
+/* ===============================
+   WISHLIST HEART BUTTON
+=============================== */
+
+.cars-item {
+  position: relative;
+}
+
+.cars-wishlist-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 5;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid rgba(229, 231, 235, 0.95);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  color: #111827;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.14);
+  transition:
+    transform 0.18s ease,
+    background 0.18s ease,
+    color 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.cars-wishlist-btn:hover {
+  background: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.18);
+}
+
+.cars-wishlist-btn:active {
+  transform: scale(0.96);
+}
+
+.cars-wishlist-icon {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.cars-wishlist-btn.active {
+  color: #e11d48;
+  background: #fff1f2;
+  border-color: #fecdd3;
+}
+
+.cars-wishlist-btn.active .cars-wishlist-icon {
+  fill: currentColor;
+  stroke: currentColor;
+}
+
+@media (max-width: 768px) {
+  .cars-wishlist-btn {
+    top: 10px;
+    right: 10px;
+    width: 36px;
+    height: 36px;
+  }
+
+  .cars-wishlist-icon {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+@media (max-width: 576px) {
+  .cars-wishlist-btn {
+    top: 9px;
+    right: 9px;
+    width: 34px;
+    height: 34px;
+  }
+
+  .cars-wishlist-icon {
+    width: 17px;
+    height: 17px;
+  }
+}
+
+@media (max-width: 576px) {
+  .cars-item-stock {
+    font-size: 11px;
+    padding: 5px 8px;
+  }
 }

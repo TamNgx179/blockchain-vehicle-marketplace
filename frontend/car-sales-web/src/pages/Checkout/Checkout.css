@@ -7,11 +7,24 @@
   color: #333;
 }
 
+@media (max-width: 768px) {
+  .checkout-page {
+    padding: 20px 16px;
+  }
+}
+
 /* --- 1. THANH TIẾN TRÌNH (PROGRESS BAR) --- */
 #purchasing-progress {
   display: flex;
   justify-content: center;
   margin-bottom: 40px;
+  overflow-x: auto;
+}
+
+@media (max-width: 768px) {
+  #purchasing-progress {
+    margin-bottom: 20px;
+  }
 }
 
 #step-purchasing {
@@ -20,6 +33,7 @@
   list-style: none;
   gap: 15px;
   padding: 0;
+  min-width: min-content;
 }
 
 .step {
@@ -28,6 +42,12 @@
   gap: 8px;
   color: #a0aec0;
   font-size: 14px;
+}
+
+@media (max-width: 576px) {
+  .step {
+    font-size: 12px;
+  }
 }
 
 .step.active {
@@ -45,6 +65,15 @@
   align-items: center;
   justify-content: center;
   font-size: 11px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 576px) {
+  .step .dot {
+    width: 20px;
+    height: 20px;
+    font-size: 10px;
+  }
 }
 
 .step.active .dot {
@@ -59,6 +88,12 @@
   font-weight: 300;
 }
 
+@media (max-width: 576px) {
+  .step:not(:last-child):after {
+    margin-left: 8px;
+  }
+}
+
 /* --- 2. BỐ CỤC CHÍNH (GRID SYSTEM) --- */
 #main-content {
   display: grid;
@@ -66,6 +101,20 @@
   /* Cột trái rộng hơn cột phải */
   gap: 25px;
   align-items: start;
+}
+
+@media (max-width: 1200px) {
+  #main-content {
+    grid-template-columns: 1.5fr 0.85fr;
+    gap: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  #main-content {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
 }
 
 /* Cột trái: Nơi render nội dung các Step */
@@ -77,11 +126,29 @@
   /* Thay black bằng màu nhẹ hơn cho hiện đại */
 }
 
+@media (max-width: 768px) {
+  #Choosing-method {
+    padding: 20px;
+    border-radius: 16px;
+  }
+}
+
 /* --- 3. CÁC NÚT ĐIỀU HƯỚNG (BOTTOM BUTTONS) --- */
 #button-block {
   margin-top: 30px;
-  overflow: hidden;
-  /* Clear float cho các nút bên trong */
+  display: flex;
+  justify-content: space-between;
+  /* Đẩy 2 nút về 2 đầu */
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 576px) {
+  #button-block {
+    margin-top: 20px;
+    gap: 10px;
+  }
 }
 
 .next-step,
@@ -94,8 +161,18 @@
   font-weight: 600;
   cursor: pointer;
   transition: opacity 0.2s;
+  flex: 1;
+  min-width: 120px;
 }
 
+@media (max-width: 576px) {
+  .next-step,
+  .back-step {
+    padding: 10px 20px;
+    font-size: 14px;
+    min-width: 100px;
+  }
+}
 
 .next-step:hover,
 .back-step:hover {
@@ -106,21 +183,13 @@
 .back-step:disabled {
   background: #cbd5e0;
   cursor: not-allowed;
+  opacity: 0.6;
 }
 
 /* Bổ sung cho label của các bước */
 .step-label {
   white-space: nowrap;
   /* Tránh chữ bị xuống hàng trên màn hình nhỏ */
-}
-
-/* Tối ưu lại nút bấm để tránh dùng float */
-#button-block {
-  margin-top: 30px;
-  display: flex;
-  justify-content: space-between;
-  /* Đẩy 2 nút về 2 đầu */
-  align-items: center;
 }
 
 /* Trường hợp chỉ có 1 nút Next (Step 1 không có nút Back) */
@@ -137,4 +206,12 @@
   position: sticky;
   /* Giữ bảng tổng tiền luôn thấy khi scroll */
   top: 20px;
+}
+
+@media (max-width: 768px) {
+  #main-content> :last-child {
+    position: static;
+    padding: 20px;
+    border-radius: 16px;
+  }
 }

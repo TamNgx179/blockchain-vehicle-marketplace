@@ -1,4 +1,5 @@
 import React from 'react';
+import './OrderSummary.css';
 
 function OrderSummary({ cartItems, deliveryFee }) {
   const subtotal = cartItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);

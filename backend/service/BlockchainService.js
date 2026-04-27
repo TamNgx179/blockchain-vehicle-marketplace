@@ -18,6 +18,10 @@ const contractAbi = artifact.abi;
 const readContract = new ethers.Contract(CONTRACT_ADDRESS, contractAbi, provider);
 const writeContract = new ethers.Contract(CONTRACT_ADDRESS, contractAbi, signer);
 
+export function getServerWalletAddress() {
+  return signer.address;
+}
+
 export const CONTRACT_PAYMENT_TYPE = {
   NONE: 0,
   DEPOSIT: 1,
@@ -56,6 +60,26 @@ export async function createOrderOnChain({
     paymentTypeValue
   );
 
+  const receipt = await tx.wait();
+
+  return {
+    txHash: tx.hash,
+    blockNumber: receipt.blockNumber,
+  };
+}
+
+export async function confirmOrderOnChain(blockchainOrderId) {
+  const tx = await writeContract.confirmOrder(blockchainOrderId);
+  const receipt = await tx.wait();
+
+  return {
+    txHash: tx.hash,
+    blockNumber: receipt.blockNumber,
+  };
+}
+
+export async function cancelOrderOnChain(blockchainOrderId) {
+  const tx = await writeContract.cancelOrder(blockchainOrderId);
   const receipt = await tx.wait();
 
   return {

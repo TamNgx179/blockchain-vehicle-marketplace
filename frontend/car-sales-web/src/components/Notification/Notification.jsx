@@ -5,18 +5,19 @@ const Notification = forwardRef((props, ref) => {
   const [notifications, setNotifications] = useState([]);
   const duration = 3000;
 
+  const show = (newMsg) => {
+    const id = Date.now();
+
+    setNotifications((prev) => [...prev, { id, msg: newMsg }]);
+
+    setTimeout(() => {
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+    }, duration);
+  };
+
   useImperativeHandle(ref, () => ({
-    show: (newMsg) => {
-      const id = Date.now(); // Tạo ID duy nhất cho mỗi thông báo
-
-      // Thêm thông báo mới vào danh sách
-      setNotifications((prev) => [...prev, { id, msg: newMsg }]);
-
-      // Tự động xóa thông báo này sau 3 giây
-      setTimeout(() => {
-        setNotifications((prev) => prev.filter((n) => n.id !== id));
-      }, duration);
-    }
+    show,
+    showNotification: (_title, message) => show(message || _title)
   }));
 
   return (
@@ -32,7 +33,6 @@ const Notification = forwardRef((props, ref) => {
               <p className="notification-message">{notify.msg}</p>
             </div>
           </div>
-          {/* Thanh tiến trình */}
           <div
             className="notification-progress"
             style={{ animationDuration: `${duration}ms` }}

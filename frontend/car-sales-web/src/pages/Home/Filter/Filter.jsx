@@ -4,6 +4,7 @@ import './Filter.css';
 function Filter({ type, setType }) {
   // Danh sách các danh mục xe
   const categories = [
+    { label: "All", value: "All" },
     { label: "EVs", value: "EV" },
     { label: "SUVs", value: "SUV" },
     { label: "Sedans", value: "Sedan" },

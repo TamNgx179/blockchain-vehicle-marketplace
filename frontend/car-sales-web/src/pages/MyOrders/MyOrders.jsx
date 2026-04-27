@@ -1,0 +1,494 @@
+import { useEffect, useMemo, useState } from "react";
+import {
+  Ban,
+  CheckCircle2,
+  ChevronDown,
+  Clock3,
+  CreditCard,
+  ExternalLink,
+  LoaderCircle,
+  PackageCheck,
+  RefreshCw,
+  Search,
+  ShieldCheck,
+  Wallet,
+} from "lucide-react";
+import { ethers } from "ethers";
+import Navbar from "../../components/Navbar/Navbar";
+import { orderService } from "../../services/orderService";
+import contractArtifact from "../../config/abi.json";
+import "./MyOrders.css";
+
+const CONTRACT_ADDRESS =
+  import.meta.env.VITE_CONTRACT_ADDRESS ||
+  "0xD0CF607f0bCD60B5ed02896e682450eA4dBf5BB0";
+const USD_PER_ETH = Number(import.meta.env.VITE_USD_PER_ETH || 2000000);
+const SEPOLIA_CHAIN_ID = 11155111n;
+const SEPOLIA_CHAIN_HEX = "0xaa36a7";
+
+const STATUS_CONFIG = {
+  pending_deposit: {
+    label: "Awaiting deposit",
+    tone: "warning",
+    description: "Your order has been created. Please complete the deposit payment.",
+  },
+  pending_payment: {
+    label: "Awaiting payment",
+    tone: "warning",
+    description: "Your order is waiting for full payment.",
+  },
+  deposit_paid: {
+    label: "Deposit paid",
+    tone: "info",
+    description: "Your deposit has been verified. The order is waiting for showroom confirmation.",
+  },
+  payment_paid: {
+    label: "Payment paid",
+    tone: "info",
+    description: "Your full payment has been verified. The order is waiting for showroom confirmation.",
+  },
+  processing: {
+    label: "Processing",
+    tone: "primary",
+    description: "The showroom has confirmed your order. Complete the transaction after receiving the car.",
+  },
+  completed: {
+    label: "Completed",
+    tone: "success",
+    description: "This transaction has been completed and recorded in the system.",
+  },
+  cancelled: {
+    label: "Cancelled",
+    tone: "danger",
+    description: "This order has been cancelled.",
+  },
+};
+
+const formatCurrency = (value) =>
+  new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(Number(value) || 0);
+
+const shortText = (value, start = 8, end = 6) => {
+  if (!value) return "Not available";
+  return `${String(value).slice(0, start)}...${String(value).slice(-end)}`;
+};
+
+const getErrorMessage = (error) => {
+  const raw = String(
+    error?.response?.data?.message ||
+    error?.reason ||
+    error?.shortMessage ||
+    error?.message ||
+    ""
+  );
+  const normalized = raw.toLowerCase();
+
+  if (!raw) return "Something went wrong while processing the transaction.";
+  if (error?.code === "ACTION_REJECTED" || normalized.includes("user rejected")) {
+    return "You rejected the transaction in MetaMask.";
+  }
+  if (normalized.includes("insufficient funds")) {
+    return "Your wallet does not have enough ETH for the payment or gas fee.";
+  }
+  if (normalized.includes("not buyer")) {
+    return "The connected MetaMask wallet is not the buyer wallet for this order.";
+  }
+  if (normalized.includes("cannot cancel now")) {
+    return "This order can no longer be cancelled.";
+  }
+  if (normalized.includes("order not confirmed")) {
+    return "The order has not been confirmed by the showroom yet.";
+  }
+  return raw;
+};
+
+const getFullPaymentWei = (order) => {
+  if (order.totalAmountWei) {
+    return ethers.toBigInt(order.totalAmountWei);
+  }
+
+  const ethAmount = (Number(order.totalAmount || 0) / USD_PER_ETH).toFixed(18);
+  return ethers.parseEther(ethAmount);
+};
+
+const isFullPaymentRecorded = (order) =>
+  order.paymentType === "full" &&
+  (
+    order.status === "payment_paid" ||
+    Boolean(order.fullTxHash) ||
+    Number(order.paidAmount || 0) >= Number(order.totalAmount || 0)
+  );
+
+const getOrderStatusKey = (order) =>
+  order.status === "pending_payment" && isFullPaymentRecorded(order)
+    ? "payment_paid"
+    : order.status;
+
+function MyOrders() {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [actionState, setActionState] = useState(null);
+  const [expandedOrderId, setExpandedOrderId] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      const response = await orderService.getMyOrders();
+      const list = Array.isArray(response) ? response : response?.data || [];
+      setOrders(list);
+    } catch (error) {
+      console.error("Failed to load orders:", error);
+      alert(getErrorMessage(error));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  const filteredOrders = useMemo(() => {
+    const keyword = searchTerm.trim().toLowerCase();
+    return orders.filter((order) => {
+      const orderStatusKey = getOrderStatusKey(order);
+      const matchesStatus = statusFilter === "all" || orderStatusKey === statusFilter;
+      const matchesKeyword =
+        !keyword ||
+        [
+          order._id,
+          order.blockchainOrderId,
+          order.buyerWallet,
+          order.sellerWallet,
+          ...(order.items || []).map((item) => item.name),
+        ].some((value) => String(value || "").toLowerCase().includes(keyword));
+
+      return matchesStatus && matchesKeyword;
+    });
+  }, [orders, searchTerm, statusFilter]);
+
+  const stats = useMemo(
+    () => ({
+      total: orders.length,
+      waiting: orders.filter((order) =>
+        ["pending_deposit", "pending_payment", "deposit_paid", "payment_paid"].includes(getOrderStatusKey(order))
+      ).length,
+      processing: orders.filter((order) => order.status === "processing").length,
+      completed: orders.filter((order) => order.status === "completed").length,
+    }),
+    [orders]
+  );
+
+  const getContract = async (order) => {
+    if (!window.ethereum) {
+      throw new Error("MetaMask is not installed in this browser.");
+    }
+
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+    const network = await provider.getNetwork();
+
+    if (network.chainId !== SEPOLIA_CHAIN_ID) {
+      try {
+        await window.ethereum.request({
+          method: "wallet_switchEthereumChain",
+          params: [{ chainId: SEPOLIA_CHAIN_HEX }],
+        });
+      } catch (switchError) {
+        if (switchError?.code !== 4902) throw switchError;
+        await window.ethereum.request({
+          method: "wallet_addEthereumChain",
+          params: [
+            {
+              chainId: SEPOLIA_CHAIN_HEX,
+              chainName: "Sepolia",
+              nativeCurrency: { name: "Sepolia ETH", symbol: "ETH", decimals: 18 },
+              rpcUrls: ["https://rpc.sepolia.org"],
+              blockExplorerUrls: ["https://sepolia.etherscan.io"],
+            },
+          ],
+        });
+      }
+    }
+
+    const signer = await provider.getSigner();
+    const connectedWallet = await signer.getAddress();
+
+    if (
+      order.buyerWallet &&
+      connectedWallet.toLowerCase() !== order.buyerWallet.toLowerCase()
+    ) {
+      throw new Error("The connected MetaMask wallet is not the buyer wallet for this order.");
+    }
+
+    return new ethers.Contract(CONTRACT_ADDRESS, contractArtifact.abi, signer);
+  };
+
+  const runOrderAction = async (order, action, handler) => {
+    if (actionState) return;
+    try {
+      setActionState({ orderId: order._id, action });
+      await handler();
+      await fetchOrders();
+    } catch (error) {
+      console.error("Failed to process order:", error);
+      alert(getErrorMessage(error));
+    } finally {
+      setActionState(null);
+    }
+  };
+
+  const handlePayDeposit = (order) => {
+    runOrderAction(order, "payDeposit", async () => {
+      const contract = await getContract(order);
+      const tx = await contract.payDeposit(order.blockchainOrderId, {
+        value: ethers.toBigInt(order.depositAmountWei),
+      });
+      await tx.wait();
+      await orderService.verifyDeposit(order._id, tx.hash);
+      alert("Deposit paid successfully. Your order is waiting for showroom confirmation.");
+    });
+  };
+
+  const handlePayFull = (order) => {
+    runOrderAction(order, "payFull", async () => {
+      const contract = await getContract(order);
+      const tx = await contract.payFull(order.blockchainOrderId, {
+        value: getFullPaymentWei(order),
+      });
+      await tx.wait();
+      await orderService.verifyFullPayment(order._id, tx.hash);
+      alert("Payment completed successfully. Your order is waiting for showroom confirmation.");
+    });
+  };
+
+  const handleComplete = (order) => {
+    if (!window.confirm("Have you received the car and want to complete this transaction?")) return;
+    runOrderAction(order, "complete", async () => {
+      const contract = await getContract(order);
+      const tx = await contract.completeOrder(order.blockchainOrderId);
+      await tx.wait();
+      await orderService.verifyComplete(order._id, tx.hash);
+      alert("The transaction has been completed successfully.");
+    });
+  };
+
+  const handleCancel = (order) => {
+    if (!window.confirm("Are you sure you want to cancel this order?")) return;
+    runOrderAction(order, "cancel", async () => {
+      const contract = await getContract(order);
+      const tx = await contract.cancelOrder(order.blockchainOrderId);
+      await tx.wait();
+      await orderService.verifyCancel(order._id, tx.hash);
+      alert("Order cancelled successfully.");
+    });
+  };
+
+  const renderAction = (order) => {
+    const isRunning = actionState?.orderId === order._id;
+    const orderStatusKey = getOrderStatusKey(order);
+
+    if (orderStatusKey === "pending_deposit") {
+      return (
+        <button className="order-action primary" onClick={() => handlePayDeposit(order)} disabled={Boolean(actionState)}>
+          {isRunning && actionState.action === "payDeposit" ? <LoaderCircle className="spin-icon" size={17} /> : <Wallet size={17} />}
+          Pay deposit
+        </button>
+      );
+    }
+
+    if (orderStatusKey === "pending_payment") {
+      return (
+        <button className="order-action primary" onClick={() => handlePayFull(order)} disabled={Boolean(actionState)}>
+          {isRunning && actionState.action === "payFull" ? <LoaderCircle className="spin-icon" size={17} /> : <CreditCard size={17} />}
+          Pay now
+        </button>
+      );
+    }
+
+    if (orderStatusKey === "processing") {
+      return (
+        <button className="order-action success" onClick={() => handleComplete(order)} disabled={Boolean(actionState)}>
+          {isRunning && actionState.action === "complete" ? <LoaderCircle className="spin-icon" size={17} /> : <PackageCheck size={17} />}
+          Received car
+        </button>
+      );
+    }
+
+    return null;
+  };
+
+  const canCancel = (order) =>
+    ["pending_deposit", "pending_payment", "deposit_paid", "payment_paid"].includes(getOrderStatusKey(order));
+
+  return (
+    <>
+      <Navbar />
+      <main className="my-orders-page">
+        <header className="my-orders-header">
+          <div>
+            <p className="my-orders-eyebrow">Transaction history</p>
+            <h1>My orders</h1>
+            <p>Track order status, txHash, and complete your transaction after receiving the car.</p>
+          </div>
+          <button className="refresh-orders-btn" onClick={fetchOrders} disabled={loading || Boolean(actionState)}>
+            <RefreshCw size={17} className={loading ? "spin-icon" : ""} />
+            Refresh
+          </button>
+        </header>
+
+        <section className="order-stats-grid">
+          <StatCard icon={<Clock3 size={22} />} label="Total orders" value={stats.total} />
+          <StatCard icon={<Wallet size={22} />} label="Waiting" value={stats.waiting} />
+          <StatCard icon={<ShieldCheck size={22} />} label="Processing" value={stats.processing} />
+          <StatCard icon={<CheckCircle2 size={22} />} label="Completed" value={stats.completed} />
+        </section>
+
+        <section className="my-orders-toolbar">
+          <div className="order-search-box">
+            <Search size={18} />
+            <input
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Search by order ID, wallet, car name..."
+            />
+          </div>
+          <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+            <option value="all">All statuses</option>
+            {Object.entries(STATUS_CONFIG).map(([status, config]) => (
+              <option key={status} value={status}>
+                {config.label}
+              </option>
+            ))}
+          </select>
+        </section>
+
+        <section className="my-orders-list">
+          {loading ? (
+            <div className="orders-empty">
+              <LoaderCircle className="spin-icon" size={24} />
+              Loading orders...
+            </div>
+          ) : filteredOrders.length === 0 ? (
+            <div className="orders-empty">No matching orders found.</div>
+          ) : (
+            filteredOrders.map((order) => {
+              const orderStatusKey = getOrderStatusKey(order);
+              const config = STATUS_CONFIG[orderStatusKey] || STATUS_CONFIG.pending_deposit;
+              const isExpanded = expandedOrderId === order._id;
+              const isRunning = actionState?.orderId === order._id;
+              const txHash = order.fullTxHash || order.depositTxHash;
+
+              return (
+                <article className={`my-order-card ${isRunning ? "is-processing" : ""}`} key={order._id}>
+                  <div className="order-card-main">
+                    <div className="order-card-left">
+                      <div className="order-id-row">
+                        <strong>#{order._id.slice(-8)}</strong>
+                        <span className={`order-status-pill ${config.tone}`}>{config.label}</span>
+                      </div>
+                      <h2>{order.items?.[0]?.name || "Vehicle order"}</h2>
+                      <p>{order.items?.length || 0} item(s) - Blockchain ID {order.blockchainOrderId}</p>
+                    </div>
+
+                    <div className="order-money-box">
+                      <span>Total value</span>
+                      <strong>{formatCurrency(order.totalAmount)}</strong>
+                      <small>Paid: {formatCurrency(order.paidAmount)}</small>
+                    </div>
+
+                    <div className="order-card-actions">
+                      {renderAction(order)}
+                      {canCancel(order) && (
+                        <button className="order-action danger" onClick={() => handleCancel(order)} disabled={Boolean(actionState)}>
+                          {isRunning && actionState.action === "cancel" ? <LoaderCircle className="spin-icon" size={17} /> : <Ban size={17} />}
+                          Cancel order
+                        </button>
+                      )}
+                      <button className="order-action ghost" onClick={() => setExpandedOrderId(isExpanded ? "" : order._id)}>
+                        <ChevronDown size={17} className={isExpanded ? "rotated" : ""} />
+                        Details
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="order-progress">
+                    <ProgressStep done label="Order created" />
+                    <ProgressStep done={["deposit_paid", "payment_paid", "processing", "completed"].includes(orderStatusKey)} label="Payment" />
+                    <ProgressStep done={["processing", "completed"].includes(orderStatusKey)} label="Showroom confirmed" />
+                    <ProgressStep done={orderStatusKey === "completed"} label="Completed" />
+                  </div>
+
+                  <p className="order-status-note">{config.description}</p>
+
+                  {isExpanded && (
+                    <div className="order-detail-panel">
+                      <div>
+                        <h3>Products</h3>
+                        <ul className="order-items">
+                          {(order.items || []).map((item) => (
+                            <li key={`${item.productId}-${item.name}`}>
+                              <span>{item.name} x {item.quantity}</span>
+                              <strong>{formatCurrency(item.price)}</strong>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <div>
+                        <h3>Delivery</h3>
+                        <p>{order.deliveryMethod === "pickup" ? "Pickup at showroom" : "Home delivery"}</p>
+                        <p>{order.pickupInfo?.name || order.shippingAddress?.name}</p>
+                        <p>{order.pickupInfo?.phone || order.shippingAddress?.phone}</p>
+                        {order.shippingAddress?.address && <p>{order.shippingAddress.address}</p>}
+                        {order.pickupInfo?.pickupDate && <p>Appointment: {new Date(order.pickupInfo.pickupDate).toLocaleDateString("en-US")}</p>}
+                      </div>
+
+                      <div>
+                        <h3>Blockchain</h3>
+                        <p>Buyer wallet: <span title={order.buyerWallet}>{shortText(order.buyerWallet, 6, 4)}</span></p>
+                        <p>Showroom wallet: <span title={order.sellerWallet}>{shortText(order.sellerWallet, 6, 4)}</span></p>
+                        <p>Payment type: {order.paymentType === "deposit" ? "Deposit" : "Full payment"}</p>
+                        <p>Deposit amount: {formatCurrency(order.depositAmount)}</p>
+                        {txHash ? (
+                          <a className="tx-link" href={`https://sepolia.etherscan.io/tx/${txHash}`} target="_blank" rel="noreferrer">
+                            {shortText(txHash, 10, 8)}
+                            <ExternalLink size={14} />
+                          </a>
+                        ) : (
+                          <p>TxHash: Not available</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </article>
+              );
+            })
+          )}
+        </section>
+      </main>
+    </>
+  );
+}
+
+const StatCard = ({ icon, label, value }) => (
+  <article className="my-orders-stat-card">
+    <div>{icon}</div>
+    <span>{label}</span>
+    <strong>{value}</strong>
+  </article>
+);
+
+const ProgressStep = ({ label, done }) => (
+  <div className={`progress-step ${done ? "done" : ""}`}>
+    <span />
+    <p>{label}</p>
+  </div>
+);
+
+export default MyOrders;

@@ -1,3 +1,7 @@
+/* ===============================
+   BASE
+=============================== */
+
 .payment-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -24,6 +28,7 @@
 
 .payment-icon {
   font-size: 2rem;
+  flex-shrink: 0;
 }
 
 .blockchain-notice {
@@ -55,11 +60,11 @@
   border: 1px solid #ddd;
   border-radius: 6px;
   font-size: 14px;
+  box-sizing: border-box;
 }
 
 .full-width-input {
   width: 100%;
-  box-sizing: border-box;
 }
 
 .blockchain-section {
@@ -70,13 +75,25 @@
 
 .connect-btn {
   background-color: #f6851b;
-  /* Màu cam MetaMask */
   color: white;
   border: none;
   padding: 10px 20px;
   border-radius: 6px;
   cursor: pointer;
   font-weight: bold;
+  width: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  line-height: 1;
+}
+
+.metamask-icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 .wallet-info {
@@ -85,6 +102,8 @@
   border-radius: 6px;
   color: #2e7d32;
   font-family: monospace;
+  word-break: break-all;
+  font-size: 12px;
 }
 
 .note {
@@ -112,7 +131,6 @@
 
 .type-option.selected {
   border-color: #0066ff;
-  /* Màu thương hiệu BMW của bạn */
   background-color: #f0f7ff;
 }
 
@@ -128,4 +146,82 @@
 .type-content span {
   font-size: 0.85rem;
   color: #666;
+}
+
+/* ===============================
+   TABLET
+=============================== */
+
+@media (max-width: 768px) {
+  .payment-grid {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+
+  .details-form {
+    margin-top: 20px;
+    padding: 15px;
+  }
+}
+
+/* ===============================
+   MOBILE
+=============================== */
+
+@media (max-width: 576px) {
+  .payment-card {
+    padding: 15px;
+    gap: 12px;
+  }
+
+  .payment-icon {
+    font-size: 1.5rem;
+  }
+
+  .blockchain-notice {
+    padding: 12px;
+    font-size: 14px;
+  }
+
+  .input-group {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .input-group input,
+  .full-width-input {
+    padding: 10px;
+    font-size: 16px;
+  }
+
+  .connect-btn {
+    width: 100%;
+    padding: 10px 15px;
+    font-size: 14px;
+  }
+
+  .wallet-info {
+    font-size: 11px;
+  }
+
+  .note {
+    font-size: 11px;
+  }
+
+  .type-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .type-option {
+    padding: 12px;
+  }
+
+  .type-content strong {
+    font-size: 0.95rem;
+  }
+
+  .type-content span {
+    font-size: 0.75rem;
+  }
 }

@@ -1,15 +1,13 @@
-/* --- STEP 4: CONFIRMATION --- */
 .confirmation-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 60px 20px;
+  padding: 64px 20px;
   text-align: center;
   animation: fadeIn 0.5s ease-out;
 }
 
-/* Hiệu ứng hiện dần cho cả trang */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -22,88 +20,66 @@
   }
 }
 
-@keyframes scaleUp {
-  0% {
-    transform: scale(0);
-  }
-
-  100% {
-    transform: scale(1);
-  }
+.confirmation-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 18px;
+  background: #22c55e;
+  color: #ffffff;
+  font-size: 30px;
+  font-weight: 800;
 }
 
 .confirmation-container h2 {
   color: #1a202c;
-  font-size: 28px;
-  margin-bottom: 12px;
-  font-weight: 700;
+  font-size: 32px;
+  margin: 0 0 14px;
+  font-weight: 800;
 }
 
 .confirmation-container p {
   color: #4a5568;
-  font-size: 16px;
-  line-height: 1.6;
-  max-width: 500px;
+  font-size: 17px;
+  line-height: 1.65;
+  max-width: 640px;
+  margin: 0;
 }
 
-/* Box chứa mã giao dịch (Hash) */
-.tx-box {
-  background: #f7fafc;
-  border: 1px dashed #cbd5e0;
-  padding: 20px;
-  border-radius: 12px;
-  margin-top: 30px;
+.confirmation-next-steps {
   width: 100%;
-  max-width: 600px;
+  max-width: 640px;
+  margin-top: 34px;
+  padding: 24px;
+  border: 1px solid #dbe4f0;
+  border-radius: 12px;
+  background: #f8faff;
 }
 
-.tx-label {
-  display: block;
-  font-size: 13px;
-  text-transform: uppercase;
-  color: #718096;
-  letter-spacing: 0.05em;
-  margin-bottom: 8px;
-  font-weight: 600;
+.confirmation-next-steps h3 {
+  margin: 0 0 8px;
+  color: #1a202c;
+  font-size: 20px;
 }
 
-.tx-hash-link {
-  display: block;
-  word-break: break-all;
-  color: #5d5fef;
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 14px;
-  text-decoration: none;
-  transition: color 0.2s;
+.confirmation-next-steps p {
+  max-width: none;
+  font-size: 15px;
 }
 
-.tx-hash-link:hover {
-  color: #4345d9;
-  text-decoration: underline;
-}
+@media (max-width: 576px) {
+  .confirmation-container {
+    padding: 42px 8px;
+  }
 
-/* Nút quay về Home - Tông xanh BMW/Modern Blue */
-.home-button {
-  margin-top: 40px;
-  background: #5d60ef;
-  /* Màu xanh đậm hơn một chút cho cảm giác an tâm */
-  color: white;
-  border: none;
-  padding: 14px 40px;
-  border-radius: 10px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-}
+  .confirmation-container h2 {
+    font-size: 26px;
+  }
 
-.home-button:hover {
-  background: #004a82;
-  /* Xanh đậm hơn khi hover */
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 102, 177, 0.4);
-}
-
-.home-button:active {
-  transform: translateY(0);
+  .confirmation-next-steps {
+    padding: 18px;
+  }
 }

@@ -7,12 +7,8 @@ const ContactService = {
    * @param {Object} contactData - { name, email, phone, subject, message }
    */
   createContact: async (contactData) => {
-    try {
-      const response = await api.post("/contacts/create", contactData);
-      return response; // Trả về thông tin liên hệ vừa tạo
-    } catch (error) {
-      throw error;
-    }
+    const response = await api.post("/contacts/create", contactData);
+    return response;
   },
 
   /**
@@ -21,12 +17,8 @@ const ContactService = {
    * Yêu cầu: Token Admin
    */
   getAllContacts: async () => {
-    try {
-      const response = await api.get("/contacts/getAll");
-      return response; // Trả về mảng danh sách liên hệ (đã sort mới nhất ở BE)
-    } catch (error) {
-      throw error;
-    }
+    const response = await api.get("/contacts/getAll");
+    return response;
   },
 
   /**
@@ -35,12 +27,8 @@ const ContactService = {
    * Yêu cầu: Token Admin
    */
   getContactById: async (id) => {
-    try {
-      const response = await api.get(`/contacts/${id}`);
-      return response;
-    } catch (error) {
-      throw error;
-    }
+    const response = await api.get(`/contacts/${id}`);
+    return response;
   },
 
   /**
@@ -49,12 +37,8 @@ const ContactService = {
    * Yêu cầu: Token Admin
    */
   markAsRead: async (id) => {
-    try {
-      const response = await api.put(`/contacts/read/${id}`);
-      return response; // Trả về liên hệ đã cập nhật ischecked = true
-    } catch (error) {
-      throw error;
-    }
+    const response = await api.put(`/contacts/read/${id}`);
+    return response;
   },
 };
 

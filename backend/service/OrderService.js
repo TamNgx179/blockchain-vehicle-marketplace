@@ -1,15 +1,19 @@
 import Cart from "../models/CartModel.js";
 import Order from "../models/OrderModel.js";
 import Product from "../models/ProductModel.js";
+import User from "../models/AuthModel.js";
 import mongoose from "mongoose";
 import { ethers } from "ethers";
 
 import { verifyDeposit } from "../service/DepositVerifier.js";
 import {
   createOrderOnChain,
+  confirmOrderOnChain,
+  cancelOrderOnChain,
   verifyTransaction,
   getTransactionDetail,
   getOrderByBlockchainOrderId,
+  getServerWalletAddress,
   CONTRACT_PAYMENT_TYPE,
   CONTRACT_ORDER_STATUS,
 } from "../service/BlockchainService.js";
@@ -27,6 +31,143 @@ const convertUsdToWei = (usdAmount) => {
   const ethAmount = (Number(usdAmount) / usdPerEth).toFixed(18);
   return ethers.parseEther(ethAmount).toString();
 };
+
+const ORDER_STATUSES = [
+  "pending_deposit",
+  "pending_payment",
+  "deposit_paid",
+  "payment_paid",
+  "processing",
+  "completed",
+  "cancelled",
+];
+
+const PAYMENT_TYPES = ["deposit", "full"];
+const DELIVERY_METHODS = ["pickup", "delivery"];
+const DEPOSIT_STATUSES = ["pending", "paid"];
+const ADMIN_ORDER_SORT_FIELDS = [
+  "createdAt",
+  "updatedAt",
+  "totalAmount",
+  "paidAmount",
+  "status",
+  "paymentType",
+  "deliveryMethod",
+  "expiresAt",
+  "blockchainOrderId",
+];
+
+const assertAdmin = (actor) => {
+  if (!actor?.isadmin) {
+    throw new Error("Admin permission required");
+  }
+};
+
+const assertServerSellerWallet = (order) => {
+  const serverWallet = getServerWalletAddress();
+  if (serverWallet.toLowerCase() !== order.sellerWallet.toLowerCase()) {
+    throw new Error(
+      "Ví server không khớp sellerWallet của đơn hàng. Vui lòng kiểm tra SELLER_WALLET và SEPOLIA_PRIVATE_KEY trong .env"
+    );
+  }
+};
+
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const parseList = (value) => {
+  if (!value) return [];
+  const rawValues = Array.isArray(value) ? value : String(value).split(",");
+  return rawValues.map((item) => item.trim()).filter(Boolean);
+};
+
+const assertAllowedValues = (field, values, allowedValues) => {
+  const invalidValue = values.find((value) => !allowedValues.includes(value));
+  if (invalidValue) {
+    throw new Error(`${field} khong hop le: ${invalidValue}`);
+  }
+};
+
+const applyListFilter = (filter, field, values, allowedValues) => {
+  if (!values.length) return;
+  assertAllowedValues(field, values, allowedValues);
+  filter[field] = values.length === 1 ? values[0] : { $in: values };
+};
+
+const parsePositiveInteger = (value, fallback, maxValue, field) => {
+  if (value === undefined || value === null || value === "") return fallback;
+
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isInteger(parsed) || parsed < 1) {
+    throw new Error(`${field} phai la so nguyen duong`);
+  }
+
+  return Math.min(parsed, maxValue);
+};
+
+const parseAmount = (value, field) => {
+  if (value === undefined || value === null || value === "") return undefined;
+
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    throw new Error(`${field} khong hop le`);
+  }
+
+  return parsed;
+};
+
+const parseDate = (value, field, endOfDay = false) => {
+  if (!value) return undefined;
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error(`${field} khong hop le`);
+  }
+
+  if (endOfDay) parsed.setHours(23, 59, 59, 999);
+  return parsed;
+};
+
+const buildAdminSearchFilter = async (search) => {
+  const term = String(search || "").trim();
+  if (!term) return null;
+
+  const escapedTerm = escapeRegex(term);
+  const regexFilter = { $regex: escapedTerm, $options: "i" };
+  const orConditions = [
+    { "items.name": regexFilter },
+    { buyerWallet: regexFilter },
+    { sellerWallet: regexFilter },
+  ];
+
+  if (mongoose.Types.ObjectId.isValid(term)) {
+    const objectId = new mongoose.Types.ObjectId(term);
+    orConditions.push({ _id: objectId }, { userId: objectId });
+  }
+
+  const numericTerm = Number(term);
+  if (Number.isFinite(numericTerm)) {
+    orConditions.push({ blockchainOrderId: numericTerm });
+  }
+
+  const users = await User.find({
+    $or: [
+      { username: regexFilter },
+      { email: regexFilter },
+      { phoneNumber: regexFilter },
+    ],
+  })
+    .select("_id")
+    .lean();
+
+  if (users.length) {
+    orConditions.push({ userId: { $in: users.map((user) => user._id) } });
+  }
+
+  return { $or: orConditions };
+};
+
+const populateAdminOrderUser = (query) =>
+  query.populate("userId", "username email phoneNumber address isadmin");
 
 /* ================= CREATE ORDER ================= */
 export const createOrderFromCartService = async (userId, body) => {
@@ -136,6 +277,7 @@ export const createOrderFromCartService = async (userId, body) => {
           userId,
           items,
           totalAmount,
+          totalAmountWei,
           depositAmount,
           depositAmountWei,
           blockchainOrderId,
@@ -169,6 +311,81 @@ export const createOrderFromCartService = async (userId, body) => {
     session.endSession();
 
     return order[0];
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
+  }
+};
+
+const isFullPaymentRecorded = (order) =>
+  order.paymentType === "full" &&
+  (
+    order.status === "payment_paid" ||
+    Boolean(order.fullTxHash) ||
+    Number(order.paidAmount || 0) >= Number(order.totalAmount || 0)
+  );
+
+const canSellerConfirm = (order) =>
+  order.status === "deposit_paid" ||
+  order.status === "payment_paid" ||
+  (order.status === "pending_payment" && isFullPaymentRecorded(order));
+
+/* ================= DISCARD UNPAID ORDER ================= */
+export const discardUnpaidOrderService = async (userId, orderId) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const order = await Order.findOne({ _id: orderId, userId }).session(session);
+
+    if (!order) throw new Error("Khong tim thay order");
+
+    const hasPayment =
+      order.depositStatus === "paid" ||
+      Boolean(order.depositTxHash) ||
+      Boolean(order.fullTxHash) ||
+      Number(order.paidAmount || 0) > 0 ||
+      ["deposit_paid", "processing", "completed"].includes(order.status);
+
+    if (
+      hasPayment ||
+      !["pending_deposit", "pending_payment"].includes(order.status)
+    ) {
+      throw new Error("Order da co thanh toan nen khong the huy tam");
+    }
+
+    const cart = await Cart.findOneAndUpdate(
+      { userId },
+      { $setOnInsert: { userId, items: [] } },
+      { returnDocument: "after", upsert: true, session }
+    );
+
+    for (const orderItem of order.items) {
+      const productId = orderItem.productId.toString();
+      const existingIndex = cart.items.findIndex(
+        (item) => item.productId.toString() === productId
+      );
+
+      if (existingIndex >= 0) {
+        cart.items[existingIndex].quantity += orderItem.quantity;
+        cart.items[existingIndex].price = orderItem.price;
+      } else {
+        cart.items.push({
+          productId: orderItem.productId,
+          quantity: orderItem.quantity,
+          price: orderItem.price,
+        });
+      }
+    }
+
+    await cart.save({ session });
+    await Order.deleteOne({ _id: order._id }).session(session);
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return { restoredItems: order.items.length };
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
@@ -347,7 +564,7 @@ export const verifyFullPaymentService = async (userId, orderId, txHash) => {
 
     order.fullTxHash = txHash;
     order.paidAmount = order.totalAmount;
-    order.status = "pending_payment";
+    order.status = "payment_paid";
 
     await order.save({ session });
 
@@ -363,16 +580,16 @@ export const verifyFullPaymentService = async (userId, orderId, txHash) => {
 };
 
 /* ================= VERIFY SELLER CONFIRM ================= */
-export const verifySellerConfirmService = async (userId, orderId, txHash) => {
+export const verifySellerConfirmService = async (orderId, txHash) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
-    const order = await Order.findOne({ _id: orderId, userId }).session(session);
+    const order = await Order.findById(orderId).session(session);
 
     if (!order) throw new Error("Không tìm thấy order");
 
-    if (!["deposit_paid", "pending_payment"].includes(order.status)) {
+    if (!canSellerConfirm(order)) {
       throw new Error("Order chưa ở trạng thái có thể seller confirm");
     }
 
@@ -412,6 +629,29 @@ export const verifySellerConfirmService = async (userId, orderId, txHash) => {
     session.endSession();
     throw err;
   }
+};
+
+/* ================= ADMIN CONFIRM ON CHAIN ================= */
+export const adminConfirmOrderService = async (actor, orderId) => {
+  assertAdmin(actor);
+
+  const order = await Order.findById(orderId);
+  if (!order) throw new Error("Không tìm thấy order");
+
+  if (!canSellerConfirm(order)) {
+    throw new Error("Order chưa ở trạng thái có thể seller confirm");
+  }
+
+  assertServerSellerWallet(order);
+
+  const result = await confirmOrderOnChain(order.blockchainOrderId);
+  const updatedOrder = await verifySellerConfirmService(orderId, result.txHash);
+
+  return {
+    order: updatedOrder,
+    txHash: result.txHash,
+    blockNumber: result.blockNumber,
+  };
 };
 
 /* ================= VERIFY COMPLETE ================= */
@@ -473,12 +713,13 @@ export const verifyCompleteOrderService = async (userId, orderId, txHash) => {
 };
 
 /* ================= VERIFY CANCEL ================= */
-export const verifyCancelOrderService = async (userId, orderId, txHash) => {
+export const verifyCancelOrderService = async (actor, orderId, txHash) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
-    const order = await Order.findOne({ _id: orderId, userId }).session(session);
+    const query = actor?.isadmin ? { _id: orderId } : { _id: orderId, userId: actor?.id };
+    const order = await Order.findOne(query).session(session);
 
     if (!order) throw new Error("Không tìm thấy order");
     if (order.status === "completed") {
@@ -491,6 +732,18 @@ export const verifyCancelOrderService = async (userId, orderId, txHash) => {
     const txCheck = await verifyTransaction(txHash);
     if (!txCheck.exists) throw new Error("Transaction không tồn tại");
     if (!txCheck.success) throw new Error("Transaction thất bại");
+
+    const tx = await getTransactionDetail(txHash);
+    if (!tx) throw new Error("Không lấy được transaction");
+
+    const txFrom = tx.from?.toLowerCase();
+    const allowedWallets = [order.buyerWallet, order.sellerWallet]
+      .filter(Boolean)
+      .map((wallet) => wallet.toLowerCase());
+
+    if (!txFrom || !allowedWallets.includes(txFrom)) {
+      throw new Error("Transaction hủy đơn không phải do buyer hoặc seller thực hiện");
+    }
 
     const contractOrder = await getOrderByBlockchainOrderId(order.blockchainOrderId);
 
@@ -523,6 +776,35 @@ export const verifyCancelOrderService = async (userId, orderId, txHash) => {
   }
 };
 
+/* ================= ADMIN CANCEL ON CHAIN ================= */
+export const adminCancelOrderService = async (actor, orderId) => {
+  assertAdmin(actor);
+
+  const order = await Order.findById(orderId);
+  if (!order) throw new Error("Không tìm thấy order");
+
+  if (order.status === "completed") {
+    throw new Error("Order đã completed, không thể hủy");
+  }
+  if (order.status === "cancelled") {
+    throw new Error("Order đã bị hủy trước đó");
+  }
+  if (!["pending_deposit", "pending_payment", "deposit_paid", "payment_paid"].includes(order.status)) {
+    throw new Error("Order không còn ở trạng thái có thể hủy");
+  }
+
+  assertServerSellerWallet(order);
+
+  const result = await cancelOrderOnChain(order.blockchainOrderId);
+  const updatedOrder = await verifyCancelOrderService(actor, orderId, result.txHash);
+
+  return {
+    order: updatedOrder,
+    txHash: result.txHash,
+    blockNumber: result.blockNumber,
+  };
+};
+
 /* ================= GET MY ORDERS ================= */
 export const getMyOrdersService = async (userId) => {
   return await Order.find({ userId }).sort({ createdAt: -1 });
@@ -538,4 +820,90 @@ export const getOrderDetailService = async (userId, orderId) => {
 /* ================= GET ALL ORDERS (ADMIN) ================= */
 export const getAllOrdersService = async () => {
   return await Order.find().sort({ createdAt: -1 });
+};
+
+/* ================= ADMIN: GET ORDERS ================= */
+export const adminGetOrdersService = async (query = {}) => {
+  const filter = {};
+
+  applyListFilter(filter, "status", parseList(query.status), ORDER_STATUSES);
+  applyListFilter(
+    filter,
+    "paymentType",
+    parseList(query.paymentType),
+    PAYMENT_TYPES
+  );
+  applyListFilter(
+    filter,
+    "deliveryMethod",
+    parseList(query.deliveryMethod),
+    DELIVERY_METHODS
+  );
+  applyListFilter(
+    filter,
+    "depositStatus",
+    parseList(query.depositStatus),
+    DEPOSIT_STATUSES
+  );
+
+  const fromDate = parseDate(query.fromDate, "fromDate");
+  const toDate = parseDate(query.toDate, "toDate", true);
+  if (fromDate || toDate) {
+    filter.createdAt = {};
+    if (fromDate) filter.createdAt.$gte = fromDate;
+    if (toDate) filter.createdAt.$lte = toDate;
+  }
+
+  const minTotal = parseAmount(query.minTotal, "minTotal");
+  const maxTotal = parseAmount(query.maxTotal, "maxTotal");
+  if (minTotal !== undefined || maxTotal !== undefined) {
+    filter.totalAmount = {};
+    if (minTotal !== undefined) filter.totalAmount.$gte = minTotal;
+    if (maxTotal !== undefined) filter.totalAmount.$lte = maxTotal;
+  }
+
+  const searchFilter = await buildAdminSearchFilter(query.search);
+  if (searchFilter) {
+    filter.$or = searchFilter.$or;
+  }
+
+  const page = parsePositiveInteger(query.page, 1, 100000, "page");
+  const limit = parsePositiveInteger(query.limit, 10, 100, "limit");
+  const skip = (page - 1) * limit;
+
+  const sortBy = ADMIN_ORDER_SORT_FIELDS.includes(query.sortBy)
+    ? query.sortBy
+    : "createdAt";
+  const sortOrder = query.sortOrder === "asc" ? 1 : -1;
+
+  const [orders, total] = await Promise.all([
+    populateAdminOrderUser(Order.find(filter))
+      .sort({ [sortBy]: sortOrder })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    Order.countDocuments(filter),
+  ]);
+
+  return {
+    orders,
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+};
+
+/* ================= ADMIN: GET ORDER DETAIL ================= */
+export const adminGetOrderDetailService = async (orderId) => {
+  if (!mongoose.Types.ObjectId.isValid(orderId)) {
+    throw new Error("Order ID khong hop le");
+  }
+
+  const order = await populateAdminOrderUser(Order.findById(orderId)).lean();
+  if (!order) throw new Error("Khong tim thay order");
+
+  return order;
 };
