@@ -20,7 +20,12 @@ import {
 import ProductService from "../../../services/ProductService";
 import "./ProductList.css";
 
-const API_ORIGIN = (import.meta.env.VITE_API_URL || "http://localhost:3000").replace(/\/$/, "");
+const API_ORIGIN = (
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.PROD
+    ? "https://car-api-x622.onrender.com"
+    : "http://localhost:3000")
+).replace(/\/$/, "");
 const PLACEHOLDER_IMAGE = "/images/car.webp";
 const PAGE_SIZE = 8;
 
