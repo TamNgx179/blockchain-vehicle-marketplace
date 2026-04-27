@@ -11,10 +11,28 @@ const AuthService = {
   login: async (email, password) => {
     const response = await api.post("/users/login", { email, password });
 
-    if (response.token) {
-      localStorage.setItem("token", response.token);
-      localStorage.setItem("refreshToken", response.refreshToken);
-      localStorage.setItem("user", JSON.stringify(response.user));
+    const { token, refreshToken, user } = response.data;
+
+    if (token) {
+      localStorage.setItem("authToken", token);
+      localStorage.setItem("token", token); 
+      if (refreshToken) {
+        localStorage.setItem("refreshToken", refreshToken);
+      }
+
+      if (user) {
+        localStorage.setItem("user", JSON.stringify(user));
+
+        if (user.username) {
+          localStorage.setItem("authUsername", user.username);
+        }
+
+        if (user.email) {
+          localStorage.setItem("authEmail", user.email);
+        }
+      }
+
+      window.dispatchEvent(new Event("auth-change"));
     }
 
     return response;
@@ -36,14 +54,16 @@ const AuthService = {
 
   // Làm mới access token khi hết hạn
   refreshToken: async () => {
-    const rfToken = localStorage.getItem("refreshToken");
+    const response = await api.post("/users/refresh-token");
 
-    const response = await api.post("/users/refresh-token", {
-      refreshToken: rfToken,
-    });
+    const { token, newToken } = response.data;
+    const accessToken = token || newToken;
 
-    if (response.newToken) {
-      localStorage.setItem("token", response.newToken);
+    if (accessToken) {
+      localStorage.setItem("authToken", accessToken);
+      localStorage.setItem("token", accessToken);
+
+      window.dispatchEvent(new Event("auth-change"));
     }
 
     return response;
