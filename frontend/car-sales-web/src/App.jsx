@@ -10,7 +10,7 @@ import Auth from "./pages/Auth";
 import AccountService from "./services/accountService";
 import AdminLayout from "./pages/Admin/AdminLayout";
 import ProductEdit from "./pages/Admin/ProductEdit/ProductEdit";
-import { isAuthenticated, handleLogout } from "./utils/authUtils";
+import { isAuthenticated, handleLogout } from "./utils/authUtils"; 
 
 const AdminDashboard = lazy(() => import("./pages/Admin/Dashboard/Dashboard"));
 const OrderList = lazy(() => import("./pages/Admin/Orders/OrderList"));
@@ -18,7 +18,7 @@ const ProductList = lazy(() => import("./pages/Admin/Products/ProductList"));
 const MyOrders = lazy(() => import("./pages/MyOrders/MyOrders"));
 const Profile = lazy(() => import("./pages/Profile/Profile"));
 const Contact = lazy(() => import("./pages/Contact/Contact"));
-const Wishlist = lazy(() => import("./pages/Wishlist/Wishlist"));
+const About = lazy(() => import("./pages/About/About"));
 const AdminContactList = lazy(() =>
   import("./pages/Admin/Contacts/ContactList")
 );
@@ -117,6 +117,7 @@ function App() {
               element={<Auth initialMode="reset" />}
             />
             <Route path="/" element={<Home />} />
+            <Route path="/about" element={<About />} />
             <Route path="/cars" element={<Cars />} />
             <Route path="/product/:id" element={<CarDetail />} />
             <Route path="/contact" element={<Contact />} />
@@ -135,14 +136,6 @@ function App() {
               element={
                 <PrivateRoute>
                   <MyOrders />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/wishlist"
-              element={
-                <PrivateRoute>
-                  <Wishlist />
                 </PrivateRoute>
               }
             />
