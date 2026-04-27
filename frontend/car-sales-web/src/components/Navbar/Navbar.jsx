@@ -2,7 +2,7 @@ import signin from "../../assets/icon/signin.png";
 import trolley from "../../assets/icon/trolley.png";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useSyncExternalStore, useState } from "react";
-import { LogOut, PackageCheck, Pencil, UserRound, X } from "lucide-react";
+import { Heart, LogOut, PackageCheck, Pencil, UserRound, X } from "lucide-react";
 import { useCart } from "../../context/CartContext";
 import AccountService from "../../services/accountService";
 import "./Navbar.css";
@@ -196,6 +196,17 @@ function Navbar() {
                 >
                   <Pencil size={18} />
                   Profile
+                </NavLink>
+
+                <NavLink
+                  to="/wishlist"
+                  onClick={closeNavigation}
+                  className={({ isActive }) =>
+                    isActive ? "user-sidebar-link active" : "user-sidebar-link"
+                  }
+                >
+                  <Heart size={18} />
+                  Wishlist
                 </NavLink>
 
                 <NavLink
