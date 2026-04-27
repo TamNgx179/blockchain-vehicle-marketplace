@@ -10,7 +10,7 @@ passport.use(
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
       callbackURL:
         process.env.CALLBACK_URL ||
-        "http://localhost:3000/api/users/auth/google/callback",
+        "https://car-api-x622.onrender.com/api/users/auth/google/callback",
       passReqToCallback: true,
     },
     async (req, accessToken, refreshToken, profile, done) => {
