@@ -63,6 +63,26 @@ app.use(passport.session());
 // Phục vụ file tĩnh (Xem ảnh)
 app.use('/images', express.static(path.join(__dirname, 'public/images')));
 
+app.get("/", (req, res) => {
+  res.json({
+    message: "Car API is running",
+    endpoints: [
+      "/api/products",
+      "/api/users",
+      "/api/accounts",
+      "/api/reviews",
+      "/api/contacts",
+      "/api/cart",
+      "/api/orders",
+      "/api/dashboard",
+    ],
+  });
+});
+
+app.get("/healthz", (req, res) => {
+  res.status(200).json({ status: "ok" });
+});
+
 // --- Routes ---
 app.use("/api/products", ProductRoutes);
 app.use("/api/users", UserRoutes);
