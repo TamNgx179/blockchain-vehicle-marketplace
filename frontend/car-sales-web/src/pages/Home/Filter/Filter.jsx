@@ -14,7 +14,7 @@ function Filter({ type, setType }) {
 
   return (
     <div className="popular-container">
-      <h1>Popular Categories</h1>
+      <h2>Popular Categories</h2>
       <div className="popular">
         <div className="reveal active">
           {categories.map((cat) => (

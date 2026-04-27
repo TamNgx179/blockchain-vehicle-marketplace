@@ -72,14 +72,14 @@
 }
 
 .btn-about{
-  background:#007bff;
+  background:#0056b3;
   color:#fff;
-  border-color:#007bff;
+  border-color:#0056b3;
 }
 
 .btn-about:hover{
-  background:#0056b3;
-  border-color:#0056b3;
+  background:#00408a;
+  border-color:#00408a;
 }
 
 .btn-explore{

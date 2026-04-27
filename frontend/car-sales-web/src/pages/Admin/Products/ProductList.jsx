@@ -20,12 +20,18 @@ import {
 import ProductService from "../../../services/ProductService";
 import "./ProductList.css";
 
-const API_ORIGIN = (
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.PROD
-    ? "https://car-api-x622.onrender.com"
-    : "http://localhost:3000")
-).replace(/\/$/, "");
+const resolveApiOrigin = () => {
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl) return envUrl;
+
+  if (typeof window !== "undefined" && window.location.hostname === "localhost") {
+    return "http://localhost:3000";
+  }
+
+  return import.meta.env.PROD ? "https://car-api-x622.onrender.com" : "http://localhost:3000";
+};
+
+const API_ORIGIN = resolveApiOrigin().replace(/\/$/, "");
 const PLACEHOLDER_IMAGE = "/images/car.webp";
 const PAGE_SIZE = 8;
 

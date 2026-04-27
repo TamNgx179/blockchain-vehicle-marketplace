@@ -87,7 +87,9 @@ function Home() {
 
       setWishlistIds(ids);
     } catch (error) {
-      console.error("Lỗi khi lấy wishlist:", error);
+      if (import.meta.env.DEV) {
+        console.error("Lỗi khi lấy wishlist:", error);
+      }
       setWishlistIds([]);
     }
   }, []);
@@ -108,7 +110,9 @@ function Home() {
 
         setCars(getCarsFromResponse(response));
       } catch (error) {
-        console.error("Lỗi khi lấy danh sách xe:", error);
+        if (import.meta.env.DEV) {
+          console.error("Lỗi khi lấy danh sách xe:", error);
+        }
         setCars([]);
       } finally {
         setLoading(false);
@@ -166,7 +170,9 @@ function Home() {
         await AccountService.addToWishlist(productId);
       }
     } catch (error) {
-      console.error("Lỗi khi cập nhật wishlist:", error);
+      if (import.meta.env.DEV) {
+        console.error("Lỗi khi cập nhật wishlist:", error);
+      }
 
       setWishlistIds((prev) =>
         isWishlisted ? [...prev, id] : prev.filter((item) => item !== id)
@@ -189,42 +195,44 @@ function Home() {
   return (
     <>
       <Navbar />
-      <SlideShow />
-      <Filter type={type} setType={setType} />
+      <main>
+        <SlideShow />
+        <Filter type={type} setType={setType} />
 
-      <div style={{ minHeight: "520px", position: "relative" }}>
-        <div
-          style={{
-            opacity: loading ? 0.45 : 1,
-            transition: "opacity 0.2s ease",
-            pointerEvents: loading ? "none" : "auto",
-          }}
-        >
-          <CarList
-            key={type}
-            cars={cars}
-            wishlistIds={wishlistIds}
-            onToggleWishlist={handleToggleWishlist}
-          />
-        </div>
-
-        {showLoading && (
+        <div style={{ minHeight: "520px", position: "relative" }}>
           <div
             style={{
-              position: "absolute",
-              inset: 0,
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "flex-start",
-              paddingTop: "24px",
-              background: "rgba(255, 255, 255, 0.4)",
-              zIndex: 2,
+              opacity: loading ? 0.45 : 1,
+              transition: "opacity 0.2s ease",
+              pointerEvents: loading ? "none" : "auto",
             }}
           >
-            <h3>Đang tải danh sách xe...</h3>
+            <CarList
+              key={type}
+              cars={cars}
+              wishlistIds={wishlistIds}
+              onToggleWishlist={handleToggleWishlist}
+            />
           </div>
-        )}
-      </div>
+
+          {showLoading && (
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "flex-start",
+                paddingTop: "24px",
+                background: "rgba(255, 255, 255, 0.4)",
+                zIndex: 2,
+              }}
+            >
+              <h3>Đang tải danh sách xe...</h3>
+            </div>
+          )}
+        </div>
+      </main>
 
       <Footer />
     </>

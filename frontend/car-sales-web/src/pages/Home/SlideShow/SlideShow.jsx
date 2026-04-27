@@ -39,11 +39,12 @@ function SlideShow() {
               sizes="(max-width: 768px) 100vw, 1200px"
             />
             <img
-              src={`${slide.avif}-1024.avif`}
+              src={`${slide.avif}-640.avif`}
               className={`slide ${i === index ? "active" : ""}`}
               alt={slide.alt}
               loading={i === 0 ? "eager" : "lazy"}
-              fetchPriority={i === 0 ? "high" : undefined}
+              decoding="async"
+              fetchPriority={i === 0 ? "high" : "low"}
             />
           </picture>
         ))}
