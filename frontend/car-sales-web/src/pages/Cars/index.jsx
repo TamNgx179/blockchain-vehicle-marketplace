@@ -1,11 +1,30 @@
-import { useMemo, useState, useEffect } from "react"; // Thêm useEffect
+import { useMemo, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
 import Footer from "../../components/Footer/Footer";
-import ProductService from "../../services/ProductService"; // Import Service bạn đã cung cấp
+import ProductService from "../../services/ProductService";
+import AccountService from "../../services/AccountService";
 import "./Cars.css";
-import add from '../../assets/icon/add.png';
+import add from "../../assets/icon/add.png";
+import bmwLogo from "../../assets/icon/bmw.png";
+import hondaLogo from "../../assets/icon/honda.png";
+import mercedesLogo from "../../assets/icon/mec.png";
+import porscheLogo from "../../assets/icon/porsche.png";
+import toyotaLogo from "../../assets/icon/toyota.png";
+import vinfastLogo from "../../assets/icon/vinfast.png";
 import { useCart } from "../../context/CartContext";
+
+const BRAND_LOGOS = {
+  BMW: bmwLogo,
+  Honda: hondaLogo,
+  Mercedes: mercedesLogo,
+  "Mercedes-Benz": mercedesLogo,
+  Porsche: porscheLogo,
+  Toyota: toyotaLogo,
+  Vinfast: vinfastLogo,
+  VinFast: vinfastLogo,
+};
+
 function DualRange({
   min,
   max,
@@ -136,6 +155,7 @@ function IconPin() {
 
 function Cars() {
   const [carsList, setCarsList] = useState([]); // State lưu danh sách xe từ API
+  const [wishlistIds, setWishlistIds] = useState([]);
   const [selectedMakes, setSelectedMakes] = useState([]);
   const [isMakeOpen, setIsMakeOpen] = useState(false);
   const [makeQuery, setMakeQuery] = useState("");
@@ -155,6 +175,88 @@ function Cars() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const { addToCart } = useCart();
+
+  const getAuthToken = () => {
+    return localStorage.getItem("authToken") || localStorage.getItem("token");
+  };
+
+  const getWishlistFromResponse = (response) => {
+    const data = response?.data || response;
+
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data.wishlist)) return data.wishlist;
+    if (Array.isArray(data.products)) return data.products;
+    if (Array.isArray(data.data)) return data.data;
+
+    return [];
+  };
+
+  const getProductIdFromWishlistItem = (item) => {
+    return (
+      item?._id ||
+      item?.productId ||
+      item?.product?._id ||
+      item?.productId?._id
+    );
+  };
+
+  const fetchWishlist = async () => {
+    const token = getAuthToken();
+
+    if (!token) {
+      setWishlistIds([]);
+      return;
+    }
+
+    try {
+      const response = await AccountService.getWishlist();
+      const wishlist = getWishlistFromResponse(response);
+
+      const ids = wishlist
+        .map(getProductIdFromWishlistItem)
+        .filter(Boolean)
+        .map(String);
+
+      setWishlistIds(ids);
+    } catch (error) {
+      console.error("Lỗi khi lấy wishlist:", error);
+      setWishlistIds([]);
+    }
+  };
+
+  const handleToggleWishlist = async (productId) => {
+    const token = getAuthToken();
+
+    if (!token) {
+      alert("Vui lòng đăng nhập để thêm vào wishlist");
+      setWishlistIds([]);
+      return;
+    }
+
+    const id = String(productId);
+    const isWishlisted = wishlistIds.includes(id);
+
+    setWishlistIds((prev) =>
+      isWishlisted ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+
+    try {
+      if (isWishlisted) {
+        await AccountService.removeFromWishlist(productId);
+      } else {
+        await AccountService.addToWishlist(productId);
+      }
+
+      window.dispatchEvent(new Event("wishlist-change"));
+    } catch (error) {
+      console.error("Lỗi khi cập nhật wishlist:", error);
+
+      setWishlistIds((prev) =>
+        isWishlisted ? [...prev, id] : prev.filter((item) => item !== id)
+      );
+    }
+  };
+
   // Lấy dữ liệu từ API khi component mount
   useEffect(() => {
     const fetchCars = async () => {
@@ -167,7 +269,35 @@ function Cars() {
         setLoading(false);
       }
     };
+
     fetchCars();
+  }, []);
+
+  useEffect(() => {
+    fetchWishlist();
+  }, []);
+
+  useEffect(() => {
+    const handleWishlistChange = () => {
+      const token = getAuthToken();
+
+      if (!token) {
+        setWishlistIds([]);
+        return;
+      }
+
+      fetchWishlist();
+    };
+
+    window.addEventListener("auth-change", handleWishlistChange);
+    window.addEventListener("auth-expired", handleWishlistChange);
+    window.addEventListener("wishlist-change", handleWishlistChange);
+
+    return () => {
+      window.removeEventListener("auth-change", handleWishlistChange);
+      window.removeEventListener("auth-expired", handleWishlistChange);
+      window.removeEventListener("wishlist-change", handleWishlistChange);
+    };
   }, []);
 
   const brandList = useMemo(() => {
@@ -192,10 +322,27 @@ function Cars() {
   }, [brandList]);
 
   const brandLogo = (brand) => {
-    const key = String(brand || "").toLowerCase();
-    const known = new Set(["bmw", "honda", "mercedes", "porsche", "toyota", "vinfast"]);
-    if (!known.has(key)) return null;
-    return `/images/logos/${key}-logo.png`;
+    const brandName = String(brand || "").trim();
+
+    if (BRAND_LOGOS[brandName]) {
+      return BRAND_LOGOS[brandName];
+    }
+
+    const normalizedBrand = brandName
+      .toLowerCase()
+      .replace(/\s+/g, "")
+      .replace(/-/g, "");
+
+    const matchedKey = Object.keys(BRAND_LOGOS).find((key) => {
+      const normalizedKey = key
+        .toLowerCase()
+        .replace(/\s+/g, "")
+        .replace(/-/g, "");
+
+      return normalizedKey === normalizedBrand;
+    });
+
+    return matchedKey ? BRAND_LOGOS[matchedKey] : null;
   };
 
   const toggleMake = (brand) => {
@@ -315,8 +462,6 @@ function Cars() {
     });
     setPage(1);
   };
-
-  if (loading) return <div className="loading">Loading cars...</div>;
 
   return (
     <>
@@ -515,18 +660,65 @@ function Cars() {
               </div>
             </div>
 
-            <div className="cars-results-subtitle">{filteredCars.length} cars</div>
+            <div className="cars-results-subtitle">
+              {loading ? "Preparing inventory..." : `${filteredCars.length} cars`}
+            </div>
 
             <div className="cars-list">
-              {visibleCars.map((car) => {
+              {loading ? (
+                Array.from({ length: 5 }).map((_, index) => (
+                  <div key={`cars-skeleton-${index}`} className="cars-item cars-skeleton-card" aria-hidden="true">
+                    <div className="cars-skeleton-media" />
+                    <div className="cars-skeleton-body">
+                      <div className="cars-skeleton-line cars-skeleton-line-lg" />
+                      <div className="cars-skeleton-line cars-skeleton-line-sm" />
+                      <div className="cars-skeleton-specs">
+                        <span />
+                        <span />
+                        <span />
+                        <span />
+                      </div>
+                      <div className="cars-skeleton-chips">
+                        <span />
+                        <span />
+                        <span />
+                      </div>
+                    </div>
+                    <div className="cars-skeleton-price" />
+                  </div>
+                ))
+              ) : visibleCars.length > 0 ? (
+                visibleCars.map((car) => {
                 const chipItems = [...(Array.isArray(car.safety) ? car.safety : []), ...(Array.isArray(car.convenience) ? car.convenience : [])];
                 const isExpanded = Boolean(expandedTagsById[car._id]);
                 const visibleChips = isExpanded ? chipItems : chipItems.slice(0, 4);
                 const remaining = Math.max(0, chipItems.length - 4);
                 const cardImage = car.thumbnailImage || "/images/car.webp";
+                const isWishlisted = wishlistIds.includes(String(car._id));
+                const stock = Number(car?.stock) || 0;
+                const stockText = stock <= 0 ? "Out of stock" : `${stock} left`;
 
                 return (
-                  <div key={car._id} className="cars-item" >
+                  <div key={car._id} className="cars-item">
+                    <button
+                      type="button"
+                      className={`cars-wishlist-btn ${isWishlisted ? "active" : ""}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleToggleWishlist(car._id);
+                      }}
+                      aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+                    >
+                      <svg
+                        viewBox="0 0 24 24"
+                        className="cars-wishlist-icon"
+                        aria-hidden="true"
+                      >
+                        <path d="M20.84 4.61C20.33 4.1 19.72 3.7 19.05 3.43C18.38 3.15 17.66 3.01 16.94 3.01C16.22 3.01 15.5 3.15 14.83 3.43C14.16 3.7 13.55 4.1 13.04 4.61L12 5.65L10.96 4.61C9.93 3.58 8.54 3 7.08 3C5.62 3 4.23 3.58 3.2 4.61C2.17 5.64 1.59 7.03 1.59 8.49C1.59 9.95 2.17 11.34 3.2 12.37L12 21.17L20.84 12.37C21.35 11.86 21.75 11.25 22.03 10.58C22.3 9.91 22.45 9.19 22.45 8.47C22.45 7.75 22.3 7.03 22.03 6.36C21.75 5.69 21.35 5.12 20.84 4.61Z" />
+                      </svg>
+                    </button>
+
                     <Link to={`/product/${car._id}`}>
                       <div className="cars-item-media">
                         <img src={cardImage} alt={car.name} loading="lazy" decoding="async" />
@@ -541,6 +733,8 @@ function Cars() {
                             <span>{car.brand}</span>
                           </div>
                         </div>
+
+                        <div className="cars-item-stock">{stockText}</div>
 
                         <div className="cars-item-specs">
                           <CarSpecItem icon={<IconYear />} text={`${new Date(car.createdAt).getFullYear()}`} />
@@ -571,12 +765,24 @@ function Cars() {
                       </div>
                     </Link>
                     <div className="cars-item-price">
-                      <button className="add-to-cart" onClick={() => addToCart(car)}>
+                      <button
+                        className="add-to-cart"
+                        onClick={() => addToCart(car)}
+                        disabled={stock <= 0}
+                        title={stock <= 0 ? "Out of stock" : "Add to cart"}
+                      >
                         <img src={add} alt="Add to cart icon" />
-                      </button>{priceText(car.price)}</div>
+                      </button>
+                      {priceText(car.price)}
+                    </div>
                   </div>
                 );
-              })}
+              })
+              ) : (
+                <div className="cars-empty-state">
+                  No cars match the current filters.
+                </div>
+              )}
             </div>
           </section>
         </div>

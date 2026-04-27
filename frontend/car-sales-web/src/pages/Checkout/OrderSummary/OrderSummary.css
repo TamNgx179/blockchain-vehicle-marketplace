@@ -1,0 +1,205 @@
+/* ===============================
+   ORDER SUMMARY
+=============================== */
+
+#Order-summary {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+#Order-summary *,
+#Order-summary *::before,
+#Order-summary *::after {
+  box-sizing: border-box;
+}
+
+#Order-summary h2 {
+  margin: 0 0 14px;
+  font-size: 22px;
+  font-weight: 700;
+  color: #222;
+}
+
+/* ===============================
+   BOX
+=============================== */
+
+#summary {
+  width: 100%;
+  max-width: 100%;
+  padding: 18px;
+  background: #fff;
+  border: 1px solid #e2e2e2;
+  border-radius: 10px;
+}
+
+/* ===============================
+   SELECTED CAR
+=============================== */
+
+.car-selected {
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.car-selected label {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #222;
+}
+
+.list-car-selected {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.list-car-selected li {
+  margin-bottom: 8px;
+  color: #444;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.list-car-selected li:last-child {
+  margin-bottom: 0;
+}
+
+.list-car-selected li span {
+  float: right;
+  margin-left: 12px;
+  font-weight: 700;
+  color: #222;
+  white-space: nowrap;
+}
+
+/* ===============================
+   FEE
+=============================== */
+
+.fee {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 12px 0;
+  color: #444;
+  font-size: 15px;
+}
+
+#delivery-fee {
+  font-weight: 700;
+  color: #222;
+  white-space: nowrap;
+}
+
+/* ===============================
+   DIVIDER
+=============================== */
+
+#summary #cross-line {
+  border: none;
+  border-top: 1px solid #e5e5e5;
+  margin: 14px 0;
+}
+
+/* ===============================
+   TOTAL
+=============================== */
+
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.total-row label {
+  font-size: 16px;
+  font-weight: 700;
+  color: #222;
+}
+
+#total-fee {
+  font-size: 22px;
+  font-weight: 700;
+  color: #111;
+  white-space: nowrap;
+}
+
+/* ===============================
+   RESPONSIVE
+=============================== */
+
+@media (max-width: 768px) {
+  #summary {
+    padding: 15px;
+  }
+
+  #Order-summary h2 {
+    font-size: 20px;
+  }
+
+  .list-car-selected li,
+  .fee {
+    font-size: 14px;
+  }
+
+  #total-fee {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 576px) {
+  #summary {
+    padding: 14px;
+    border-radius: 8px;
+  }
+
+  .list-car-selected {
+    padding-left: 16px;
+  }
+
+  .list-car-selected li span {
+    float: none;
+    display: block;
+    margin-left: 0;
+    margin-top: 2px;
+    text-align: right;
+  }
+
+  .fee,
+  .total-row {
+    align-items: flex-start;
+  }
+
+  #total-fee {
+    font-size: 19px;
+  }
+}
+
+@media (max-width: 400px) {
+  #Order-summary h2 {
+    font-size: 18px;
+  }
+
+  #summary {
+    padding: 12px;
+  }
+
+  .list-car-selected li,
+  .fee {
+    font-size: 13px;
+  }
+
+  .total-row label {
+    font-size: 15px;
+  }
+
+  #total-fee {
+    font-size: 18px;
+  }
+}

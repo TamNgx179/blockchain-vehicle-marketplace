@@ -1,11 +1,14 @@
 import express from "express";
 import {
   createOrderFromCart,
+  discardUnpaidOrderController,
   verifyDepositController,
   verifyFullPaymentController,
   verifySellerConfirmController,
+  adminConfirmOrderController,
   verifyCompleteOrderController,
   verifyCancelOrderController,
+  adminCancelOrderController,
   getMyOrdersController,
   getOrderDetailController,
   getAllOrdersController,
@@ -17,10 +20,23 @@ import authenticateToken, {requireAdmin} from "../middlewares/authMiddleware.js"
 const router = express.Router();
 
 router.post("/create-from-cart", authenticateToken, createOrderFromCart);
+router.post("/:id/discard-unpaid", authenticateToken, discardUnpaidOrderController);
 
 router.get("/all-orders", authenticateToken, requireAdmin, getAllOrdersController);
 
 router.get("/admin", authenticateToken, requireAdmin, adminGetOrdersController);
+router.post(
+  "/admin/:id/confirm",
+  authenticateToken,
+  requireAdmin,
+  adminConfirmOrderController
+);
+router.post(
+  "/admin/:id/cancel",
+  authenticateToken,
+  requireAdmin,
+  adminCancelOrderController
+);
 router.get(
   "/admin/:id",
   authenticateToken,

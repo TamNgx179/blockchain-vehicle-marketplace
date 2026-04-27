@@ -1,18 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle, XCircle, Eye, CheckSquare } from 'lucide-react';
-import { ethers } from 'ethers';
-import { orderService } from '../../../services/OrderService';
-import contractABI from '../../../config/abi.json';
+import { CheckCircle, XCircle, Eye, CheckSquare, LoaderCircle } from 'lucide-react';
+import { orderService } from '../../../services/orderService';
 import './OrderList.css';
-
-const CONTRACT_ADDRESS = "0xD0CF607f0bCD60B5ed02896e682450eA4dBf5BB0";
-
-const buildSellerWalletMessage = (sellerWallet, connectedWallet, action = "thực hiện thao tác này") => [
-  `Tài khoản quản trị cần kết nối ví người bán trong MetaMask trước khi ${action}.`,
-  `Ví người bán của đơn: ${sellerWallet || "N/A"}`,
-  `Ví MetaMask hiện tại: ${connectedWallet || "chưa kết nối"}`,
-  "Vui lòng mở MetaMask, chọn đúng account showroom rồi bấm lại."
-].join("\n");
 
 const getVietnameseErrorMessage = (error, fallback) => {
   const rawMessage = String(
@@ -59,10 +48,30 @@ const getVietnameseErrorMessage = (error, fallback) => {
   return rawMessage;
 };
 
+const isFullPaymentRecorded = (order) =>
+  order.paymentType === 'full' &&
+  (
+    order.status === 'payment_paid' ||
+    Boolean(order.fullTxHash) ||
+    Number(order.paidAmount || 0) >= Number(order.totalAmount || 0)
+  );
+
+const getOrderStatusKey = (order) =>
+  order.status === 'pending_payment' && isFullPaymentRecorded(order)
+    ? 'payment_paid'
+    : order.status?.toLowerCase();
+
 const OrderList = () => {
   const [orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [expandedOrderId, setExpandedOrderId] = useState(null);
+  const [processingAction, setProcessingAction] = useState(null);
+
+  const getProcessingText = (action) => {
+    if (action === 'confirm') return 'Đang xác nhận...';
+    if (action === 'cancel') return 'Đang hủy...';
+    return 'Đang xử lý...';
+  };
 
   // Hàm đóng/mở
   const toggleExpand = (orderId) => {
@@ -130,135 +139,51 @@ const OrderList = () => {
 
   // 1. Hàm XÁC NHẬN đơn
   const handleConfirmOrder = async (order) => {
+    if (processingAction) return;
+
     if (!order.blockchainOrderId) {
       return alert("Đơn hàng này chưa có mã định danh Blockchain!");
     }
 
-    if (!order.sellerWallet) {
-      return alert("Đơn hàng này chưa có địa chỉ ví người bán để xác nhận.");
-    }
-
-    if (!window.ethereum) {
-      return alert("Trình duyệt chưa có MetaMask. Vui lòng cài đặt hoặc bật MetaMask để xác nhận đơn hàng.");
-    }
-
     try {
-      const accounts = await window.ethereum.request({
-        method: "eth_requestAccounts",
-      });
-      const connectedWallet = accounts?.[0];
-
-      if (!connectedWallet) {
-        return alert(buildSellerWalletMessage(order.sellerWallet, "", "xác nhận đơn"));
-      }
-
-      if (connectedWallet.toLowerCase() !== order.sellerWallet.toLowerCase()) {
-        return alert(
-          buildSellerWalletMessage(
-            order.sellerWallet,
-            connectedWallet,
-            "xác nhận đơn"
-          )
-        );
-      }
-
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner(connectedWallet);
-
-      const contract = new ethers.Contract(
-        CONTRACT_ADDRESS,
-        contractABI.abi,
-        signer
-      );
-
-      const tx = await contract.confirmOrder(order.blockchainOrderId);
-      const receipt = await tx.wait();
-
-      if (receipt.status !== 1) {
-        throw new Error("Giao dịch xác nhận trên Blockchain thất bại");
-      }
-
-      await orderService.verifySellerConfirm(order._id, tx.hash);
+      setProcessingAction({ orderId: order._id, action: 'confirm' });
+      const result = await orderService.adminConfirm(order._id);
       alert("Xác nhận đơn hàng thành công!");
-      fetchOrders();
+      if (result?.txHash) {
+        console.log("Admin confirm txHash:", result.txHash);
+      }
+      await fetchOrders();
     } catch (error) {
       console.error("Lỗi khi xác nhận đơn hàng:", error);
       alert(getVietnameseErrorMessage(error, "Có lỗi xảy ra khi xác nhận đơn hàng."));
-    }
-  };
-
-  // 2. Hàm HOÀN TẤT đơn
-  const handleCompleteOrder = async (order) => {
-    const txHash = order.fullTxHash || order.depositTxHash;
-    if (!txHash) return alert("Đơn hàng này chưa có mã giao dịch (txHash)!");
-
-    try {
-      await orderService.verifyComplete(order._id, txHash);
-      alert("Hoàn tất đơn hàng thành công!");
-      fetchOrders();
-    } catch (error) {
-      console.error("Lỗi khi hoàn tất đơn hàng:", error);
-      alert(getVietnameseErrorMessage(error, "Có lỗi xảy ra khi hoàn tất đơn hàng."));
+    } finally {
+      setProcessingAction(null);
     }
   };
 
   // 3. Hàm HỦY đơn
   const handleCancelOrder = async (order) => {
+    if (processingAction) return;
+
     if (!window.confirm("Bạn có chắc chắn muốn hủy đơn hàng này?")) return;
 
     if (!order.blockchainOrderId) {
       return alert("Đơn hàng này chưa có mã định danh Blockchain!");
     }
 
-    if (!order.sellerWallet) {
-      return alert("Đơn hàng này chưa có địa chỉ ví người bán để hủy.");
-    }
-
-    if (!window.ethereum) {
-      return alert("Trình duyệt chưa có MetaMask. Vui lòng cài đặt hoặc bật MetaMask để hủy đơn hàng.");
-    }
-
     try {
-      const accounts = await window.ethereum.request({
-        method: "eth_requestAccounts",
-      });
-      const connectedWallet = accounts?.[0];
-
-      if (!connectedWallet) {
-        return alert(buildSellerWalletMessage(order.sellerWallet, "", "hủy đơn"));
-      }
-
-      if (connectedWallet.toLowerCase() !== order.sellerWallet.toLowerCase()) {
-        return alert(
-          buildSellerWalletMessage(
-            order.sellerWallet,
-            connectedWallet,
-            "hủy đơn"
-          )
-        );
-      }
-
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner(connectedWallet);
-      const contract = new ethers.Contract(
-        CONTRACT_ADDRESS,
-        contractABI.abi,
-        signer
-      );
-
-      const tx = await contract.cancelOrder(order.blockchainOrderId);
-      const receipt = await tx.wait();
-
-      if (receipt.status !== 1) {
-        throw new Error("Giao dịch hủy đơn trên Blockchain thất bại");
-      }
-
-      await orderService.verifyCancel(order._id, tx.hash);
+      setProcessingAction({ orderId: order._id, action: 'cancel' });
+      const result = await orderService.adminCancel(order._id);
       alert("Hủy đơn hàng thành công!");
-      fetchOrders();
+      if (result?.txHash) {
+        console.log("Admin cancel txHash:", result.txHash);
+      }
+      await fetchOrders();
     } catch (error) {
       console.error("Lỗi khi hủy đơn hàng:", error);
       alert(getVietnameseErrorMessage(error, "Có lỗi xảy ra khi hủy đơn hàng."));
+    } finally {
+      setProcessingAction(null);
     }
   };
 
@@ -295,7 +220,9 @@ const OrderList = () => {
     <div className="order-list-container">
       <div className="page-header">
         <h2>Quản lý Đơn hàng</h2>
-        <button className="refresh-btn" onClick={fetchOrders}>Làm mới</button>
+        <button className="refresh-btn" onClick={fetchOrders} disabled={!!processingAction}>
+          {processingAction ? getProcessingText(processingAction.action) : 'Làm mới'}
+        </button>
       </div>
 
       <div className="table-responsive">
@@ -320,7 +247,7 @@ const OrderList = () => {
               <tr><td colSpan="9" className="text-center">Chưa có đơn hàng nào.</td></tr>
             ) : (
               orders.map((order) => {
-                const status = order.status?.toLowerCase();
+                const statusKey = getOrderStatusKey(order);
                 const productName = order.items?.length > 0
                   ? `${order.items[0].name} ${order.items.length > 1 ? `(+${order.items.length - 1})` : ''}`
                   : 'Không rõ';
@@ -328,10 +255,14 @@ const OrderList = () => {
                 // Điều kiện: Đã trả tiền (>0)
                 const isPaid = order.paidAmount > 0;
                 const isExpanded = expandedOrderId === order._id;
-                const canCancel = ['pending_deposit', 'pending_payment', 'deposit_paid'].includes(status);
+                const canCancel = ['pending_deposit', 'pending_payment', 'deposit_paid', 'payment_paid'].includes(statusKey);
+                const hasRunningAction = Boolean(processingAction);
+                const isRowProcessing = processingAction?.orderId === order._id;
+                const isConfirming = isRowProcessing && processingAction.action === 'confirm';
+                const isCancelling = isRowProcessing && processingAction.action === 'cancel';
                 return (
                   <React.Fragment key={order._id}>
-                    <tr key={order._id} className={isExpanded ? 'row-expanded' : ''}>
+                    <tr key={order._id} className={`${isExpanded ? 'row-expanded' : ''} ${isRowProcessing ? 'row-processing' : ''}`.trim()}>
                       <td><strong>#{order._id.substring(0, 8)}</strong></td>
                       <td>
                         <div><strong>{order.pickupInfo?.name || "Khách ẩn danh"}</strong></div>
@@ -348,18 +279,19 @@ const OrderList = () => {
                       <td style={{ color: '#059669', fontWeight: 'bold' }}>
                         ${order.paidAmount?.toLocaleString('en-US') || 0}
                       </td>
-                      <td>{renderStatusBadge(order.status)}</td>
+                      <td>{renderStatusBadge(statusKey)}</td>
                       <td className="actions-cell">
 
                         {/* 2. NÚT XÁC NHẬN (Confirm) */}
                         {/* Hiện ra khi: Khách ĐÃ TRẢ TIỀN (cọc hoặc full) VÀ đơn hàng CHƯA được xác nhận/hoàn tất/hủy */}
-                        {isPaid && (status === 'deposit_paid' || status === 'payment_paid') && (
+                        {isPaid && (statusKey === 'deposit_paid' || statusKey === 'payment_paid') && (
                           <button
-                            className="btn-action btn-confirm"
+                            className={`btn-action btn-confirm ${isConfirming ? 'is-loading' : ''}`}
                             onClick={() => handleConfirmOrder(order)}
+                            disabled={hasRunningAction}
                             title="Xác nhận đã nhận tiền & chuẩn bị xe"
                           >
-                            <CheckCircle size={18} />
+                            {isConfirming ? <LoaderCircle size={18} className="spin-icon" /> : <CheckCircle size={18} />}
                           </button>
                         )}
 
@@ -367,12 +299,19 @@ const OrderList = () => {
                         {/* Smart Contract chỉ cho buyer hoặc seller hủy trước khi seller xác nhận đơn. */}
                         {canCancel && (
                           <button
-                            className="btn-action btn-cancel"
+                            className={`btn-action btn-cancel ${isCancelling ? 'is-loading' : ''}`}
                             onClick={() => handleCancelOrder(order)}
+                            disabled={hasRunningAction}
                             title="Hủy đơn & Hoàn tiền (nếu có)"
                           >
-                            <XCircle size={18} />
+                            {isCancelling ? <LoaderCircle size={18} className="spin-icon" /> : <XCircle size={18} />}
                           </button>
+                        )}
+
+                        {isRowProcessing && (
+                          <span className="action-status" role="status" aria-live="polite">
+                            {getProcessingText(processingAction.action)}
+                          </span>
                         )}
 
                         <button

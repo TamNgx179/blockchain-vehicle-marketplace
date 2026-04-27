@@ -15,7 +15,7 @@ export default defineConfig({
           proxy.on('error', (err, _req, _res) => {
             console.log('Proxy error:', err);
           });
-          proxy.on('proxyRes', (proxyRes, req, res) => {
+          proxy.on('proxyRes', (proxyRes, _req, _res) => {
             // Nếu BE trả về 404, chúng ta có thể log ở đây để theo dõi
             if (proxyRes.statusCode === 404) {
               // Bạn có thể để trống, Vite sẽ tự động xử lý request tiếp theo tại nội bộ FE

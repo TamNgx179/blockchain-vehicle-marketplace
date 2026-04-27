@@ -1,15 +1,92 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  Users, Package, DollarSign, CheckCircle,
-  Clock, ShoppingBag, CreditCard, Activity
+  Activity,
+  CheckCircle,
+  CreditCard,
+  DollarSign,
+  Package,
+  RefreshCw,
+  ShoppingBag,
+  Users,
 } from "lucide-react";
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, BarChart, Bar, Legend
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
 } from "recharts";
-import DashboardService from "../../../services/dashboardService"; // Đường dẫn tới file service của bạn
+import DashboardService from "../../../services/dashboardService";
 import "./Dashboard.css";
+
+const STATUS_CONFIG = {
+  pending_deposit: { label: "Chờ đặt cọc", color: "#14b8a6", bg: "#ccfbf1" },
+  pending_payment: { label: "Chờ thanh toán", color: "#2563eb", bg: "#dbeafe" },
+  deposit_paid: { label: "Đã đặt cọc", color: "#f59e0b", bg: "#fef3c7" },
+  processing: { label: "Đang xử lý", color: "#f97316", bg: "#ffedd5" },
+  completed: { label: "Hoàn thành", color: "#7c3aed", bg: "#ede9fe" },
+  cancelled: { label: "Đã hủy", color: "#ef4444", bg: "#fee2e2" },
+};
+
+const currencyFormatter = new Intl.NumberFormat("vi-VN");
+
+const toNumber = (value) => Number(value) || 0;
+const formatCurrency = (value) => `${currencyFormatter.format(toNumber(value))}đ`;
+const formatNumber = (value) => currencyFormatter.format(toNumber(value));
+const formatPercent = (value) => `${toNumber(value).toFixed(1)}%`;
+const getResponseData = (response, fallback) => response?.data ?? response ?? fallback;
+const clampPercent = (value) => Math.min(Math.max(toNumber(value), 0), 100);
+
+const formatDateKey = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const buildRevenueSeries = (rawData, days) => {
+  const list = Array.isArray(rawData) ? rawData : [];
+  const startDate = new Date();
+  startDate.setHours(0, 0, 0, 0);
+  startDate.setDate(startDate.getDate() - days + 1);
+
+  const byDate = new Map(
+    list.map((item) => [
+      item.date || item._id,
+      {
+        revenue: toNumber(item.revenue ?? item.paidAmount),
+        completedRevenue: toNumber(item.completedRevenue),
+        orderValue: toNumber(item.orderValue),
+        orders: toNumber(item.orders),
+      },
+    ])
+  );
+
+  return Array.from({ length: days }, (_, index) => {
+    const date = new Date(startDate);
+    date.setDate(startDate.getDate() + index);
+    const key = formatDateKey(date);
+    const item = byDate.get(key) || {};
+
+    return {
+      date: key,
+      label: date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" }),
+      revenue: item.revenue || 0,
+      completedRevenue: item.completedRevenue || 0,
+      orderValue: item.orderValue || 0,
+      orders: item.orders || 0,
+    };
+  });
+};
+
 const Dashboard = () => {
   const [summary, setSummary] = useState(null);
   const [revenueData, setRevenueData] = useState([]);
@@ -17,206 +94,290 @@ const Dashboard = () => {
   const [orderStatus, setOrderStatus] = useState([]);
   const [recentOrders, setRecentOrders] = useState([]);
   const [blockchain, setBlockchain] = useState(null);
+  const [revenueDays, setRevenueDays] = useState(7);
   const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  useEffect(() => {
-    fetchDashboardData();
+  const fetchDashboardData = useCallback(async (days) => {
+    setLoading(true);
+    setErrorMessage("");
+
+    const requests = await Promise.allSettled([
+      DashboardService.getSummary(),
+      DashboardService.getRevenue(days),
+      DashboardService.getTopProducts(),
+      DashboardService.getOrderStatus(),
+      DashboardService.getRecentOrders(),
+      DashboardService.getBlockchainStats(),
+    ]);
+
+    const hasError = requests.some((result) => result.status === "rejected");
+    if (hasError) {
+      setErrorMessage("Một số dữ liệu dashboard chưa tải được. Bạn có thể bấm làm mới để thử lại.");
+    }
+
+    const dataOf = (index, fallback) =>
+      requests[index].status === "fulfilled"
+        ? getResponseData(requests[index].value, fallback)
+        : fallback;
+
+    setSummary(dataOf(0, null));
+    setRevenueData(buildRevenueSeries(dataOf(1, []), days));
+    setTopProducts(dataOf(2, []));
+    setOrderStatus(dataOf(3, []));
+    setRecentOrders(dataOf(4, []));
+    setBlockchain(dataOf(5, null));
+    setLoading(false);
   }, []);
 
-  const fetchDashboardData = async () => {
-    try {
-      setLoading(true);
-      const [resSummary, resRevenue, resTop, resStatus, resRecent, resBlockchain] = await Promise.all([
-        DashboardService.getSummary(),
-        DashboardService.getRevenue(7),
-        DashboardService.getTopProducts(),
-        DashboardService.getOrderStatus(),
-        DashboardService.getRecentOrders(),
-        DashboardService.getBlockchainStats(),
-      ]);
-      console.log("Response resRevenue:", resRevenue);
-      setSummary(resSummary.data);
-      setRevenueData(resRevenue.data);
-      setTopProducts(resTop.data);
-      setOrderStatus(resStatus.data);
-      setRecentOrders(resRecent.data);
-      setBlockchain(resBlockchain.data);
-      console.log("Dữ liệu Summary:", resSummary.data);
-      console.log("Dữ liệu Revenue:", resRevenue.data);
-      console.log("Dữ liệu Top Products:", resTop.data);
-      console.log("Dữ liệu Order Status:", resStatus.data);
-      console.log("Dữ liệu Recent Orders:", resRecent.data);
-      console.log("Dữ liệu Blockchain:", resBlockchain.data);
-    } catch (error) {
-      console.error("Lỗi khi tải dữ liệu dashboard:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    const id = setTimeout(() => {
+      fetchDashboardData(revenueDays);
+    }, 0);
 
-  if (loading) return <div className="p-8 text-center">Đang tải dữ liệu...</div>;
+    return () => clearTimeout(id);
+  }, [fetchDashboardData, revenueDays]);
 
-  const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8"];
-  const STATUS_LABELS = {
-    processing: "Đang xử lý",
-    cancelled: "Đã hủy",
-    completed: "Hoàn thành",
-    pending_payment: "Chờ thanh toán",
-    deposit_paid: "Đã đặt cọc",
-    pending_deposit: "Chờ đặt cọc"
-  };
+  const statusData = useMemo(() => {
+    const list = Array.isArray(orderStatus) ? orderStatus : [];
+    const total = list.reduce((sum, item) => sum + toNumber(item.count), 0);
+
+    return list.map((item) => {
+      const config = STATUS_CONFIG[item._id] || {
+        label: item._id || "Không rõ",
+        color: "#64748b",
+        bg: "#f1f5f9",
+      };
+
+      return {
+        ...item,
+        name: config.label,
+        value: toNumber(item.count),
+        percent: total > 0 ? (toNumber(item.count) / total) * 100 : 0,
+        color: config.color,
+        bg: config.bg,
+      };
+    });
+  }, [orderStatus]);
+
+  const totalStatusOrders = statusData.reduce((sum, item) => sum + item.value, 0);
+  const hasRevenue = revenueData.some((item) => item.revenue > 0);
+  const topProductData = (Array.isArray(topProducts) ? topProducts : []).map((item) => ({
+    name: item.name || "Không rõ",
+    sold: toNumber(item.sold),
+  }));
+
   return (
     <div className="dashboard-container">
-      {/* Header Section */}
       <div className="dashboard-header">
-        <div className="header-title">
-          <h1>Hệ thống Quản trị</h1>
-          <p>Chào buổi sáng, đây là những gì đang diễn ra hôm nay.</p>
+        <div>
+          <p className="dashboard-eyebrow">Saigon Speed Admin</p>
+          <h1>Hệ thống quản trị</h1>
+          <p className="dashboard-subtitle">
+            Theo dõi doanh thu, đơn hàng và dữ liệu blockchain đã xác minh.
+          </p>
         </div>
+
         <div className="header-actions">
-          <button className="btn-export">Xuất báo cáo</button>
-          <button onClick={fetchDashboardData} className="btn-refresh">
-            Làm mới dữ liệu
+          <Link to="/admin/orders" className="btn-secondary">
+            Xem đơn hàng
+          </Link>
+          <button onClick={() => fetchDashboardData(revenueDays)} className="btn-refresh" disabled={loading}>
+            <RefreshCw size={16} className={loading ? "spin-icon" : ""} />
+            Làm mới
           </button>
         </div>
       </div>
 
-      {/* 1. STAT CARDS */}
+      {errorMessage && <div className="dashboard-alert">{errorMessage}</div>}
+
       <div className="stat-grid">
-        {/* 1. Tổng người dùng - Giữ nguyên */}
         <StatCard
           title="Tổng người dùng"
-          value={summary?.totalUsers}
-          trend="+12%"
-          icon={<Users size={20} />}
-          colorClass="text-blue-600"
-          bgColorClass="bg-blue-100"
+          value={formatNumber(summary?.totalUsers)}
+          note="Tài khoản đã đăng ký"
+          icon={<Users size={22} />}
+          tone="blue"
         />
-
-        {/* 2. Tiền thực thu (Total Paid) - CỰC KỲ QUAN TRỌNG */}
         <StatCard
           title="Tổng tiền thực thu"
-          value={`${summary?.totalPaid?.toLocaleString()}đ`}
-          trend="Dòng tiền thực"
-          icon={<Activity size={20} />}
-          colorClass="text-emerald-600"
-          bgColorClass="bg-emerald-100"
+          value={formatCurrency(summary?.totalPaid)}
+          note="Dòng tiền đã xác minh"
+          icon={<Activity size={22} />}
+          tone="emerald"
+          highlight
         />
-
-        {/* 3. Doanh thu (Completed) - Chỉ tính đơn đã xong */}
         <StatCard
-          title="Doanh thu (Đã chốt)"
-          value={`${summary?.totalRevenue?.toLocaleString()}đ`}
-          trend={`${summary?.completedOrders} đơn`}
-          icon={<DollarSign size={20} />}
-          colorClass="text-cyan-600"
-          bgColorClass="bg-cyan-100"
+          title="Doanh thu đã chốt"
+          value={formatCurrency(summary?.totalRevenue)}
+          note={`${formatNumber(summary?.completedOrders)} đơn hoàn thành`}
+          icon={<DollarSign size={22} />}
+          tone="cyan"
         />
-
-        {/* 4. Tổng giá trị đơn (Total Order Value) - Tiềm năng */}
         <StatCard
           title="Tổng giá trị đặt hàng"
-          value={`${summary?.totalOrderValue?.toLocaleString()}đ`}
-          trend={`${summary?.totalOrders} đơn`}
-          icon={<Package size={20} />}
-          colorClass="text-purple-600"
-          bgColorClass="bg-purple-100"
+          value={formatCurrency(summary?.totalOrderValue)}
+          note={`${formatNumber(summary?.totalOrders)} đơn hợp lệ`}
+          icon={<Package size={22} />}
+          tone="violet"
         />
-
-        {/* 5. Tỉ lệ thanh toán - Hiệu suất thu tiền */}
         <StatCard
           title="Tỉ lệ thanh toán"
-          value={`${summary?.paymentRate?.toFixed(1)}%`}
-          trend="Trên tổng đơn"
-          icon={<CreditCard size={20} />}
-          colorClass="text-amber-600"
-          bgColorClass="bg-amber-100"
+          value={formatPercent(summary?.paymentRate)}
+          note="Trên tổng giá trị đơn"
+          icon={<CreditCard size={22} />}
+          tone="amber"
         />
-
-        {/* 6. Đơn hàng mới hôm nay */}
         <StatCard
-          title="Đơn hàng mới"
-          value={summary?.todayOrders}
-          trend="Hôm nay"
-          icon={<ShoppingBag size={20} />}
-          colorClass="text-indigo-600"
-          bgColorClass="bg-indigo-100"
+          title="Đơn hàng hôm nay"
+          value={formatNumber(summary?.todayOrders)}
+          note="Đơn mới phát sinh"
+          icon={<ShoppingBag size={22} />}
+          tone="indigo"
         />
       </div>
 
-      {/* Main Charts Section */}
       <div className="charts-grid">
-        <div className="chart-card revenue-chart-container animate-fade-in">
-          <div className="chart-header">
-            <h3 className="chart-title">Phân tích doanh thu</h3>
-            <div className="custom-select">
-              <select className="chart-select">
-                <option>7 ngày qua</option>
-                <option>30 ngày qua</option>
-              </select>
-              <span className="arrow"></span>
+        <section className="dashboard-panel revenue-panel">
+          <div className="panel-header">
+            <div>
+              <h2>Phân tích doanh thu</h2>
+              <p>Dòng tiền thực thu theo ngày từ các đơn không bị hủy.</p>
+            </div>
+            <select
+              className="chart-select"
+              value={revenueDays}
+              onChange={(event) => setRevenueDays(Number(event.target.value))}
+            >
+              <option value={7}>7 ngày qua</option>
+              <option value={30}>30 ngày qua</option>
+              <option value={90}>90 ngày qua</option>
+            </select>
+          </div>
+
+          <div className="revenue-chart-wrapper">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={revenueData} margin={{ top: 12, right: 18, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#2563eb" stopOpacity={0.28} />
+                    <stop offset="95%" stopColor="#2563eb" stopOpacity={0.02} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#e5eef8" />
+                <XAxis
+                  dataKey="label"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: "#64748b", fontSize: 12 }}
+                  minTickGap={18}
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: "#64748b", fontSize: 12 }}
+                  tickFormatter={(value) => `${Math.round(value / 1000)}k`}
+                  width={48}
+                />
+                <Tooltip
+                  cursor={{ stroke: "#93c5fd", strokeWidth: 1 }}
+                  formatter={(value) => [formatCurrency(value), "Thực thu"]}
+                  labelFormatter={(label) => `Ngày ${label}`}
+                  contentStyle={{
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 8,
+                    boxShadow: "0 12px 28px rgba(15, 23, 42, 0.12)",
+                  }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="revenue"
+                  stroke="#2563eb"
+                  strokeWidth={3}
+                  fill="url(#revenueGradient)"
+                  dot={{ r: 3, strokeWidth: 2, fill: "#ffffff" }}
+                  activeDot={{ r: 5 }}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+
+            {!hasRevenue && (
+              <div className="chart-empty-state">
+                Chưa có dòng tiền thực thu trong khoảng thời gian này.
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className="dashboard-panel status-panel">
+          <div className="panel-header compact">
+            <div>
+              <h2>Trạng thái đơn hàng</h2>
+              <p>{formatNumber(totalStatusOrders)} đơn trong hệ thống</p>
             </div>
           </div>
-          <div className="revenue-chart-wrapper">
-            <ResponsiveContainer width="100%" height={320}>
-              <LineChart data={revenueData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="_id" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                <Tooltip />
-                <Line type="monotone" dataKey="revenue" stroke="#3b82f6" strokeWidth={4} dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-        <div className="chart-card animate-fade-in" style={{ animationDelay: '0.1s' }}>
-          <h3 className="chart-title">Trạng thái đơn hàng</h3>
-          <div className="pie-chart-wrapper">
-            <ResponsiveContainer width="100%" height={320}>
-              <PieChart>
-                <Pie
-                  data={orderStatus}
-                  dataKey="count"
-                  nameKey="_id"
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={70}
-                  outerRadius={90}
-                  paddingAngle={5}
-                  // Hiển thị tên trực tiếp trên biểu đồ (tùy chọn)
-                  label={({ _id, percent }) => `${STATUS_LABELS[_id] || _id} ${(percent * 100).toFixed(0)}%`}
-                >
-                  {orderStatus.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
 
-                <Tooltip
-                  formatter={(value, name) => [value, STATUS_LABELS[name] || name]}
-                />
+          <div className="status-chart-layout">
+            <div className="donut-chart-shell">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={statusData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={66}
+                    outerRadius={92}
+                    paddingAngle={4}
+                  >
+                    {statusData.map((entry) => (
+                      <Cell key={entry._id} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value, name) => [`${value} đơn`, name]} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="donut-center">
+                <strong>{formatNumber(totalStatusOrders)}</strong>
+                <span>đơn</span>
+              </div>
+            </div>
 
-                {/* Phần chú giải ở dưới biểu đồ */}
-                <Legend
-                  verticalAlign="bottom"
-                  height={36}
-                  formatter={(value) => <span style={{ color: '#333', fontWeight: 500 }}>{STATUS_LABELS[value] || value}</span>}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+            <div className="status-list">
+              {statusData.length === 0 ? (
+                <div className="small-empty">Chưa có dữ liệu trạng thái.</div>
+              ) : (
+                statusData.map((item) => (
+                  <div className="status-item" key={item._id}>
+                    <span className="status-dot" style={{ backgroundColor: item.color }} />
+                    <div>
+                      <strong>{item.name}</strong>
+                      <span>
+                        {formatNumber(item.value)} đơn · {item.percent.toFixed(0)}%
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
-        </div>
+        </section>
       </div>
 
-      {/* Bottom Section */}
       <div className="bottom-grid">
-        <div className="table-container animate-fade-in" style={{ animationDelay: '0.2s' }}>
-          <div className="table-header">
-            <h3 className="chart-title">Giao dịch gần đây</h3>
+        <section className="dashboard-panel recent-panel">
+          <div className="panel-header">
+            <div>
+              <h2>Giao dịch gần đây</h2>
+              <p>Các đơn hàng mới nhất cần theo dõi.</p>
+            </div>
             <Link to="/admin/orders" className="btn-text">
               Xem tất cả
             </Link>
           </div>
-          <div style={{ overflowX: 'auto' }}>
+
+          <div className="recent-table-wrap">
             <table className="recent-table">
               <thead>
                 <tr>
@@ -229,187 +390,160 @@ const Dashboard = () => {
                 </tr>
               </thead>
               <tbody>
-                {recentOrders.map((order) => (
-                  <tr key={order._id}>
-                    {/* Cột Khách hàng */}
-                    <td>
-                      <div className="user-info">
-                        <div className="avatar-circle">
-                          {order.userId?.username?.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <div style={{ fontWeight: '700', color: '#334155' }}>{order.userId?.username}</div>
-                          <div style={{ fontSize: '11px', color: '#94a3b8' }}>{order.userId?.email}</div>
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* Cột Sản phẩm (Lấy item đầu tiên) */}
-                    <td style={{ fontSize: '14px', color: '#475569' }}>
-                      {order.items[0]?.name} {order.items.length > 1 && `+${order.items.length - 1}`}
-                    </td>
-
-                    {/* Cột Payment Type */}
-                    <td>
-                      <span style={{
-                        fontSize: '12px',
-                        padding: '2px 8px',
-                        borderRadius: '12px',
-                        backgroundColor: order.paymentType === 'deposit' ? '#e0f2fe' : '#f1f5f9',
-                        color: order.paymentType === 'deposit' ? '#0369a1' : '#475569'
-                      }}>
-                        {order.paymentType === 'deposit' ? 'Đặt cọc' : 'Trả hết'}
-                      </span>
-                    </td>
-
-                    {/* Cột Số tiền (Đã trả / Tổng) */}
-                    <td>
-                      <div style={{ fontWeight: '700', color: '#1e293b' }}>
-                        {order.paidAmount?.toLocaleString()}đ
-                      </div>
-                      <div style={{ fontSize: '11px', color: '#94a3b8' }}>
-                        Tổng: {order.totalAmount?.toLocaleString()}đ
-                      </div>
-                    </td>
-
-                    {/* Cột Trạng thái */}
-                    <td>
-                      <span className={`status-pill ${getStatusColor(order.status)}`}>
-                        {STATUS_LABELS[order.status] || order.status}
-                      </span>
-                    </td>
-
-                    {/* Cột Ngày tháng */}
-                    <td style={{ fontSize: '13px', color: '#64748b' }}>
-                      {new Date(order.createdAt).toLocaleDateString('vi-VN')}
+                {recentOrders.length === 0 ? (
+                  <tr>
+                    <td colSpan="6" className="table-empty">
+                      Chưa có đơn hàng gần đây.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  recentOrders.map((order) => {
+                    const statusConfig = STATUS_CONFIG[order.status] || {
+                      label: order.status || "Không rõ",
+                      color: "#64748b",
+                      bg: "#f1f5f9",
+                    };
+
+                    return (
+                      <tr key={order._id}>
+                        <td>
+                          <div className="user-info">
+                            <div className="avatar-circle">
+                              {order.userId?.username?.charAt(0)?.toUpperCase() || "K"}
+                            </div>
+                            <div>
+                              <strong>{order.userId?.username || "Khách hàng"}</strong>
+                              <span>{order.userId?.email || "Không có email"}</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td>{order.items?.[0]?.name || "Không rõ"}</td>
+                        <td>
+                          <span className="type-pill">
+                            {order.paymentType === "deposit" ? "Đặt cọc" : "Trả toàn bộ"}
+                          </span>
+                        </td>
+                        <td>
+                          <strong>{formatCurrency(order.paidAmount)}</strong>
+                          <span className="muted-line">Tổng: {formatCurrency(order.totalAmount)}</span>
+                        </td>
+                        <td>
+                          <span
+                            className="dashboard-status-pill"
+                            style={{
+                              "--status-color": statusConfig.color,
+                              "--status-bg": statusConfig.bg,
+                            }}
+                          >
+                            {statusConfig.label}
+                          </span>
+                        </td>
+                        <td>{new Date(order.createdAt).toLocaleDateString("vi-VN")}</td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>
-        </div>
+        </section>
 
-        <div className="blockchain-card animate-fade-in" style={{ animationDelay: '0.3s' }}>
-          <div className="blockchain-header">
-            <Activity size={24} color="#3b82f6" />
-            <h3 className="chart-title" style={{ color: 'white' }}>Dữ liệu Blockchain & Tài chính</h3>
-          </div>
-
-          <div className="blockchain-grid">
-            {/* Hàng 1: Các con số tiền tệ */}
-            <div>
-              <p style={{ color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>Tổng tiền đã thu</p>
-              <p style={{ fontSize: '1.25rem', fontWeight: '700', color: '#34d399' }}>
-                {blockchain?.totalPaid?.toLocaleString()}đ
-              </p>
-            </div>
-            <div>
-              <p style={{ color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>Tiền chờ thu</p>
-              <p style={{ fontSize: '1.25rem', fontWeight: '700', color: '#fbbf24' }}>
-                {blockchain?.remainingAmount?.toLocaleString()}đ
-              </p>
-            </div>
-
-            {/* Hàng 2: Chỉ số Blockchain */}
-            <div style={{ marginTop: '1rem' }}>
-              <p style={{ color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>Blockchain Deposit</p>
-              <p style={{ fontSize: '1.1rem', fontWeight: '600', color: '#60a5fa' }}>
-                {blockchain?.blockchainDeposit?.toLocaleString()}đ
-              </p>
-            </div>
-            <div style={{ marginTop: '1rem' }}>
-              <p style={{ color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>Đơn đã xác thực</p>
-              <p style={{ fontSize: '1.1rem', fontWeight: '600', color: '#a78bfa' }}>
-                {blockchain?.blockchainOrders} <span style={{ fontSize: '12px', fontWeight: 'normal' }}>đơn</span>
-              </p>
-            </div>
-          </div>
-
-          {/* Phần các thanh Progress Bar */}
-          <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-
-            {/* Thanh tỉ lệ Thanh toán */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
-                <span style={{ color: '#94a3b8' }}>Tỉ lệ thanh toán (Revenue)</span>
-                <span style={{ color: '#34d399' }}>{blockchain?.paymentRate?.toFixed(1)}%</span>
-              </div>
-              <div className="progress-bar-bg" style={{ height: '6px', backgroundColor: 'rgba(255,255,255,0.1)' }}>
-                <div className="progress-bar-fill" style={{
-                  width: `${blockchain?.paymentRate}%`,
-                  backgroundColor: '#34d399',
-                  height: '100%',
-                  borderRadius: '4px'
-                }}></div>
+        <div className="side-grid">
+          <section className="dashboard-panel blockchain-panel">
+            <div className="blockchain-header">
+              <Activity size={22} />
+              <div>
+                <h2>Dữ liệu Blockchain & Tài chính</h2>
+                <p>Đối soát các khoản đã ghi nhận.</p>
               </div>
             </div>
 
-            {/* Thanh tỉ lệ Đặt cọc */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
-                <span style={{ color: '#94a3b8' }}>Tỉ lệ đặt cọc</span>
-                <span style={{ color: '#60a5fa' }}>{blockchain?.depositRate?.toFixed(1)}%</span>
-              </div>
-              <div className="progress-bar-bg" style={{ height: '6px', backgroundColor: 'rgba(255,255,255,0.1)' }}>
-                <div className="progress-bar-fill" style={{
-                  width: `${blockchain?.depositRate}%`,
-                  backgroundColor: '#60a5fa',
-                  height: '100%',
-                  borderRadius: '4px'
-                }}></div>
+            <div className="blockchain-metrics">
+              <Metric label="Tổng tiền đã thu" value={formatCurrency(blockchain?.totalPaid)} tone="green" />
+              <Metric label="Tiền chờ thu" value={formatCurrency(blockchain?.remainingAmount)} tone="amber" />
+              <Metric label="Blockchain Deposit" value={formatCurrency(blockchain?.blockchainDeposit)} tone="blue" />
+              <Metric label="Đơn đã xác thực" value={`${formatNumber(blockchain?.blockchainOrders)} đơn`} tone="violet" />
+            </div>
+
+            <ProgressRow label="Tỉ lệ thanh toán" value={blockchain?.paymentRate} color="#34d399" />
+            <ProgressRow label="Tỉ lệ đặt cọc" value={blockchain?.depositRate} color="#60a5fa" />
+            <ProgressRow label="Tỉ lệ hoàn tất đơn" value={blockchain?.completionRate} color="#a78bfa" />
+          </section>
+
+          <section className="dashboard-panel top-products-panel">
+            <div className="panel-header compact">
+              <div>
+                <h2>Xe bán chạy</h2>
+                <p>Top mẫu xe theo số lượng trong đơn hợp lệ.</p>
               </div>
             </div>
 
-            {/* Thanh tỉ lệ Hoàn tất */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
-                <span style={{ color: '#94a3b8' }}>Tỉ lệ hoàn tất đơn</span>
-                <span style={{ color: '#3b82f6' }}>{blockchain?.completionRate?.toFixed(1)}%</span>
-              </div>
-              <div className="progress-bar-bg" style={{ height: '6px', backgroundColor: 'rgba(255,255,255,0.1)' }}>
-                <div className="progress-bar-fill" style={{
-                  width: `${blockchain?.completionRate}%`,
-                  backgroundColor: '#3b82f6',
-                  height: '100%',
-                  borderRadius: '4px'
-                }}></div>
-              </div>
+            <div className="top-product-chart">
+              {topProductData.length === 0 ? (
+                <div className="small-empty">Chưa có dữ liệu sản phẩm bán chạy.</div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={topProductData} layout="vertical" margin={{ top: 4, right: 12, left: 8, bottom: 4 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#edf2f7" />
+                    <XAxis type="number" allowDecimals={false} axisLine={false} tickLine={false} />
+                    <YAxis
+                      type="category"
+                      dataKey="name"
+                      axisLine={false}
+                      tickLine={false}
+                      width={110}
+                      tick={{ fill: "#475569", fontSize: 12 }}
+                    />
+                    <Tooltip formatter={(value) => [`${value} xe`, "Đã bán"]} />
+                    <Bar dataKey="sold" radius={[0, 6, 6, 0]} fill="#2563eb" barSize={16} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </div>
-
-          </div>
+          </section>
         </div>
       </div>
     </div>
   );
 };
 
-const StatCard = ({ title, value, trend, icon, colorClass, bgColorClass }) => (
-  <div className="stat-card">
+const StatCard = ({ title, value, note, icon, tone, highlight = false }) => (
+  <article className={`stat-card tone-${tone} ${highlight ? "highlight" : ""}`}>
     <div className="stat-card-header">
-      <div className={`icon-box ${bgColorClass} ${colorClass}`}>
-        {icon}
-      </div>
-      <span className="trend-badge">{trend}</span>
+      <div className="stat-icon">{icon}</div>
+      {highlight && (
+        <span className="trend-badge">
+          <CheckCircle size={12} />
+          Đã xác minh
+        </span>
+      )}
     </div>
-    <div className="stat-value">
-      <p style={{ color: '#64748b', fontSize: '14px', margin: 0 }}>{title}</p>
-      <h4>{value}</h4>
+    <p>{title}</p>
+    <h3>{value}</h3>
+    <span>{note}</span>
+  </article>
+);
+
+const Metric = ({ label, value, tone }) => (
+  <div className={`metric-box tone-${tone}`}>
+    <span>{label}</span>
+    <strong>{value}</strong>
+  </div>
+);
+
+const ProgressRow = ({ label, value, color }) => (
+  <div className="progress-row">
+    <div>
+      <span>{label}</span>
+      <strong>{formatPercent(value)}</strong>
+    </div>
+    <div className="progress-track">
+      <div
+        className="progress-fill"
+        style={{ width: `${clampPercent(value)}%`, backgroundColor: color }}
+      />
     </div>
   </div>
 );
-const getStatusColor = (status) => {
-  switch (status) {
-    case "completed":
-      return "status-completed";
-    case "processing":
-      return "status-processing";
-    case "pending_deposit":
-      return "status-pending";
-    case "cancelled":
-      return "status-cancelled";
-    default:
-      return "status-default";
-  }
-};
+
 export default Dashboard;

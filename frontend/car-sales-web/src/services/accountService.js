@@ -6,12 +6,8 @@ const AccountService = {
    * BE: router.get('/getProfile', ...)
    */
   getProfile: async () => {
-    try {
-      const response = await api.get("/accounts/getProfile");
-      return response; // Trả về thông tin user (đã loại bỏ password)
-    } catch (error) {
-      throw error;
-    }
+    const response = await api.get("/accounts/getProfile");
+    return response;
   },
 
   /**
@@ -19,12 +15,8 @@ const AccountService = {
    * BE: router.put('/editProfile', ...)
    */
   editProfile: async (profileData) => {
-    try {
-      const response = await api.put("/accounts/editProfile", profileData);
-      return response;
-    } catch (error) {
-      throw error;
-    }
+    const response = await api.put("/accounts/editProfile", profileData);
+    return response;
   },
 
   /**
@@ -33,12 +25,8 @@ const AccountService = {
    * BE: router.post("/changePassword", ...)
    */
   changePassword: async (passwordData) => {
-    try {
-      const response = await api.post("/accounts/changePassword", passwordData);
-      return response;
-    } catch (error) {
-      throw error;
-    }
+    const response = await api.post("/accounts/changePassword", passwordData);
+    return response;
   },
 
   /**
@@ -46,12 +34,8 @@ const AccountService = {
    * BE: router.delete("/me", ...)
    */
   deleteMyAccount: async () => {
-    try {
-      const response = await api.delete("/accounts/me");
-      return response;
-    } catch (error) {
-      throw error;
-    }
+    const response = await api.delete("/accounts/me");
+    return response;
   },
 
   /**
@@ -61,12 +45,23 @@ const AccountService = {
   logout: async () => {
     try {
       const refreshToken = localStorage.getItem("refreshToken");
-      const response = await api.post("/accounts/logout", { refreshToken });
-      // Sau khi gọi BE thành công, FE nên xóa các dữ liệu ở storage
-      localStorage.clear();
-      return response;
+      if (refreshToken) {
+        await api.post("/accounts/logout", { refreshToken });
+      }
     } catch (error) {
-      throw error;
+      console.error("Logout error:", error);
+    } finally {
+      // Clear all auth data regardless of API success/failure
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      localStorage.removeItem("authUsername");
+      localStorage.removeItem("authEmail");
+
+      // Dispatch event for components to listen to
+      window.dispatchEvent(new Event("auth-change"));
+      window.dispatchEvent(new Event("auth-expired"));
     }
   },
 
@@ -77,12 +72,8 @@ const AccountService = {
    * BE: router.get("/wishlist", ...)
    */
   getWishlist: async () => {
-    try {
-      const response = await api.get("/accounts/wishlist");
-      return response;
-    } catch (error) {
-      throw error;
-    }
+    const response = await api.get("/accounts/wishlist");
+    return response;
   },
 
   /**
@@ -90,12 +81,8 @@ const AccountService = {
    * BE: router.post("/wishlist/add", ...)
    */
   addToWishlist: async (productId) => {
-    try {
-      const response = await api.post("/accounts/wishlist/add", { productId });
-      return response;
-    } catch (error) {
-      throw error;
-    }
+    const response = await api.post("/accounts/wishlist/add", { productId });
+    return response;
   },
 
   /**
@@ -103,15 +90,10 @@ const AccountService = {
    * BE: router.delete("/wishlist/remove", ...)
    */
   removeFromWishlist: async (productId) => {
-    try {
-      // Lưu ý: Với axios.delete, dữ liệu gửi đi nằm trong property 'data'
-      const response = await api.delete("/accounts/wishlist/remove", {
-        data: { productId }
-      });
-      return response;
-    } catch (error) {
-      throw error;
-    }
+    const response = await api.delete("/accounts/wishlist/remove", {
+      data: { productId },
+    });
+    return response;
   }
 };
 

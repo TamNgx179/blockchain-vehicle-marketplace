@@ -42,6 +42,11 @@ const orderSchema = new mongoose.Schema(
       min: 0,
     },
 
+    totalAmountWei: {
+      type: String,
+      default: "",
+    },
+
     depositAmount: {
       type: Number,
       required: true,
@@ -146,6 +151,7 @@ const orderSchema = new mongoose.Schema(
         "pending_deposit",
         "pending_payment",
         "deposit_paid",
+        "payment_paid",
         "processing",
         "completed",
         "cancelled",

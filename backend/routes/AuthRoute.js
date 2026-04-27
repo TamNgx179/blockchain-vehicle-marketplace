@@ -29,8 +29,9 @@ router.get(
     const token = generateAccessToken(req.user);
     // nếu cần refreshToken thì bạn import generateRefreshToken thêm
 
+    // Sau khi xác thực thành công, chuyển hướng về frontend với token và thông tin người dùng (URL fe)
     res.redirect(
-      `http://localhost:3001/login?token=${token}&username=${req.user.username}&email=${req.user.email}`
+      `http://localhost:5173/login?token=${token}&username=${req.user.username}&email=${req.user.email}`
     );
   }
 );

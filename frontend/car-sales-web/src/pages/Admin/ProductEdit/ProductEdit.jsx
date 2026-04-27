@@ -1,25 +1,18 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import ProductService from "../../../services/ProductService"; // Import Service của bạn
 import "./ProductEdit.css";
 function ProductEdit() {
-  // Thêm state để theo dõi chế độ chỉnh sửa
-  const [isEditing, setIsEditing] = useState({}); // Lưu trạng thái edit của từng field
-  const [editedCar, setEditedCar] = useState(null); // Lưu dữ liệu đang sửa tạm thời
-
   const { id } = useParams();
+  const navigate = useNavigate();
   const [car, setCar] = useState(null); // State lưu dữ liệu từ API
   const [loading, setLoading] = useState(true);
   const [activeHeroImage, setActiveHeroImage] = useState("");
-  // Khi dữ liệu car tải xong, copy vào editedCar
   // State quản lý việc Upload ảnh mới (nếu có)
   const [newFiles, setNewFiles] = useState({});
   const [displayGallery, setDisplayGallery] = useState([]);
   // State lưu các file thực tế để gửi lên server
   const [newGalleryFiles, setNewGalleryFiles] = useState([]);
-  useEffect(() => {
-    if (car) setEditedCar(car);
-  }, [car]);
   // 1. Gọi API lấy dữ liệu sản phẩm
   useEffect(() => {
     const fetchProduct = async () => {
@@ -116,10 +109,8 @@ function ProductEdit() {
     // setDisplayGallery(prev => [...prev, ...newPreviews]);
     // // Lưu file thực tế để gửi API
     // setNewGalleryFiles(prev => [...prev, ...files]);
-    // Hiển thị thêm ảnh mới lên giao diện
-    setDisplayGallery(prev => [...newPreviews]);
-    // Lưu file thực tế để gửi API
-    setNewGalleryFiles(prev => [...files]);
+    setDisplayGallery(prev => [...prev, ...newPreviews]);
+    setNewGalleryFiles(prev => [...prev, ...files]);
   };
   const updateList = (listName, index, newValue) => {
     // Cập nhật trực tiếp vào state 'car'
@@ -130,10 +121,6 @@ function ProductEdit() {
       return { ...prev, [listName]: newList };
     });
   };
-  // Logic xử lý dữ liệu dựa trên cấu trúc JSON mới của bạn
-  const heroImage = car?.heroImage || car?.thumbnailImage || "";
-  const gallery = Array.isArray(car?.galleryImages) ? car.galleryImages : [];
-
   // Ánh xạ specifications từ API (dimensions, engine, power...)
   const specsEntries = car?.specifications
     ? Object.entries(car.specifications).filter(([key]) => key !== "_id")
@@ -181,6 +168,8 @@ function ProductEdit() {
       maximumFractionDigits: 6,
     }).format(car.price / usdPerEth)} ETH`
     : null;
+
+  const heroImage = car?.heroImage || car?.thumbnailImage || "";
 
   return (
     <>

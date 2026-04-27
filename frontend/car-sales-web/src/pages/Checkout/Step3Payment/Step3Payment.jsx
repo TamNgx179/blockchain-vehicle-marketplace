@@ -1,5 +1,6 @@
 import React from 'react';
 import './Step3Payment.css';
+import metamaskIcon from '../../../assets/icon/metamask.png';
 
 function Step3Payment({
   paymentMethod,
@@ -118,6 +119,7 @@ function Step3Payment({
             <h3>Wallet Connection</h3>
             {!paymentDetails.walletAddress ? (
               <button type="button" className="connect-btn" onClick={connectWallet}>
+                <img className="metamask-icon" src={metamaskIcon} alt="" aria-hidden="true" />
                 Connect MetaMask
               </button>
             ) : (

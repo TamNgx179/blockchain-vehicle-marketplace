@@ -10,12 +10,37 @@ const AuthService = {
   // Đăng nhập
   login: async (email, password) => {
     const response = await api.post("/users/login", { email, password });
-    if (response.token) {
-      localStorage.setItem("token", response.token);
-      localStorage.setItem("refreshToken", response.refreshToken);
-      localStorage.setItem("user", JSON.stringify(response.user));
+
+    const { token, refreshToken, user } = response.data;
+
+    if (token) {
+      localStorage.setItem("authToken", token);
+      localStorage.setItem("token", token); 
+      if (refreshToken) {
+        localStorage.setItem("refreshToken", refreshToken);
+      }
+
+      if (user) {
+        localStorage.setItem("user", JSON.stringify(user));
+
+        if (user.username) {
+          localStorage.setItem("authUsername", user.username);
+        }
+
+        if (user.email) {
+          localStorage.setItem("authEmail", user.email);
+        }
+      }
+
+      window.dispatchEvent(new Event("auth-change"));
     }
+
     return response;
+  },
+
+  // Đăng nhập bằng Google
+  googleLogin: () => {
+    window.location.href = "http://localhost:3000/api/users/auth/google";
   },
 
   // Quên mật khẩu - gửi OTP về mail
@@ -24,15 +49,25 @@ const AuthService = {
   // Đặt lại mật khẩu mới với OTP
   resetPassword: (data) => api.post("/users/reset-password", data),
 
+  // Verify OTP cho reset password
+  verifyResetOtp: (email, otp) => api.post("/users/verifyOtp", { email, otp }),
+
   // Làm mới access token khi hết hạn
   refreshToken: async () => {
-    const rfToken = localStorage.getItem("refreshToken");
-    const response = await api.post("/users/refresh-token", { refreshToken: rfToken });
-    if (response.newToken) {
-      localStorage.setItem("token", response.newToken);
+    const response = await api.post("/users/refresh-token");
+
+    const { token, newToken } = response.data;
+    const accessToken = token || newToken;
+
+    if (accessToken) {
+      localStorage.setItem("authToken", accessToken);
+      localStorage.setItem("token", accessToken);
+
+      window.dispatchEvent(new Event("auth-change"));
     }
+
     return response;
-  }
+  },
 };
 
 export default AuthService;

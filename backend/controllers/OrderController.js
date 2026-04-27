@@ -1,10 +1,13 @@
 import {
   createOrderFromCartService,
+  discardUnpaidOrderService,
   verifyDepositService,
   verifyFullPaymentService,
   verifySellerConfirmService,
+  adminConfirmOrderService,
   verifyCompleteOrderService,
   verifyCancelOrderService,
+  adminCancelOrderService,
   getMyOrdersService,
   getAllOrdersService,
   getOrderDetailService,
@@ -21,6 +24,24 @@ export const createOrderFromCart = async (req, res) => {
       success: true,
       message: "Tạo đơn hàng thành công",
       data: order,
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// ===== DISCARD UNPAID ORDER =====
+export const discardUnpaidOrderController = async (req, res) => {
+  try {
+    const result = await discardUnpaidOrderService(req.user.id, req.params.id);
+
+    res.status(200).json({
+      success: true,
+      message: "Order chua thanh toan da duoc huy tam",
+      data: result,
     });
   } catch (error) {
     res.status(400).json({
@@ -111,6 +132,26 @@ export const verifySellerConfirmController = async (req, res) => {
   }
 };
 
+// ===== ADMIN CONFIRM ORDER =====
+export const adminConfirmOrderController = async (req, res) => {
+  try {
+    const result = await adminConfirmOrderService(req.user, req.params.id);
+
+    res.status(200).json({
+      success: true,
+      message: "Admin xác nhận đơn hàng thành công",
+      data: result.order,
+      txHash: result.txHash,
+      blockNumber: result.blockNumber,
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 // ===== VERIFY COMPLETE =====
 export const verifyCompleteOrderController = async (req, res) => {
   try {
@@ -156,6 +197,26 @@ export const verifyCancelOrderController = async (req, res) => {
       success: true,
       message: "Hủy đơn hàng thành công",
       data: order,
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// ===== ADMIN CANCEL ORDER =====
+export const adminCancelOrderController = async (req, res) => {
+  try {
+    const result = await adminCancelOrderService(req.user, req.params.id);
+
+    res.status(200).json({
+      success: true,
+      message: "Admin hủy đơn hàng thành công",
+      data: result.order,
+      txHash: result.txHash,
+      blockNumber: result.blockNumber,
     });
   } catch (error) {
     res.status(400).json({

@@ -1,4 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ethers } from 'ethers';
 import { useCart } from '../../context/CartContext';
 import Navbar from '../../components/Navbar/Navbar';
 import './Checkout.css';
@@ -7,19 +9,58 @@ import OrderSummary from './OrderSummary/OrderSummary';
 import Step2Delivery from './Step2Delivery/Step2Delivery';
 import Step3Payment from './Step3Payment/Step3Payment';
 import Step4Confirmation from './Step4Confirmation/Step4Confirmation';
-import { ethers } from 'ethers';
 import contractABI from '../../config/abi.json';
 import { orderService } from '../../services/orderService';
 
+const CONTRACT_ADDRESS =
+  import.meta.env.VITE_CONTRACT_ADDRESS ||
+  "0xD0CF607f0bCD60B5ed02896e682450eA4dBf5BB0";
+const SEPOLIA_CHAIN_ID = 11155111n;
+const SEPOLIA_CHAIN_HEX = "0xaa36a7";
+
+const getCheckoutErrorMessage = (error) => {
+  const raw = String(
+    error?.response?.data?.message ||
+    error?.reason ||
+    error?.shortMessage ||
+    error?.info?.error?.message ||
+    error?.message ||
+    ""
+  );
+  const normalized = raw.toLowerCase();
+
+  if (!raw) return "Payment could not be completed. Please try again.";
+  if (error?.code === "ACTION_REJECTED" || normalized.includes("user rejected")) {
+    return "You rejected the transaction in MetaMask.";
+  }
+  if (error?.code === "INSUFFICIENT_FUNDS" || normalized.includes("insufficient funds")) {
+    return "Your wallet does not have enough Sepolia ETH for this payment and gas fee.";
+  }
+  if (normalized.includes("network") || normalized.includes("chain")) {
+    return "Please switch MetaMask to the Sepolia network and try again.";
+  }
+  if (normalized.includes("execution reverted") || normalized.includes("missing revert data")) {
+    return "The smart contract rejected this payment. Please check your wallet, amount, and network.";
+  }
+  if (normalized.includes("metamask")) {
+    return "MetaMask could not complete the transaction.";
+  }
+
+  return raw.length > 140 ? "Payment could not be completed. Please check MetaMask and try again." : raw;
+};
+
+const normalizeOrderData = (response) => response?.data || response;
+
 function Checkout({ notifyRef }) {
-  console.log("Notify Ref in Checkout:", notifyRef);
-  const { cartItems, removeFromCart, updateQuantity } = useCart();
+  const navigate = useNavigate();
+  const { cartItems, removeFromCart, updateQuantity, removePurchasedItems } = useCart();
   const [step, setStep] = useState(1);
-  const [loading, setLoading] = useState(false); // Trạng thái chờ xử lý
-  const [paymentType, setPaymentType] = useState('full'); // 'full' hoặc 'deposit'
+  const [loading, setLoading] = useState(false);
+  const [paymentType, setPaymentType] = useState('full');
 
   const [selectedIds, setSelectedIds] = useState([]);
-  const [paymentMethod, setPaymentMethod] = useState('blockchain'); // Mặc định blockchain cho đúng flow 5.2
+  const [confirmedItems, setConfirmedItems] = useState([]);
+  const [paymentMethod, setPaymentMethod] = useState('blockchain');
   const [deliveryMethod, setDeliveryMethod] = useState('pickup');
   const [paymentDetails, setPaymentDetails] = useState({
     fullName: '',
@@ -30,186 +71,242 @@ function Checkout({ notifyRef }) {
 
   const [finalTxHash, setFinalTxHash] = useState('');
 
-  // Tính phí vận chuyển dùng useMemo để tối ưu
-  const deliveryFee = useMemo(() => (deliveryMethod === 'home' ? 50 : 0), [deliveryMethod]);
-
-  // Lọc sản phẩm đã chọn
-  const selectedItemsForOrder = useMemo(() =>
-    cartItems.filter(item => selectedIds.includes(item._id)),
-    [cartItems, selectedIds]);
-
-  /**
-   * LUỒNG 5.2: XỬ LÝ THANH TOÁN BLOCKCHAIN
-   */
-  const handleBlockchainPayment = async (dbOrderId, blockchainOrderId, totalAmountUSD) => {
-    try {
-      setLoading(true);
-      notifyRef.current.show("Please confirm transaction in MetaMask...");
-
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
-      const network = await provider.getNetwork();
-      console.log("Mạng ID hiện tại:", network.chainId.toString());
-      console.log("Tên mạng:", network.name);
-      // Quy đổi giá trị ETH (Trong thực tế nên lấy tỷ giá từ Backend hoặc Oracle)
-      const ETH_PRICE_IN_USD = 2000000.0;
-      const ethAmount = (totalAmountUSD / ETH_PRICE_IN_USD).toFixed(18);
-
-      const contract = new ethers.Contract(
-        "0xD0CF607f0bCD60B5ed02896e682450eA4dBf5BB0",
-        contractABI.abi,
-        signer
-      );
-
-      // Bước 3: Gọi payFull(blockchainOrderId)
-      const tx = await contract.payFull(blockchainOrderId, {
-        value: ethers.parseEther(ethAmount)
-      });
-
-      setFinalTxHash(tx.hash);
-      notifyRef.current.show("Transaction sent! Confirming on-chain...");
-
-      // Bước 4: Chờ transaction receipt
-      const receipt = await tx.wait();
-
-      if (receipt.status === 1) {
-        // Bước 5: Gọi POST verify-full-payment
-        await orderService.verifyFullPayment(dbOrderId, tx.hash);
-        setStep(4);
-      } else {
-        throw new Error("Transaction on-chain failed");
-      }
-    } catch (error) {
-      console.error(error);
-      notifyRef.current.show("Blockchain Error: " + (error.reason || error.message));
-    } finally {
-      setLoading(false);
-    }
+  const showMessage = (message) => {
+    notifyRef?.current?.show?.(message);
   };
+
+  const deliveryFee = useMemo(() => (deliveryMethod === 'delivery' ? 50 : 0), [deliveryMethod]);
+
+  const selectedItemsForOrder = useMemo(
+    () => cartItems.filter(item => selectedIds.includes(item._id)),
+    [cartItems, selectedIds]
+  );
+
+  const summaryItems = step === 4 && confirmedItems.length > 0
+    ? confirmedItems
+    : selectedItemsForOrder;
+
+  const ensureSepoliaNetwork = async () => {
+    if (!window.ethereum) {
+      throw new Error("MetaMask is not installed in this browser.");
+    }
+
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const network = await provider.getNetwork();
+
+    if (network.chainId === SEPOLIA_CHAIN_ID) {
+      return provider;
+    }
+
+    try {
+      await window.ethereum.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: SEPOLIA_CHAIN_HEX }],
+      });
+    } catch (switchError) {
+      if (switchError?.code !== 4902) throw switchError;
+      await window.ethereum.request({
+        method: "wallet_addEthereumChain",
+        params: [
+          {
+            chainId: SEPOLIA_CHAIN_HEX,
+            chainName: "Sepolia",
+            nativeCurrency: { name: "Sepolia ETH", symbol: "ETH", decimals: 18 },
+            rpcUrls: ["https://rpc.sepolia.org"],
+            blockExplorerUrls: ["https://sepolia.etherscan.io"],
+          },
+        ],
+      });
+    }
+
+    return new ethers.BrowserProvider(window.ethereum);
+  };
+
+  const getContract = async () => {
+    const provider = await ensureSepoliaNetwork();
+    const signer = await provider.getSigner();
+    return new ethers.Contract(CONTRACT_ADDRESS, contractABI.abi, signer);
+  };
+
+  const getWeiValue = (amountWei) => {
+    if (!amountWei) throw new Error("Payment amount is missing.");
+    const value = ethers.toBigInt(amountWei);
+    if (value <= 0n) throw new Error("Payment amount is invalid.");
+    return value;
+  };
+
+  const handleBlockchainPayment = async (dbOrderId, blockchainOrderId, totalAmountWei) => {
+    showMessage("Please confirm the payment in MetaMask...");
+
+    const contract = await getContract();
+    const tx = await contract.payFull(blockchainOrderId, {
+      value: getWeiValue(totalAmountWei)
+    });
+
+    setFinalTxHash(tx.hash);
+    showMessage("Transaction sent. Waiting for blockchain confirmation...");
+
+    const receipt = await tx.wait();
+
+    if (receipt.status !== 1) {
+      throw new Error("Transaction failed on-chain.");
+    }
+
+    await orderService.verifyFullPayment(dbOrderId, tx.hash);
+    return tx.hash;
+  };
+
   const handleDepositPayment = async (dbOrderId, blockchainOrderId, depositAmountWei) => {
+    showMessage("Please confirm the deposit in MetaMask...");
+
+    const contract = await getContract();
+    const tx = await contract.payDeposit(blockchainOrderId, {
+      value: getWeiValue(depositAmountWei)
+    });
+
+    setFinalTxHash(tx.hash);
+    showMessage("Deposit transaction sent. Waiting for blockchain confirmation...");
+
+    const receipt = await tx.wait();
+
+    if (receipt.status !== 1) {
+      throw new Error("Deposit transaction failed on-chain.");
+    }
+
+    await orderService.verifyDeposit(dbOrderId, tx.hash);
+    return tx.hash;
+  };
+
+  const validateDeliveryStep = () => {
+    if (deliveryMethod === 'pickup' && !paymentDetails.pickupDate) {
+      showMessage("Please select a pickup date.");
+      return false;
+    }
+
+    if (deliveryMethod !== 'pickup' && !paymentDetails.address) {
+      showMessage("Please enter your delivery address.");
+      return false;
+    }
+
+    return true;
+  };
+
+  const validatePaymentStep = () => {
+    const { fullName, phoneNumber, email, walletAddress } = paymentDetails;
+
+    if (!fullName || !phoneNumber || !email) {
+      showMessage("Please fill in all contact information.");
+      return false;
+    }
+
+    if (paymentMethod !== 'blockchain') {
+      showMessage("Please choose Blockchain payment to place this order.");
+      return false;
+    }
+
+    if (!walletAddress) {
+      showMessage("Please connect your wallet first.");
+      return false;
+    }
+
+    return true;
+  };
+
+  const buildOrderPayload = () => {
+    const isPickup = deliveryMethod === 'pickup';
+
+    return {
+      selectedItems: selectedIds.filter(Boolean),
+      paymentType,
+      buyerWallet: paymentDetails.walletAddress,
+      deliveryMethod: isPickup ? "pickup" : "delivery",
+      pickupInfo: isPickup ? {
+        name: paymentDetails.fullName,
+        phone: paymentDetails.phoneNumber,
+        pickupDate: new Date(paymentDetails.pickupDate).toISOString()
+      } : undefined,
+      shippingAddress: !isPickup ? {
+        name: paymentDetails.fullName,
+        phone: paymentDetails.phoneNumber,
+        address: paymentDetails.address
+      } : undefined
+    };
+  };
+
+  const discardUnpaidOrder = async (orderId, error) => {
+    try {
+      await orderService.discardUnpaidOrder(orderId);
+      showMessage(`${getCheckoutErrorMessage(error)} No order was saved, and your cart is unchanged.`);
+    } catch (discardError) {
+      console.error("Failed to discard unpaid order:", discardError);
+      showMessage(`${getCheckoutErrorMessage(error)} The order is still waiting for payment in My Orders.`);
+    }
+  };
+
+  const handleNextStep = async () => {
+    if (step === 4) {
+      navigate('/orders');
+      return;
+    }
+
+    if (selectedIds.length === 0) {
+      showMessage("Please select at least one model.");
+      return;
+    }
+
+    if (step === 2 && !validateDeliveryStep()) {
+      return;
+    }
+
+    if (step !== 3) {
+      setStep(step + 1);
+      return;
+    }
+
+    if (!validatePaymentStep()) {
+      return;
+    }
+
+    let orderData = null;
+
     try {
       setLoading(true);
-      notifyRef.current.show("Confirming Deposit in MetaMask...");
+      setFinalTxHash('');
 
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
+      const response = await orderService.createOrder(buildOrderPayload());
+      orderData = normalizeOrderData(response);
 
-      // Quy đổi depositAmount sang ETH (Giả sử 1 ETH = 2.000.000 USD như code cũ của bạn)
-      // const ETH_PRICE_IN_USD = 2000000.0;
-      // const ethAmount = (depositAmountUSD / ETH_PRICE_IN_USD).toFixed(18);
-      // console.log("Deposit Amount in USD:", depositAmountUSD);
-      // console.log("Deposit Amount in ETH:", ethAmount);
-      const contract = new ethers.Contract(
-        "0xD0CF607f0bCD60B5ed02896e682450eA4dBf5BB0",
-        contractABI.abi,
-        signer
-      );
-
-      // GỌI HÀM payDeposit thay vì payFull
-      const tx = await contract.payDeposit(blockchainOrderId, {
-        // Gửi trực tiếp số Wei, không parseEther, không chia tỷ giá
-        value: depositAmountWei
-      });
-
-      setFinalTxHash(tx.hash);
-      const receipt = await tx.wait();
-
-      if (receipt.status === 1) {
-        // Gọi API Verify Deposit của Backend
-        await orderService.verifyDeposit(dbOrderId, tx.hash);
-        setStep(4);
-      } else {
-        throw new Error("Deposit transaction failed");
+      if (!orderData?._id || !orderData?.blockchainOrderId) {
+        throw new Error("Order data from server is invalid.");
       }
+
+      const txHash = paymentType === 'deposit'
+        ? await handleDepositPayment(
+            orderData._id,
+            orderData.blockchainOrderId,
+            orderData.depositAmountWei
+          )
+        : await handleBlockchainPayment(
+            orderData._id,
+            orderData.blockchainOrderId,
+            orderData.totalAmountWei
+          );
+
+      setFinalTxHash(txHash);
+      setConfirmedItems(selectedItemsForOrder);
+      removePurchasedItems(selectedIds);
+      setSelectedIds([]);
+      setStep(4);
     } catch (error) {
-      console.error(error);
-      notifyRef.current.show("Deposit Error: " + (error.reason || error.message));
+      console.error("Checkout payment failed:", error);
+      if (orderData?._id) {
+        await discardUnpaidOrder(orderData._id, error);
+      } else {
+        showMessage("Order failed: " + getCheckoutErrorMessage(error));
+      }
     } finally {
       setLoading(false);
     }
-  };
-  const handleNextStep = async () => {
-    if (selectedIds.length === 0) {
-      notifyRef.current.show("Please select at least one BMW model!");
-      return;
-    }
-
-    // LOGIC TẠI BƯỚC 3 (PAYMENT)
-    if (step === 3) {
-      const { fullName, phoneNumber, email, walletAddress } = paymentDetails;
-      if (!fullName || !phoneNumber || !email) {
-        notifyRef.current.show("Please fill in all contact information!");
-        return;
-      }
-
-      if (paymentMethod === 'blockchain') {
-        if (!walletAddress) {
-          notifyRef.current.show("Please connect your wallet first!");
-          return;
-        }
-
-        try {
-          setLoading(true);
-          // Bước 1 & 2: Tạo order trên Backend trước
-          const isPickup = deliveryMethod === 'pickup';
-
-          const orderPayload = {
-            selectedItems: selectedIds.filter(id => id), // Đảm bảo mảng sạch
-            paymentType: paymentType,
-            buyerWallet: paymentDetails.walletAddress,
-
-            // Backend yêu cầu Enum: "pickup" hoặc "delivery"
-            deliveryMethod: isPickup ? "pickup" : "delivery",
-
-            // CHỈ gửi trường tương ứng, trường còn lại để undefined hoặc null
-            pickupInfo: isPickup ? {
-              name: paymentDetails.fullName,
-              phone: paymentDetails.phoneNumber,
-              // Thêm giờ vào để thành chuẩn ISO
-              pickupDate: paymentDetails.pickupDate ? new Date(paymentDetails.pickupDate).toISOString() : null
-            } : undefined,
-
-            shippingAddress: !isPickup ? {
-              name: paymentDetails.fullName,
-              phone: paymentDetails.phoneNumber,
-              address: paymentDetails.address
-            } : undefined
-          };
-          console.log("Order Payload:", orderPayload);
-          const response = await orderService.createOrder(orderPayload);
-          console.log("Order Creation Response:", response);
-
-          // Phải truy cập vào response.data
-          const orderData = response.data;
-
-          // Sau khi backend trả về blockchainOrderId, tiến hành gọi Contract
-          if (paymentType === 'deposit') {
-            // Gọi hàm Deposit
-            console.log("Initiating Deposit Payment with amount", orderData);
-            await handleDepositPayment(
-              orderData._id,
-              orderData.blockchainOrderId,
-              orderData.depositAmountWei // Backend sẽ tính số tiền cọc dựa trên chính sách sàn
-            );
-          } else {
-            // Gọi hàm Full như cũ
-            await handleBlockchainPayment(
-              orderData._id,
-              orderData.blockchainOrderId,
-              orderData.totalAmountWei
-            );
-          }
-        } catch (error) {
-          notifyRef.current.show("Order failed: " + error.message);
-        } finally {
-          setLoading(false);
-        }
-      }
-      return;
-    }
-
-
-    if (step < 4) setStep(step + 1);
   };
 
   const toggleSelectCar = (id) => {
@@ -220,11 +317,50 @@ function Checkout({ notifyRef }) {
 
   const renderStepContent = () => {
     switch (step) {
-      case 1: return <Step1CarSelection cartItems={cartItems} removeFromCart={removeFromCart} updateQuantity={updateQuantity} selectedIds={selectedIds} toggleSelectCar={toggleSelectCar} showNotify={(msg) => notifyRef.current?.show(msg)} />;
-      case 2: return <Step2Delivery deliveryMethod={deliveryMethod} setDeliveryMethod={setDeliveryMethod} paymentDetails={paymentDetails} setPaymentDetails={setPaymentDetails} showNotify={(msg) => notifyRef.current?.show(msg)} />;
-      case 3: return <Step3Payment paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod} paymentType={paymentType} setPaymentType={setPaymentType} paymentDetails={paymentDetails} setPaymentDetails={setPaymentDetails} showNotify={(msg) => notifyRef.current?.show(msg)} />;
-      case 4: return <Step4Confirmation paymentDetails={paymentDetails} txHash={finalTxHash} showNotify={(msg) => notifyRef.current?.show(msg)} />;
-      default: return null;
+      case 1:
+        return (
+          <Step1CarSelection
+            cartItems={cartItems}
+            removeFromCart={removeFromCart}
+            updateQuantity={updateQuantity}
+            selectedIds={selectedIds}
+            toggleSelectCar={toggleSelectCar}
+            showNotify={showMessage}
+          />
+        );
+      case 2:
+        return (
+          <Step2Delivery
+            deliveryMethod={deliveryMethod}
+            setDeliveryMethod={setDeliveryMethod}
+            paymentDetails={paymentDetails}
+            setPaymentDetails={setPaymentDetails}
+            showNotify={showMessage}
+          />
+        );
+      case 3:
+        return (
+          <Step3Payment
+            paymentMethod={paymentMethod}
+            setPaymentMethod={setPaymentMethod}
+            paymentType={paymentType}
+            setPaymentType={setPaymentType}
+            paymentDetails={paymentDetails}
+            setPaymentDetails={setPaymentDetails}
+            showNotify={showMessage}
+          />
+        );
+      case 4:
+        return (
+          <Step4Confirmation
+            paymentDetails={paymentDetails}
+            orderedItems={confirmedItems}
+            txHash={finalTxHash}
+            showNotify={showMessage}
+          />
+        );
+      default:
+        return null;
     }
   };
 
@@ -260,13 +396,13 @@ function Checkout({ notifyRef }) {
                 onClick={handleNextStep}
                 disabled={loading}
               >
-                {loading ? "Processing..." : (step === 4 ? "Finish" : "Next")}
+                {loading ? "Processing..." : (step === 4 ? "View My Orders" : "Next")}
               </button>
             </div>
           </div>
           <OrderSummary
-            cartItems={selectedItemsForOrder}
-            deliveryFee={selectedIds.length > 0 ? deliveryFee : 0}
+            cartItems={summaryItems}
+            deliveryFee={summaryItems.length > 0 ? deliveryFee : 0}
             step={step}
           />
         </div>

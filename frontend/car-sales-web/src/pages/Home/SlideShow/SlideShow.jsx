@@ -58,7 +58,7 @@ function SlideShow() {
           </p>
           <div className="hero-buttons">
             <a href="/about" className="btn-about">About Us</a>
-            <a href="/explore" className="btn-explore">Explore</a>
+            <a href="/cars" className="btn-explore">Explore</a>
           </div>
         </div>
       </div>

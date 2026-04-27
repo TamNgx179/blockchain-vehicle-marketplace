@@ -20,7 +20,7 @@ const calcTotals = (items) => {
 export const getCartService = async (userId) => {
   const cart = await Cart.findOne({ userId }).populate(
     "items.productId",
-    "name price thumbnailImage"
+    "name price thumbnailImage specifications"
   );
 
   if (!cart) {
@@ -75,7 +75,7 @@ export const addToCartService = async (userId, body) => {
 
   await cart.save();
 
-  await cart.populate("items.productId", "name price thumbnailImage");
+  await cart.populate("items.productId", "name price thumbnailImage specifications");
 
   return cart;
 };
@@ -112,7 +112,7 @@ export const updateCartItemService = async (userId, productId, body) => {
 
   await cart.save();
 
-  await cart.populate("items.productId", "name price thumbnailImage");
+  await cart.populate("items.productId", "name price thumbnailImage specifications");
 
   return cart;
 };
@@ -132,7 +132,7 @@ export const removeCartItemService = async (userId, productId) => {
 
   await cart.save();
 
-  await cart.populate("items.productId", "name price thumbnailImage");
+  await cart.populate("items.productId", "name price thumbnailImage specifications");
 
   return cart;
 };
@@ -169,5 +169,5 @@ export const clearCartService = async (userId) => {
 export const getAllCartsService = async () => {
   return await Cart.find()
     .populate("userId", "username email")
-    .populate("items.productId", "name price thumbnailImage");
+    .populate("items.productId", "name price thumbnailImage specifications");
 };

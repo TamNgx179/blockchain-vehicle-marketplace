@@ -8,9 +8,12 @@ import { ethers } from "ethers";
 import { verifyDeposit } from "../service/DepositVerifier.js";
 import {
   createOrderOnChain,
+  confirmOrderOnChain,
+  cancelOrderOnChain,
   verifyTransaction,
   getTransactionDetail,
   getOrderByBlockchainOrderId,
+  getServerWalletAddress,
   CONTRACT_PAYMENT_TYPE,
   CONTRACT_ORDER_STATUS,
 } from "../service/BlockchainService.js";
@@ -33,6 +36,7 @@ const ORDER_STATUSES = [
   "pending_deposit",
   "pending_payment",
   "deposit_paid",
+  "payment_paid",
   "processing",
   "completed",
   "cancelled",
@@ -52,6 +56,21 @@ const ADMIN_ORDER_SORT_FIELDS = [
   "expiresAt",
   "blockchainOrderId",
 ];
+
+const assertAdmin = (actor) => {
+  if (!actor?.isadmin) {
+    throw new Error("Admin permission required");
+  }
+};
+
+const assertServerSellerWallet = (order) => {
+  const serverWallet = getServerWalletAddress();
+  if (serverWallet.toLowerCase() !== order.sellerWallet.toLowerCase()) {
+    throw new Error(
+      "Ví server không khớp sellerWallet của đơn hàng. Vui lòng kiểm tra SELLER_WALLET và SEPOLIA_PRIVATE_KEY trong .env"
+    );
+  }
+};
 
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -258,6 +277,7 @@ export const createOrderFromCartService = async (userId, body) => {
           userId,
           items,
           totalAmount,
+          totalAmountWei,
           depositAmount,
           depositAmountWei,
           blockchainOrderId,
@@ -291,6 +311,81 @@ export const createOrderFromCartService = async (userId, body) => {
     session.endSession();
 
     return order[0];
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
+  }
+};
+
+const isFullPaymentRecorded = (order) =>
+  order.paymentType === "full" &&
+  (
+    order.status === "payment_paid" ||
+    Boolean(order.fullTxHash) ||
+    Number(order.paidAmount || 0) >= Number(order.totalAmount || 0)
+  );
+
+const canSellerConfirm = (order) =>
+  order.status === "deposit_paid" ||
+  order.status === "payment_paid" ||
+  (order.status === "pending_payment" && isFullPaymentRecorded(order));
+
+/* ================= DISCARD UNPAID ORDER ================= */
+export const discardUnpaidOrderService = async (userId, orderId) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const order = await Order.findOne({ _id: orderId, userId }).session(session);
+
+    if (!order) throw new Error("Khong tim thay order");
+
+    const hasPayment =
+      order.depositStatus === "paid" ||
+      Boolean(order.depositTxHash) ||
+      Boolean(order.fullTxHash) ||
+      Number(order.paidAmount || 0) > 0 ||
+      ["deposit_paid", "processing", "completed"].includes(order.status);
+
+    if (
+      hasPayment ||
+      !["pending_deposit", "pending_payment"].includes(order.status)
+    ) {
+      throw new Error("Order da co thanh toan nen khong the huy tam");
+    }
+
+    const cart = await Cart.findOneAndUpdate(
+      { userId },
+      { $setOnInsert: { userId, items: [] } },
+      { returnDocument: "after", upsert: true, session }
+    );
+
+    for (const orderItem of order.items) {
+      const productId = orderItem.productId.toString();
+      const existingIndex = cart.items.findIndex(
+        (item) => item.productId.toString() === productId
+      );
+
+      if (existingIndex >= 0) {
+        cart.items[existingIndex].quantity += orderItem.quantity;
+        cart.items[existingIndex].price = orderItem.price;
+      } else {
+        cart.items.push({
+          productId: orderItem.productId,
+          quantity: orderItem.quantity,
+          price: orderItem.price,
+        });
+      }
+    }
+
+    await cart.save({ session });
+    await Order.deleteOne({ _id: order._id }).session(session);
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return { restoredItems: order.items.length };
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
@@ -469,7 +564,7 @@ export const verifyFullPaymentService = async (userId, orderId, txHash) => {
 
     order.fullTxHash = txHash;
     order.paidAmount = order.totalAmount;
-    order.status = "pending_payment";
+    order.status = "payment_paid";
 
     await order.save({ session });
 
@@ -494,7 +589,7 @@ export const verifySellerConfirmService = async (orderId, txHash) => {
 
     if (!order) throw new Error("Không tìm thấy order");
 
-    if (!["deposit_paid", "pending_payment"].includes(order.status)) {
+    if (!canSellerConfirm(order)) {
       throw new Error("Order chưa ở trạng thái có thể seller confirm");
     }
 
@@ -534,6 +629,29 @@ export const verifySellerConfirmService = async (orderId, txHash) => {
     session.endSession();
     throw err;
   }
+};
+
+/* ================= ADMIN CONFIRM ON CHAIN ================= */
+export const adminConfirmOrderService = async (actor, orderId) => {
+  assertAdmin(actor);
+
+  const order = await Order.findById(orderId);
+  if (!order) throw new Error("Không tìm thấy order");
+
+  if (!canSellerConfirm(order)) {
+    throw new Error("Order chưa ở trạng thái có thể seller confirm");
+  }
+
+  assertServerSellerWallet(order);
+
+  const result = await confirmOrderOnChain(order.blockchainOrderId);
+  const updatedOrder = await verifySellerConfirmService(orderId, result.txHash);
+
+  return {
+    order: updatedOrder,
+    txHash: result.txHash,
+    blockNumber: result.blockNumber,
+  };
 };
 
 /* ================= VERIFY COMPLETE ================= */
@@ -656,6 +774,35 @@ export const verifyCancelOrderService = async (actor, orderId, txHash) => {
     session.endSession();
     throw err;
   }
+};
+
+/* ================= ADMIN CANCEL ON CHAIN ================= */
+export const adminCancelOrderService = async (actor, orderId) => {
+  assertAdmin(actor);
+
+  const order = await Order.findById(orderId);
+  if (!order) throw new Error("Không tìm thấy order");
+
+  if (order.status === "completed") {
+    throw new Error("Order đã completed, không thể hủy");
+  }
+  if (order.status === "cancelled") {
+    throw new Error("Order đã bị hủy trước đó");
+  }
+  if (!["pending_deposit", "pending_payment", "deposit_paid", "payment_paid"].includes(order.status)) {
+    throw new Error("Order không còn ở trạng thái có thể hủy");
+  }
+
+  assertServerSellerWallet(order);
+
+  const result = await cancelOrderOnChain(order.blockchainOrderId);
+  const updatedOrder = await verifyCancelOrderService(actor, orderId, result.txHash);
+
+  return {
+    order: updatedOrder,
+    txHash: result.txHash,
+    blockNumber: result.blockNumber,
+  };
 };
 
 /* ================= GET MY ORDERS ================= */

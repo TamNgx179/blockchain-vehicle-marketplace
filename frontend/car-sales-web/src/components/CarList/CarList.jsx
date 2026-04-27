@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
-import CarCard from './CarCard/CarCard';
-import './CarList.css';
+import React, { useState } from "react";
+import CarCard from "./CarCard/CarCard";
+import "./CarList.css";
 
-function CarList({ cars }) {
+function CarList({ cars, wishlistIds = [], onToggleWishlist }) {
   // Quản lý vị trí bắt đầu của 8 xe đang hiển thị
   const [startIndex, setStartIndex] = useState(0);
   const itemsPerPage = 8;
+
   // Cắt mảng để chỉ lấy 8 xe tùy theo startIndex
   const visibleCars = cars.slice(startIndex, startIndex + itemsPerPage);
 
@@ -23,6 +24,9 @@ function CarList({ cars }) {
     }
   };
 
+  const totalPages = Math.ceil(cars.length / itemsPerPage) || 1;
+  const currentPage = Math.floor(startIndex / itemsPerPage) + 1;
+
   return (
     <div className="car-list-wrapper">
       <div className="car-list-container">
@@ -31,25 +35,25 @@ function CarList({ cars }) {
             <CarCard
               key={car._id}
               car={car}
-              /* Animation delay chạy từ 0 đến 0.35s cho 8 card */
               delay={index * 0.05}
+              isWishlisted={wishlistIds.includes(String(car._id))}
+              onToggleWishlist={onToggleWishlist}
             />
           ))}
         </div>
       </div>
 
-      {/* Bộ điều hướng */}
       <div className="pagination-controls">
         <button
           onClick={handlePrev}
           disabled={startIndex === 0}
           className="nav-btn"
         >
-          &lt; {/* Biểu tượng < */}
+          &lt;
         </button>
 
         <span className="page-info">
-          {Math.floor(startIndex / itemsPerPage) + 1} / {Math.ceil(cars.length / itemsPerPage)}
+          {currentPage} / {totalPages}
         </span>
 
         <button
@@ -57,7 +61,7 @@ function CarList({ cars }) {
           disabled={startIndex + itemsPerPage >= cars.length}
           className="nav-btn"
         >
-          &gt; {/* Biểu tượng > */}
+          &gt;
         </button>
       </div>
     </div>

@@ -1,634 +1,757 @@
-import { useMemo, useState, useEffect } from "react"; // Thêm useEffect
-import { Link } from "react-router-dom";
-import ProductService from "../../../services/ProductService"; // Import Service bạn đã cung cấp
+import { useEffect, useMemo, useState } from "react";
+import {
+  Battery,
+  Car,
+  Fuel,
+  Gauge,
+  Image,
+  LoaderCircle,
+  Package,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Save,
+  Search,
+  SlidersHorizontal,
+  Star,
+  Trash2,
+  X,
+} from "lucide-react";
+import ProductService from "../../../services/ProductService";
 import "./ProductList.css";
-function DualRange({
-  min,
-  max,
-  step,
-  valueMin,
-  valueMax,
-  disabled,
-  onChangeMin,
-  onChangeMax,
-}) {
-  const range = max - min;
-  const left = range > 0 ? ((valueMin - min) / range) * 100 : 0;
-  const right = range > 0 ? ((valueMax - min) / range) * 100 : 100;
+
+const API_ORIGIN = (import.meta.env.VITE_API_URL || "http://localhost:3000").replace(/\/$/, "");
+const PLACEHOLDER_IMAGE = "/images/car.webp";
+const PAGE_SIZE = 8;
+
+const initialForm = {
+  name: "",
+  brand: "",
+  category: "SUV",
+  price: "",
+  stock: "0",
+  description: "",
+  model: "",
+  engine: "",
+  power: "",
+  torque: "",
+  gear: "",
+  topSpeed: "",
+  weight: "",
+  length: "",
+  width: "",
+  height: "",
+  powertrainType: "electric",
+  fuelConsumptionValue: "",
+  batteryCapacityValue: "",
+  safetyText: "",
+  convenienceText: "",
+};
+
+const formatCurrency = (value) =>
+  new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(Number(value) || 0);
+
+const toCleanNumber = (value) => {
+  if (value === "" || value === undefined || value === null) return undefined;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : undefined;
+};
+
+const normalizeImagePath = (path) => {
+  if (!path) return PLACEHOLDER_IMAGE;
+  if (path.startsWith("blob:") || path.startsWith("data:") || path.startsWith("http")) return path;
+  return path.startsWith("/") ? path : `/${path}`;
+};
+
+const getApiImagePath = (path) => {
+  if (!path) return PLACEHOLDER_IMAGE;
+  if (path.startsWith("blob:") || path.startsWith("data:") || path.startsWith("http")) return path;
+  return `${API_ORIGIN}/${path.replace(/^\/+/, "")}`;
+};
+
+const getStockState = (stock) => {
+  const value = Number(stock) || 0;
+  if (value <= 0) return { label: "Hết hàng", className: "out" };
+  if (value <= 3) return { label: "Sắp hết", className: "low" };
+  return { label: "Còn hàng", className: "in" };
+};
+
+const productToForm = (product) => {
+  const specs = product?.specifications || {};
+
+  return {
+    name: product?.name || "",
+    brand: product?.brand || "",
+    category: product?.category || "SUV",
+    price: product?.price ?? "",
+    stock: product?.stock ?? "0",
+    description: product?.description || "",
+    model: specs.model || product?.name || "",
+    engine: specs.engine || "",
+    power: specs.power ?? "",
+    torque: specs.torque ?? "",
+    gear: specs.gear ?? "",
+    topSpeed: specs.topSpeed ?? "",
+    weight: specs.weight ?? "",
+    length: specs.dimensions?.length ?? "",
+    width: specs.dimensions?.width ?? "",
+    height: specs.dimensions?.height ?? "",
+    powertrainType: specs.powertrainType || "electric",
+    fuelConsumptionValue: specs.fuelConsumption?.value ?? "",
+    batteryCapacityValue: specs.batteryCapacity?.value ?? "",
+    safetyText: Array.isArray(product?.safety) ? product.safety.join("\n") : "",
+    convenienceText: Array.isArray(product?.convenience) ? product.convenience.join("\n") : "",
+  };
+};
+
+const splitLines = (value) =>
+  String(value || "")
+    .split(/\n|,/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+const ProductImage = ({ src, alt }) => {
+  const [currentSrc, setCurrentSrc] = useState(normalizeImagePath(src));
+  const [fallbackUsed, setFallbackUsed] = useState(false);
+
+  useEffect(() => {
+    const id = setTimeout(() => {
+      setCurrentSrc(normalizeImagePath(src));
+      setFallbackUsed(false);
+    }, 0);
+
+    return () => clearTimeout(id);
+  }, [src]);
 
   return (
-    <div className="ProductList-dual-range" style={{ "--left": `${left}%`, "--right": `${right}%` }}>
-      <input
-        className="ProductList-dual-range-input"
-        style={{ zIndex: valueMin > valueMax - step * 2 ? 5 : 3 }}
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={valueMin}
-        disabled={disabled}
-        onChange={(e) => {
-          const next = Number(e.target.value);
-          onChangeMin(Math.min(next, valueMax - step));
-        }}
-      />
-      <input
-        className="ProductList-dual-range-input"
-        style={{ zIndex: 4 }}
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={valueMax}
-        disabled={disabled}
-        onChange={(e) => {
-          const next = Number(e.target.value);
-          onChangeMax(Math.max(next, valueMin + step));
-        }}
-      />
-    </div>
+    <img
+      src={currentSrc}
+      alt={alt}
+      onError={() => {
+        if (!fallbackUsed && src) {
+          setFallbackUsed(true);
+          setCurrentSrc(getApiImagePath(src));
+        } else {
+          setCurrentSrc(PLACEHOLDER_IMAGE);
+        }
+      }}
+    />
   );
-}
-
-function ProductListpecItem({ icon, text }) {
-  return (
-    <div className="ProductList-item-spec">
-      <span className="ProductList-item-spec-icon" aria-hidden="true">
-        {icon}
-      </span>
-      <span className="ProductList-item-spec-text">{text}</span>
-    </div>
-  );
-}
-
-function IconMileage() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none">
-      <path d="M4.5 15a7.5 7.5 0 1 1 15 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M12 9v4l3 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function IconYear() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none">
-      <path d="M7 3v3M17 3v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M4 8h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M6 5h12a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function IconTransmission() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none">
-      <path d="M12 3v12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M7 6h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M9 21h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M12 15l-3 3M12 15l3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function IconFuel() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none">
-      <path d="M6 3h9a1 1 0 0 1 1 1v17H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-      <path d="M8 7h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M16 8l2 2v8a2 2 0 0 1-2 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function IconDrive() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none">
-      <path d="M7 14h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M5.5 16.5a2 2 0 1 0 0.01 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M18.5 16.5a2 2 0 1 0 0.01 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M8 7h8l2 5H6l2-5Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function IconPower() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none">
-      <path d="M12 3v7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M7.5 5.5a8 8 0 1 0 9 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function IconPin() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none">
-      <path d="M12 22s7-5.2 7-12a7 7 0 0 0-14 0c0 6.8 7 12 7 12Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-      <path d="M12 11.5a2 2 0 1 0 0.01 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-}
+};
 
 function ProductList() {
-  const [ProductListList, setProductListList] = useState([]); // State lưu danh sách xe từ API
-  const [selectedMakes, setSelectedMakes] = useState([]);
-  const [isMakeOpen, setIsMakeOpen] = useState(false);
-  const [makeQuery, setMakeQuery] = useState("");
-  const [expandedTagsById, setExpandedTagsById] = useState({});
-  const [priceMin, setPriceMin] = useState(10000);
-  const [priceMax, setPriceMax] = useState(200000);
-  const [mileageMin, setMileageMin] = useState(0);
-  const [mileageMax, setMileageMax] = useState(200000);
-  const [transmission, setTransmission] = useState("All");
-  const [fuel, setFuel] = useState("All");
-  const [powerMin, setPowerMin] = useState(20);
-  const [powerMax, setPowerMax] = useState(1000);
-  const [vehicleType, setVehicleType] = useState("All");
-  const [featureQuery, setFeatureQuery] = useState("");
-  const [selectedFeatures, setSelectedFeatures] = useState([]);
-  const [showAllFeatures, setShowAllFeatures] = useState(false);
-  const [page, setPage] = useState(1);
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  // Lấy dữ liệu từ API khi component mount
+  const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState("");
+  const [modalMode, setModalMode] = useState(null);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [form, setForm] = useState(initialForm);
+  const [files, setFiles] = useState({ thumbnailImage: null, heroImage: null, galleryImages: [] });
+  const [previews, setPreviews] = useState({ thumbnailImage: "", heroImage: "", galleryImages: [] });
+  const [searchTerm, setSearchTerm] = useState("");
+  const [brandFilter, setBrandFilter] = useState("all");
+  const [powertrainFilter, setPowertrainFilter] = useState("all");
+  const [stockFilter, setStockFilter] = useState("all");
+  const [page, setPage] = useState(1);
+
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      const data = await ProductService.getAllProducts();
+      setProducts(Array.isArray(data) ? data : data?.products || []);
+    } catch (error) {
+      console.error("Lỗi khi tải danh sách xe:", error);
+      alert("Không thể tải danh sách xe. Vui lòng kiểm tra backend.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchProductList = async () => {
-      try {
-        const data = await ProductService.getAllProducts();
-        setProductListList(data);
-      } catch (error) {
-        console.error("Error fetching ProductList:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProductList();
+    fetchProducts();
   }, []);
 
-  const brandList = useMemo(() => {
-    const values = Array.from(new Set(ProductListList.map((c) => c.brand).filter(Boolean)));
-    values.sort((a, b) => a.localeCompare(b));
-    return values;
-  }, [ProductListList]);
+  const brandOptions = useMemo(
+    () => Array.from(new Set(products.map((item) => item.brand).filter(Boolean))).sort(),
+    [products]
+  );
 
-  const filteredBrands = useMemo(() => {
-    const q = makeQuery.trim().toLowerCase();
-    if (!q) return brandList;
-    return brandList.filter((b) => b.toLowerCase().includes(q));
-  }, [brandList, makeQuery]);
+  const categories = useMemo(
+    () => Array.from(new Set(["SUV", "Sedan", "Sport", "Hatchback", "Pickup", ...products.map((item) => item.category).filter(Boolean)])).sort(),
+    [products]
+  );
 
-  const mostSearchedBrands = useMemo(() => {
-    const preferred = ["BMW", "Honda", "Mercedes", "Porsche", "Toyota", "Vinfast"];
-    const set = new Set(brandList);
-    const picks = preferred.filter((b) => set.has(b)).slice(0, 6);
-    if (picks.length >= 6) return picks;
-    const remainder = brandList.filter((b) => !picks.includes(b));
-    return [...picks, ...remainder].slice(0, 6);
-  }, [brandList]);
+  const filteredProducts = useMemo(() => {
+    const keyword = searchTerm.trim().toLowerCase();
 
-  const brandLogo = (brand) => {
-    const key = String(brand || "").toLowerCase();
-    const known = new Set(["bmw", "honda", "mercedes", "porsche", "toyota", "vinfast"]);
-    if (!known.has(key)) return null;
-    return `/images/logos/${key}-logo.png`;
-  };
+    return products.filter((product) => {
+      const specs = product.specifications || {};
+      const matchesKeyword = !keyword || [
+        product.name,
+        product.brand,
+        product.category,
+        specs.model,
+        specs.engine,
+      ].some((value) => String(value || "").toLowerCase().includes(keyword));
 
-  const toggleMake = (brand) => {
-    setSelectedMakes((prev) => {
-      const next = Array.isArray(prev) ? prev : [];
-      if (next.includes(brand)) return next.filter((x) => x !== brand);
-      return [...next, brand];
+      const matchesBrand = brandFilter === "all" || product.brand === brandFilter;
+      const matchesPowertrain = powertrainFilter === "all" || specs.powertrainType === powertrainFilter;
+      const stockValue = Number(product.stock) || 0;
+      const matchesStock =
+        stockFilter === "all" ||
+        (stockFilter === "in" && stockValue > 3) ||
+        (stockFilter === "low" && stockValue > 0 && stockValue <= 3) ||
+        (stockFilter === "out" && stockValue <= 0);
+
+      return matchesKeyword && matchesBrand && matchesPowertrain && matchesStock;
     });
-    setPage(1);
-  };
+  }, [products, searchTerm, brandFilter, powertrainFilter, stockFilter]);
 
-  const removeMake = (brand) => {
-    setSelectedMakes((prev) => {
-      const next = Array.isArray(prev) ? prev : [];
-      return next.filter((x) => x !== brand);
-    });
-    setPage(1);
-  };
-
-  const typeCategories = useMemo(() => {
-    const values = Array.from(new Set(ProductListList.map((c) => c.category).filter(Boolean)));
-    values.sort((a, b) => a.localeCompare(b));
-    return values;
-  }, [ProductListList]);
-
-  const allFeatures = useMemo(() => {
-    const set = new Set();
-    ProductListList.forEach((c) => {
-      (Array.isArray(c.safety) ? c.safety : []).forEach((x) => set.add(x));
-      (Array.isArray(c.convenience) ? c.convenience : []).forEach((x) => set.add(x));
-    });
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [ProductListList]);
-
-  const visibleFeatures = useMemo(() => {
-    const q = featureQuery.trim().toLowerCase();
-    const list = q ? allFeatures.filter((f) => f.toLowerCase().includes(q)) : allFeatures;
-    return showAllFeatures ? list : list.slice(0, 8);
-  }, [allFeatures, featureQuery, showAllFeatures]);
-
-  const canShowMoreFeatures = useMemo(() => {
-    const q = featureQuery.trim().toLowerCase();
-    const list = q ? allFeatures.filter((f) => f.toLowerCase().includes(q)) : allFeatures;
-    return !showAllFeatures && list.length > 8;
-  }, [allFeatures, featureQuery, showAllFeatures]);
-
-  // HELPER FUNCTIONS CẬP NHẬT THEO CẤU TRÚC JSON MỚI
-  const getPowerHP = (car) => {
-    const value = car?.specifications?.power;
-    return typeof value === "number" ? value : 0;
-  };
-
-  const getTransmission = (car) => {
-    const gear = car?.specifications?.gear;
-    if (gear === 1 || car?.specifications?.powertrainType === "electric") return "Automatic";
-    return "Manual";
-  };
-
-  const getFuel = (car) => {
-    const type = car?.specifications?.powertrainType;
-    if (type === "electric") return "Electric";
-    if (type === "hybrid") return "Hybrid";
-    return "Gasoline";
-  };
-
-  const getDrive = (car) => {
-    const engine = car?.specifications?.engine?.toLowerCase() || "";
-    if (engine.includes("awd") || engine.includes("all electric") || engine.includes("dual")) return "AWD";
-    return null;
-  };
-
-  const filteredProductList = useMemo(() => {
-    return ProductListList.filter((c) => {
-      const matchMake = selectedMakes.length === 0 ? true : selectedMakes.includes(c.brand);
-      const matchPrice = typeof c.price === "number" ? c.price >= priceMin && c.price <= priceMax : true;
-      // API hiện tại chưa có trường mileageKM, mặc định true hoặc xử lý tùy ý
-      const matchMileage = true;
-      const matchTransmission = transmission === "All" ? true : getTransmission(c) === transmission;
-      const matchFuel = fuel === "All" ? true : getFuel(c) === fuel;
-      const power = getPowerHP(c);
-      const matchPower = power >= powerMin && power <= powerMax;
-      const matchType = vehicleType === "All" ? true : c.category === vehicleType;
-      const matchFeatures =
-        selectedFeatures.length === 0
-          ? true
-          : selectedFeatures.every((f) => {
-            const list = [...(Array.isArray(c.safety) ? c.safety : []), ...(Array.isArray(c.convenience) ? c.convenience : [])];
-            return list.includes(f);
-          });
-
-      return matchMake && matchPrice && matchMileage && matchTransmission && matchFuel && matchPower && matchType && matchFeatures;
-    });
-  }, [ProductListList, selectedMakes, priceMin, priceMax, transmission, fuel, powerMin, powerMax, vehicleType, selectedFeatures]);
-
-  const pageSize = 5;
-  const totalPages = Math.max(1, Math.ceil(filteredProductList.length / pageSize));
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
-  const startIndex = (safePage - 1) * pageSize;
-  const visibleProductList = filteredProductList.slice(startIndex, startIndex + pageSize);
+  const visibleProducts = filteredProducts.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
-  const heroCar = visibleProductList[0] || filteredProductList[0] || ProductListList[0];
-  const heroImage = heroCar?.heroImage || heroCar?.thumbnailImage || "/images/car.webp";
-
-  const priceText = (value) => {
-    if (typeof value !== "number") return null;
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
-
-  const toggleFeature = (feature) => {
-    setSelectedFeatures((prev) => {
-      if (prev.includes(feature)) return prev.filter((x) => x !== feature);
-      return [...prev, feature];
-    });
+  useEffect(() => {
     setPage(1);
+  }, [searchTerm, brandFilter, powertrainFilter, stockFilter]);
+
+  const stats = useMemo(() => {
+    const totalStock = products.reduce((sum, item) => sum + (Number(item.stock) || 0), 0);
+    const outOfStock = products.filter((item) => (Number(item.stock) || 0) <= 0).length;
+    const electricCount = products.filter((item) => item.specifications?.powertrainType === "electric").length;
+    const totalValue = products.reduce((sum, item) => sum + (Number(item.price) || 0), 0);
+
+    return {
+      total: products.length,
+      totalStock,
+      outOfStock,
+      electricCount,
+      averagePrice: products.length ? totalValue / products.length : 0,
+    };
+  }, [products]);
+
+  const openCreateModal = () => {
+    setSelectedProduct(null);
+    setForm(initialForm);
+    setFiles({ thumbnailImage: null, heroImage: null, galleryImages: [] });
+    setPreviews({ thumbnailImage: "", heroImage: "", galleryImages: [] });
+    setModalMode("create");
   };
 
-  if (loading) return <div className="loading">Loading ProductList...</div>;
+  const openEditModal = (product) => {
+    setSelectedProduct(product);
+    setForm(productToForm(product));
+    setFiles({ thumbnailImage: null, heroImage: null, galleryImages: [] });
+    setPreviews({
+      thumbnailImage: normalizeImagePath(product.thumbnailImage),
+      heroImage: normalizeImagePath(product.heroImage),
+      galleryImages: Array.isArray(product.galleryImages) ? product.galleryImages.map(normalizeImagePath) : [],
+    });
+    setModalMode("edit");
+  };
+
+  const closeModal = () => {
+    if (saving) return;
+    setModalMode(null);
+    setSelectedProduct(null);
+  };
+
+  const updateField = (field, value) => {
+    setForm((prev) => {
+      const next = { ...prev, [field]: value };
+      if (field === "name" && !prev.model) next.model = value;
+      if (field === "powertrainType") {
+        next.fuelConsumptionValue = prev.fuelConsumptionValue;
+        if (value === "gasoline") next.batteryCapacityValue = "";
+      }
+      return next;
+    });
+  };
+
+  const handleFileChange = (field, event) => {
+    const selectedFiles = Array.from(event.target.files || []);
+    if (field === "galleryImages") {
+      setFiles((prev) => ({ ...prev, galleryImages: selectedFiles }));
+      setPreviews((prev) => ({ ...prev, galleryImages: selectedFiles.map((file) => URL.createObjectURL(file)) }));
+      return;
+    }
+
+    const file = selectedFiles[0] || null;
+    setFiles((prev) => ({ ...prev, [field]: file }));
+    setPreviews((prev) => ({ ...prev, [field]: file ? URL.createObjectURL(file) : "" }));
+  };
+
+  const buildProductFormData = () => {
+    const specs = {
+      model: form.model || form.name,
+      engine: form.engine,
+      power: toCleanNumber(form.power),
+      torque: toCleanNumber(form.torque),
+      gear: toCleanNumber(form.gear),
+      topSpeed: toCleanNumber(form.topSpeed),
+      weight: toCleanNumber(form.weight),
+      dimensions: {
+        length: toCleanNumber(form.length),
+        width: toCleanNumber(form.width),
+        height: toCleanNumber(form.height),
+      },
+      powertrainType: form.powertrainType,
+      fuelConsumption: {
+        value: toCleanNumber(form.fuelConsumptionValue) ?? 0,
+        unit: form.powertrainType === "electric" ? "kWh/100km" : "L/100km",
+      },
+    };
+
+    if (form.powertrainType === "electric") {
+      specs.batteryCapacity = {
+        value: toCleanNumber(form.batteryCapacityValue) ?? 0,
+        unit: "kWh",
+      };
+    }
+
+    const formData = new FormData();
+    formData.append("name", form.name.trim());
+    formData.append("brand", form.brand.trim());
+    formData.append("category", form.category.trim());
+    formData.append("price", form.price);
+    formData.append("stock", form.stock);
+    formData.append("description", form.description || "");
+    formData.append("specifications", JSON.stringify(specs));
+    formData.append("safety", JSON.stringify(splitLines(form.safetyText)));
+    formData.append("convenience", JSON.stringify(splitLines(form.convenienceText)));
+
+    if (files.thumbnailImage) formData.append("thumbnailImage", files.thumbnailImage);
+    if (files.heroImage) formData.append("heroImage", files.heroImage);
+    files.galleryImages.forEach((file) => formData.append("galleryImages", file));
+
+    return formData;
+  };
+
+  const validateForm = () => {
+    if (!form.name.trim() || !form.brand.trim() || !form.category.trim()) {
+      alert("Vui lòng nhập tên xe, hãng xe và phân khúc.");
+      return false;
+    }
+
+    if (form.price === "" || Number(form.price) < 0 || form.stock === "" || Number(form.stock) < 0) {
+      alert("Giá bán và tồn kho phải là số không âm.");
+      return false;
+    }
+
+    if (!form.model.trim() || !form.engine.trim()) {
+      alert("Vui lòng nhập model và động cơ trong phần thông số kỹ thuật.");
+      return false;
+    }
+
+    if (!form.fuelConsumptionValue) {
+      alert("Vui lòng nhập mức tiêu thụ nhiên liệu/năng lượng.");
+      return false;
+    }
+
+    if (form.powertrainType === "electric" && !form.batteryCapacityValue) {
+      alert("Xe điện cần có dung lượng pin.");
+      return false;
+    }
+
+    if (modalMode === "create" && (!files.thumbnailImage || !files.heroImage)) {
+      alert("Tạo xe mới cần có ảnh thumbnail và ảnh hero.");
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    if (!validateForm()) return;
+
+    try {
+      setSaving(true);
+      const formData = buildProductFormData();
+
+      if (modalMode === "create") {
+        await ProductService.createProduct(formData);
+        alert("Tạo xe mới thành công!");
+      } else {
+        await ProductService.updateProduct(selectedProduct._id, formData);
+        alert("Cập nhật xe thành công!");
+      }
+
+      setModalMode(null);
+      setSelectedProduct(null);
+      await fetchProducts();
+    } catch (error) {
+      console.error("Lỗi khi lưu xe:", error);
+      alert(error?.response?.data?.message || "Không thể lưu thông tin xe. Vui lòng kiểm tra dữ liệu.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (product) => {
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa xe "${product.name}"?`)) return;
+
+    try {
+      setDeletingId(product._id);
+      await ProductService.deleteProduct(product._id);
+      setProducts((prev) => prev.filter((item) => item._id !== product._id));
+      alert("Xóa xe thành công!");
+    } catch (error) {
+      console.error("Lỗi khi xóa xe:", error);
+      alert(error?.response?.data?.message || "Không thể xóa xe này.");
+    } finally {
+      setDeletingId("");
+    }
+  };
 
   return (
-    <>
-      <main className="ProductList-page">
-        <section className="ProductList-hero">
-          <div className="ProductList-hero-inner">
-            <div className="ProductList-hero-text">
-              <h1>Find your<br />favorite car</h1>
-            </div>
-            <div className="ProductList-hero-media">
-              <img src={"/" + heroImage} alt="Hero car" loading="eager" decoding="async" />
-            </div>
-          </div>
-        </section>
+    <main className="product-admin-page">
+      <header className="product-admin-header">
+        <div>
+          <p className="product-admin-eyebrow">Kho xe showroom</p>
+          <h1>Quản lý sản phẩm</h1>
+          <p>Theo dõi danh mục xe, tồn kho, thông số kỹ thuật và thao tác CRUD.</p>
+        </div>
+        <div className="product-admin-actions">
+          <button type="button" className="secondary-btn" onClick={fetchProducts} disabled={loading}>
+            <RefreshCw size={17} className={loading ? "spin-icon" : ""} />
+            Làm mới
+          </button>
+          <button type="button" className="primary-btn" onClick={openCreateModal}>
+            <Plus size={18} />
+            Tạo xe mới
+          </button>
+        </div>
+      </header>
 
-        <div className="ProductList-layout">
-          <aside className="ProductList-sidebar">
-            <div className="ProductList-filter-card">
-              <div className="ProductList-filter-title">Filter</div>
+      <section className="product-stat-grid">
+        <StatCard icon={<Car size={22} />} label="Tổng mẫu xe" value={stats.total} note="Đang quản lý" tone="blue" />
+        <StatCard icon={<Package size={22} />} label="Tổng tồn kho" value={stats.totalStock} note="Xe còn trong hệ thống" tone="green" />
+        <StatCard icon={<Battery size={22} />} label="Xe điện" value={stats.electricCount} note="Theo powertrain" tone="violet" />
+        <StatCard icon={<Gauge size={22} />} label="Giá trung bình" value={formatCurrency(stats.averagePrice)} note={`${stats.outOfStock} xe hết hàng`} tone="amber" />
+      </section>
 
-              <div className="ProductList-filter-group">
-                <div className="ProductList-filter-label">Car model</div>
-                {selectedMakes.length > 0 ? (
-                  <div className="ProductList-selected-makes">
-                    {selectedMakes.map((brand) => {
-                      const logo = brandLogo(brand);
-                      return (
-                        <div key={brand} className="ProductList-selected-make">
-                          {logo ? (
-                            <img className="ProductList-selected-make-logo" src={"/" + logo} alt={brand} />
-                          ) : (
-                            <span className="ProductList-selected-make-logo ProductList-selected-make-fallback">
-                              {brand.slice(0, 1).toUpperCase()}
-                            </span>
-                          )}
-                          <div className="ProductList-selected-make-name">{brand}</div>
-                          <button
-                            type="button"
-                            className="ProductList-selected-make-remove"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              removeMake(brand);
-                            }}
-                            aria-label={`Remove ${brand}`}
-                          >
-                            ×
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : null}
-                <button type="button" className="ProductList-model-row ProductList-model-trigger" onClick={() => setIsMakeOpen(true)}>
-                  <span className="ProductList-model-select">
-                    <span className="ProductList-model-plus">+</span>
-                    <span className="ProductList-model-value">Add a car</span>
-                  </span>
-                  <span className="ProductList-model-go" aria-hidden="true">›</span>
-                </button>
-              </div>
-
-              <div className="ProductList-filter-group">
-                <div className="ProductList-filter-label">Price</div>
-                <div className="ProductList-filter-range-meta ProductList-filter-range-meta-top">
-                  <span>{priceText(priceMin)}</span>
-                  <span>{priceText(priceMax)}</span>
-                </div>
-                <DualRange
-                  min={10000}
-                  max={200000}
-                  step={500}
-                  valueMin={priceMin}
-                  valueMax={priceMax}
-                  onChangeMin={(v) => { setPriceMin(v); setPage(1); }}
-                  onChangeMax={(v) => { setPriceMax(v); setPage(1); }}
-                />
-              </div>
-
-              <div className="ProductList-filter-group">
-                <div className="ProductList-filter-label">Mileage (km)</div>
-                <div className="ProductList-filter-range-meta ProductList-filter-range-meta-top">
-                  <span>{mileageMin.toLocaleString("en-US")} km</span>
-                  <span>{mileageMax.toLocaleString("en-US")} km</span>
-                </div>
-                <DualRange
-                  min={0}
-                  max={200000}
-                  step={500}
-                  valueMin={mileageMin}
-                  valueMax={mileageMax}
-                  onChangeMin={(v) => { setMileageMin(v); setPage(1); }}
-                  onChangeMax={(v) => { setMileageMax(v); setPage(1); }}
-                />
-              </div>
-
-              <div className="ProductList-filter-group">
-                <div className="ProductList-filter-label">Transmission</div>
-                <select className="ProductList-filter-select" value={transmission} onChange={(e) => { setTransmission(e.target.value); setPage(1); }}>
-                  <option value="All">All</option>
-                  <option value="Automatic">Automatic</option>
-                  <option value="Manual">Manual</option>
-                </select>
-              </div>
-
-              <div className="ProductList-filter-group">
-                <div className="ProductList-filter-label">Fuel</div>
-                <select className="ProductList-filter-select" value={fuel} onChange={(e) => { setFuel(e.target.value); setPage(1); }}>
-                  <option value="All">All</option>
-                  <option value="Gasoline">Gasoline</option>
-                  <option value="Hybrid">Hybrid</option>
-                  <option value="Electric">Electric</option>
-                </select>
-              </div>
-
-              <div className="ProductList-filter-group">
-                <div className="ProductList-filter-label">Power (HP)</div>
-                <div className="ProductList-filter-range-meta ProductList-filter-range-meta-top">
-                  <span>{powerMin} HP</span>
-                  <span>{powerMax} HP</span>
-                </div>
-                <DualRange
-                  min={20}
-                  max={1000}
-                  step={10}
-                  valueMin={powerMin}
-                  valueMax={powerMax}
-                  onChangeMin={(v) => { setPowerMin(v); setPage(1); }}
-                  onChangeMax={(v) => { setPowerMax(v); setPage(1); }}
-                />
-              </div>
-
-              <div className="ProductList-filter-group">
-                <div className="ProductList-filter-label">Vehicle type</div>
-                <select className="ProductList-filter-select" value={vehicleType} onChange={(e) => { setVehicleType(e.target.value); setPage(1); }}>
-                  <option value="All">All</option>
-                  {typeCategories.map((t) => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="ProductList-filter-group">
-                <div className="ProductList-filter-label">Feature</div>
-                <input
-                  className="ProductList-filter-input"
-                  value={featureQuery}
-                  onChange={(e) => { setFeatureQuery(e.target.value); setShowAllFeatures(false); }}
-                  placeholder="Search for feature"
-                />
-                <div className="ProductList-feature-list">
-                  {visibleFeatures.map((feature) => {
-                    const checked = selectedFeatures.includes(feature);
-                    return (
-                      <label key={feature} className="ProductList-feature-item">
-                        <input type="checkbox" checked={checked} onChange={() => toggleFeature(feature)} />
-                        <span>{feature}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-                {canShowMoreFeatures ? (
-                  <button type="button" className="ProductList-feature-more" onClick={() => setShowAllFeatures(true)}>More feature</button>
-                ) : null}
-              </div>
-
-              <button
-                type="button"
-                className="ProductList-filter-submit"
-                onClick={() => {
-                  setPage(1);
-                  const el = document.getElementById("ProductList-results");
-                  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-                }}
-              >
-                Detail search
-              </button>
-            </div>
-          </aside>
-
-          <section className="ProductList-results" id="ProductList-results">
-            <div className="ProductList-results-header">
-              <div className="ProductList-results-title">Available Car</div>
-              <div className="ProductList-results-pager">
-                <button type="button" className="ProductList-pager-btn" disabled={safePage <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>Previous</button>
-                <div className="ProductList-pager-pages">
-                  {Array.from({ length: totalPages }).slice(0, 7).map((_, i) => {
-                    const p = i + 1;
-                    return (
-                      <button key={p} type="button" className={`ProductList-page-btn ${p === safePage ? "active" : ""}`} onClick={() => setPage(p)}>{p}</button>
-                    );
-                  })}
-                </div>
-                <button type="button" className="ProductList-pager-btn" disabled={safePage >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>Next</button>
-              </div>
-            </div>
-
-            <div className="ProductList-results-subtitle">{filteredProductList.length} ProductList</div>
-
-            <div className="ProductList-list">
-              {visibleProductList.map((car) => {
-                const chipItems = [...(Array.isArray(car.safety) ? car.safety : []), ...(Array.isArray(car.convenience) ? car.convenience : [])];
-                const isExpanded = Boolean(expandedTagsById[car._id]);
-                const visibleChips = isExpanded ? chipItems : chipItems.slice(0, 4);
-                const remaining = Math.max(0, chipItems.length - 4);
-                const cardImage = car.thumbnailImage || "/images/car.webp";
-
-                return (
-                  <div key={car._id} className="ProductList-item" >
-                    <Link to={`/admin/productEdit/${car._id}`}>
-                      <div className="ProductList-item-media">
-                        <img src={"/" + cardImage} alt={car.name} loading="lazy" decoding="async" />
-                      </div>
-                    </Link>
-                    <Link to={`/admin/productEdit/${car._id}`}>
-                      <div className="ProductList-item-body">
-                        <div className="ProductList-item-top">
-                          <div className="ProductList-item-name">{car.name}</div>
-                          <div className="ProductList-item-brand">
-                            <span className="ProductList-item-brand-icon" aria-hidden="true"><IconPin /></span>
-                            <span>{car.brand}</span>
-                          </div>
-                        </div>
-
-                        <div className="ProductList-item-specs">
-                          <ProductListpecItem icon={<IconYear />} text={`${new Date(car.createdAt).getFullYear()}`} />
-                          <ProductListpecItem icon={<IconTransmission />} text={getTransmission(car)} />
-                          <ProductListpecItem icon={<IconFuel />} text={getFuel(car)} />
-                          {getDrive(car) ? <ProductListpecItem icon={<IconDrive />} text={getDrive(car)} /> : null}
-                          <ProductListpecItem icon={<IconPower />} text={`${getPowerHP(car)} HP`} />
-                        </div>
-
-                        <div className="ProductList-item-meta">
-                          {visibleChips.map((text) => (
-                            <span key={text} className="ProductList-chip">{text}</span>
-                          ))}
-                          {remaining > 0 ? (
-                            <button
-                              type="button"
-                              className="ProductList-chip ProductList-chip-more ProductList-chip-button"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                setExpandedTagsById((prev) => ({ ...prev, [car._id]: !isExpanded }));
-                              }}
-                            >
-                              {isExpanded ? "Less" : `${remaining} more`}
-                            </button>
-                          ) : null}
-                        </div>
-                      </div>
-                    </Link>
-                    <div className="ProductList-item-price">
-                      {priceText(car.price)}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
+      <section className="product-toolbar">
+        <div className="product-search">
+          <Search size={18} />
+          <input
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            placeholder="Tìm theo tên xe, hãng, động cơ..."
+          />
         </div>
 
-        {isMakeOpen ? (
-          <div className="ProductList-make-overlay" role="dialog" aria-modal="true" onMouseDown={(e) => { if (e.target === e.currentTarget) setIsMakeOpen(false); }}>
-            <div className="ProductList-make-modal">
-              <div className="ProductList-make-header">
-                <div className="ProductList-make-title">Select make</div>
-                <div className="ProductList-make-actions">
-                  <button type="button" className="ProductList-make-done" onClick={() => setIsMakeOpen(false)}>Done</button>
-                  <button type="button" className="ProductList-make-close" onClick={() => setIsMakeOpen(false)}>×</button>
-                </div>
-              </div>
-              <div className="ProductList-make-search">
-                <span className="ProductList-make-search-icon" aria-hidden="true">⌕</span>
-                <input value={makeQuery} onChange={(e) => setMakeQuery(e.target.value)} placeholder="Make or model" />
-              </div>
-
-              <div className="ProductList-make-section">
-                <div className="ProductList-make-section-title">MOST SEARCHED TAGS</div>
-                <div className="ProductList-make-tags">
-                  {mostSearchedBrands.map((brand) => {
-                    const logo = brandLogo(brand);
-                    const active = selectedMakes.includes(brand);
-                    return (
-                      <button key={brand} type="button" className={`ProductList-make-tag ${active ? "active" : ""}`} onClick={() => toggleMake(brand)}>
-                        {logo ? <img src={logo} alt={brand} /> : <span className="ProductList-make-tag-fallback">{brand.slice(0, 1).toUpperCase()}</span>}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="ProductList-make-section ProductList-make-list-wrap">
-                <div className="ProductList-make-section-title">ALL BRANDS</div>
-                <div className="ProductList-make-list">
-                  <button type="button" className={`ProductList-make-row ${selectedMakes.length === 0 ? "active" : ""}`} onClick={() => { setSelectedMakes([]); setPage(1); }}>
-                    <span className="ProductList-make-row-logo ProductList-make-row-fallback">A</span>
-                    <span className="ProductList-make-row-name">All</span>
-                  </button>
-                  {filteredBrands.map((brand) => {
-                    const logo = brandLogo(brand);
-                    const active = selectedMakes.includes(brand);
-                    return (
-                      <button key={brand} type="button" className={`ProductList-make-row ${active ? "active" : ""}`} onClick={() => toggleMake(brand)}>
-                        {logo ? <img className="ProductList-make-row-logo" src={logo} alt={brand} /> : <span className="ProductList-make-row-logo ProductList-make-row-fallback">{brand.slice(0, 1).toUpperCase()}</span>}
-                        <span className="ProductList-make-row-name">{brand}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
+        <div className="product-filters">
+          <div className="filter-label">
+            <SlidersHorizontal size={16} />
+            Bộ lọc
           </div>
-        ) : null}
-      </main>
-    </>
+          <select value={brandFilter} onChange={(event) => setBrandFilter(event.target.value)}>
+            <option value="all">Tất cả hãng</option>
+            {brandOptions.map((brand) => (
+              <option key={brand} value={brand}>{brand}</option>
+            ))}
+          </select>
+          <select value={powertrainFilter} onChange={(event) => setPowertrainFilter(event.target.value)}>
+            <option value="all">Tất cả hệ truyền động</option>
+            <option value="electric">Xe điện</option>
+            <option value="gasoline">Xe xăng</option>
+          </select>
+          <select value={stockFilter} onChange={(event) => setStockFilter(event.target.value)}>
+            <option value="all">Tất cả tồn kho</option>
+            <option value="in">Còn hàng</option>
+            <option value="low">Sắp hết</option>
+            <option value="out">Hết hàng</option>
+          </select>
+        </div>
+      </section>
+
+      <section className="product-table-panel">
+        <div className="product-table-header">
+          <div>
+            <h2>Danh sách xe</h2>
+            <p>{filteredProducts.length} xe phù hợp bộ lọc</p>
+          </div>
+          <div className="table-page-info">
+            Trang {safePage}/{totalPages}
+          </div>
+        </div>
+
+        <div className="product-table-wrap">
+          <table className="product-admin-table">
+            <thead>
+              <tr>
+                <th>Xe</th>
+                <th>Phân loại</th>
+                <th>Thông số chính</th>
+                <th>Giá</th>
+                <th>Tồn kho</th>
+                <th>Đánh giá</th>
+                <th>Cập nhật</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan="8" className="table-empty">
+                    <LoaderCircle className="spin-icon" size={22} />
+                    Đang tải danh sách xe...
+                  </td>
+                </tr>
+              ) : visibleProducts.length === 0 ? (
+                <tr>
+                  <td colSpan="8" className="table-empty">Không có xe phù hợp bộ lọc.</td>
+                </tr>
+              ) : (
+                visibleProducts.map((product) => {
+                  const specs = product.specifications || {};
+                  const stockState = getStockState(product.stock);
+
+                  return (
+                    <tr key={product._id}>
+                      <td>
+                        <div className="product-cell">
+                          <div className="product-thumb">
+                            <ProductImage src={product.thumbnailImage} alt={product.name} />
+                          </div>
+                          <div>
+                            <strong>{product.name}</strong>
+                            <span>{specs.model || product.brand}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="stacked-cell">
+                          <strong>{product.brand}</strong>
+                          <span>{product.category}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="spec-mini-list">
+                          <span><Fuel size={14} /> {specs.powertrainType === "electric" ? "Electric" : "Gasoline"}</span>
+                          <span><Gauge size={14} /> {specs.power || 0} HP</span>
+                        </div>
+                      </td>
+                      <td className="price-cell">{formatCurrency(product.price)}</td>
+                      <td>
+                        <span className={`stock-pill ${stockState.className}`}>
+                          {stockState.label} · {product.stock || 0}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="rating-cell">
+                          <Star size={14} />
+                          {(product.averageRating || 0).toFixed(1)}
+                          <span>({product.reviewCount || 0})</span>
+                        </div>
+                      </td>
+                      <td>{new Date(product.updatedAt || product.createdAt).toLocaleDateString("vi-VN")}</td>
+                      <td>
+                        <div className="row-actions">
+                          <button type="button" className="icon-btn edit" onClick={() => openEditModal(product)} title="Chỉnh sửa xe">
+                            <Pencil size={17} />
+                          </button>
+                          <button
+                            type="button"
+                            className="icon-btn delete"
+                            onClick={() => handleDelete(product)}
+                            disabled={deletingId === product._id}
+                            title="Xóa xe"
+                          >
+                            {deletingId === product._id ? <LoaderCircle size={17} className="spin-icon" /> : <Trash2 size={17} />}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="product-pagination">
+          <button type="button" disabled={safePage <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>
+            Trước
+          </button>
+          <span>{safePage} / {totalPages}</span>
+          <button type="button" disabled={safePage >= totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))}>
+            Sau
+          </button>
+        </div>
+      </section>
+
+      {modalMode && (
+        <div className="product-modal-backdrop" role="dialog" aria-modal="true">
+          <form className="product-modal" onSubmit={handleSubmit}>
+            <div className="modal-header">
+              <div>
+                <p>{modalMode === "create" ? "Tạo mới" : "Chỉnh sửa"}</p>
+                <h2>{modalMode === "create" ? "Thêm xe vào kho" : selectedProduct?.name}</h2>
+              </div>
+              <button type="button" className="icon-btn" onClick={closeModal} aria-label="Đóng">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <section className="form-section">
+                <h3>Thông tin cơ bản</h3>
+                <div className="form-grid">
+                  <Field label="Tên xe" value={form.name} onChange={(value) => updateField("name", value)} required />
+                  <Field label="Hãng xe" value={form.brand} onChange={(value) => updateField("brand", value)} required list="brand-options" />
+                  <label className="form-field">
+                    <span>Phân khúc</span>
+                    <select value={form.category} onChange={(event) => updateField("category", event.target.value)}>
+                      {categories.map((category) => (
+                        <option key={category} value={category}>{category}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <Field label="Giá bán (USD)" type="number" value={form.price} onChange={(value) => updateField("price", value)} required />
+                  <Field label="Tồn kho" type="number" value={form.stock} onChange={(value) => updateField("stock", value)} required />
+                  <label className="form-field full">
+                    <span>Mô tả</span>
+                    <textarea value={form.description} onChange={(event) => updateField("description", event.target.value)} rows={3} />
+                  </label>
+                </div>
+              </section>
+
+              <section className="form-section">
+                <h3>Thông số kỹ thuật</h3>
+                <div className="form-grid">
+                  <Field label="Model" value={form.model} onChange={(value) => updateField("model", value)} required />
+                  <Field label="Động cơ" value={form.engine} onChange={(value) => updateField("engine", value)} required />
+                  <label className="form-field">
+                    <span>Hệ truyền động</span>
+                    <select value={form.powertrainType} onChange={(event) => updateField("powertrainType", event.target.value)}>
+                      <option value="electric">Electric</option>
+                      <option value="gasoline">Gasoline</option>
+                    </select>
+                  </label>
+                  <Field label="Công suất (HP)" type="number" value={form.power} onChange={(value) => updateField("power", value)} />
+                  <Field label="Mô-men xoắn" type="number" value={form.torque} onChange={(value) => updateField("torque", value)} />
+                  <Field label="Số cấp số" type="number" value={form.gear} onChange={(value) => updateField("gear", value)} />
+                  <Field label="Tốc độ tối đa" type="number" value={form.topSpeed} onChange={(value) => updateField("topSpeed", value)} />
+                  <Field label="Trọng lượng" type="number" value={form.weight} onChange={(value) => updateField("weight", value)} />
+                  <Field label="Dài (mm)" type="number" value={form.length} onChange={(value) => updateField("length", value)} />
+                  <Field label="Rộng (mm)" type="number" value={form.width} onChange={(value) => updateField("width", value)} />
+                  <Field label="Cao (mm)" type="number" value={form.height} onChange={(value) => updateField("height", value)} />
+                  <Field
+                    label={form.powertrainType === "electric" ? "Tiêu thụ điện (kWh/100km)" : "Tiêu thụ xăng (L/100km)"}
+                    type="number"
+                    value={form.fuelConsumptionValue}
+                    onChange={(value) => updateField("fuelConsumptionValue", value)}
+                    required
+                  />
+                  {form.powertrainType === "electric" && (
+                    <Field label="Dung lượng pin (kWh)" type="number" value={form.batteryCapacityValue} onChange={(value) => updateField("batteryCapacityValue", value)} required />
+                  )}
+                </div>
+              </section>
+
+              <section className="form-section">
+                <h3>Trang bị</h3>
+                <div className="form-grid">
+                  <label className="form-field full">
+                    <span>An toàn (mỗi dòng một mục)</span>
+                    <textarea value={form.safetyText} onChange={(event) => updateField("safetyText", event.target.value)} rows={4} />
+                  </label>
+                  <label className="form-field full">
+                    <span>Tiện nghi (mỗi dòng một mục)</span>
+                    <textarea value={form.convenienceText} onChange={(event) => updateField("convenienceText", event.target.value)} rows={4} />
+                  </label>
+                </div>
+              </section>
+
+              <section className="form-section">
+                <h3>Hình ảnh</h3>
+                <div className="image-upload-grid">
+                  <ImageInput
+                    label="Ảnh thumbnail"
+                    required={modalMode === "create"}
+                    preview={previews.thumbnailImage}
+                    onChange={(event) => handleFileChange("thumbnailImage", event)}
+                  />
+                  <ImageInput
+                    label="Ảnh hero"
+                    required={modalMode === "create"}
+                    preview={previews.heroImage}
+                    onChange={(event) => handleFileChange("heroImage", event)}
+                  />
+                  <label className="gallery-input">
+                    <span>Gallery (tối đa 10 ảnh)</span>
+                    <input type="file" accept="image/*" multiple onChange={(event) => handleFileChange("galleryImages", event)} />
+                    <div className="gallery-preview-row">
+                      {(previews.galleryImages || []).slice(0, 5).map((src, index) => (
+                        <ProductImage key={`${src}-${index}`} src={src} alt={`Gallery ${index + 1}`} />
+                      ))}
+                      {previews.galleryImages?.length > 5 && <span>+{previews.galleryImages.length - 5}</span>}
+                    </div>
+                  </label>
+                </div>
+              </section>
+            </div>
+
+            <div className="modal-footer">
+              <button type="button" className="secondary-btn" onClick={closeModal}>Hủy</button>
+              <button type="submit" className="primary-btn" disabled={saving}>
+                {saving ? <LoaderCircle size={18} className="spin-icon" /> : <Save size={18} />}
+                {modalMode === "create" ? "Tạo xe" : "Lưu thay đổi"}
+              </button>
+            </div>
+          </form>
+          <datalist id="brand-options">
+            {brandOptions.map((brand) => (
+              <option key={brand} value={brand} />
+            ))}
+          </datalist>
+        </div>
+      )}
+    </main>
   );
 }
+
+const StatCard = ({ icon, label, value, note, tone }) => (
+  <article className={`product-stat-card tone-${tone}`}>
+    <div className="stat-icon">{icon}</div>
+    <div>
+      <span>{label}</span>
+      <strong>{value}</strong>
+      <p>{note}</p>
+    </div>
+  </article>
+);
+
+const Field = ({ label, value, onChange, type = "text", required = false, list }) => (
+  <label className="form-field">
+    <span>{label}{required ? " *" : ""}</span>
+    <input
+      type={type}
+      value={value}
+      list={list}
+      min={type === "number" ? "0" : undefined}
+      step={type === "number" ? "any" : undefined}
+      onChange={(event) => onChange(event.target.value)}
+      required={required}
+    />
+  </label>
+);
+
+const ImageInput = ({ label, preview, onChange, required }) => (
+  <label className="image-input">
+    <span>{label}{required ? " *" : ""}</span>
+    <input type="file" accept="image/*" onChange={onChange} />
+    <div className="image-preview">
+      {preview ? <ProductImage src={preview} alt={label} /> : <Image size={26} />}
+    </div>
+  </label>
+);
 
 export default ProductList;
