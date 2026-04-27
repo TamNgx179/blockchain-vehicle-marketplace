@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
 import Footer from "../../components/Footer/Footer";
@@ -7,45 +7,45 @@ import add from "../../assets/icon/add.png";
 import { useCart } from "../../context/CartContext";
 import "./Wishlist.css";
 
+const getWishlistFromResponse = (response) => {
+  const data = response?.data || response;
+
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data.wishlist)) return data.wishlist;
+  if (Array.isArray(data.products)) return data.products;
+  if (Array.isArray(data.data)) return data.data;
+
+  return [];
+};
+
+const getProductFromItem = (item) => {
+  if (item?.product && typeof item.product === "object") {
+    return item.product;
+  }
+
+  if (item?.productId && typeof item.productId === "object") {
+    return item.productId;
+  }
+
+  return item;
+};
+
+const getProductIdFromItem = (item) => {
+  return (
+    item?._id ||
+    item?.id ||
+    item?.productId ||
+    item?.product?._id ||
+    item?.productId?._id
+  );
+};
+
 function Wishlist() {
   const [wishlist, setWishlist] = useState([]);
   const [loading, setLoading] = useState(true);
   const { addToCart } = useCart();
 
-  const getWishlistFromResponse = (response) => {
-    const data = response?.data || response;
-
-    if (Array.isArray(data)) return data;
-    if (Array.isArray(data.wishlist)) return data.wishlist;
-    if (Array.isArray(data.products)) return data.products;
-    if (Array.isArray(data.data)) return data.data;
-
-    return [];
-  };
-
-  const getProductFromItem = (item) => {
-    if (item?.product && typeof item.product === "object") {
-      return item.product;
-    }
-
-    if (item?.productId && typeof item.productId === "object") {
-      return item.productId;
-    }
-
-    return item;
-  };
-
-  const getProductIdFromItem = (item) => {
-    return (
-      item?._id ||
-      item?.id ||
-      item?.productId ||
-      item?.product?._id ||
-      item?.productId?._id
-    );
-  };
-
-  const fetchWishlist = async () => {
+  const fetchWishlist = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -79,7 +79,7 @@ function Wishlist() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const handleRemove = async (productId) => {
     try {
@@ -98,7 +98,7 @@ function Wishlist() {
   useEffect(() => {
     window.scrollTo(0, 0);
     fetchWishlist();
-  }, []);
+  }, [fetchWishlist]);
 
   return (
     <>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import SlideShow from "./SlideShow/SlideShow";
 import Filter from "./Filter/Filter";
 import CarList from "../../components/CarList/CarList";
@@ -7,16 +7,42 @@ import Footer from "../../components/Footer/Footer";
 import ProductService from "../../services/ProductService";
 import AccountService from "../../services/accountService";
 
+const getAuthToken = () => {
+  return localStorage.getItem("authToken") || localStorage.getItem("token");
+};
+
+const getWishlistFromResponse = (response) => {
+  const data = response?.data || response;
+
+  if (Array.isArray(data)) {
+    return data;
+  }
+
+  if (Array.isArray(data.wishlist)) {
+    return data.wishlist;
+  }
+
+  if (Array.isArray(data.products)) {
+    return data.products;
+  }
+
+  if (Array.isArray(data.data)) {
+    return data.data;
+  }
+
+  return [];
+};
+
+const getProductIdFromWishlistItem = (item) => {
+  return item?._id || item?.productId || item?.product?._id || item?.productId?._id;
+};
+
 function Home() {
   const [type, setType] = useState("All");
   const [cars, setCars] = useState([]);
   const [wishlistIds, setWishlistIds] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showLoading, setShowLoading] = useState(false);
-
-  const getAuthToken = () => {
-    return localStorage.getItem("authToken") || localStorage.getItem("token");
-  };
 
   const buildFilterParams = (selectedType) => {
     if (selectedType === "EV") {
@@ -42,33 +68,7 @@ function Home() {
     return [];
   };
 
-  const getWishlistFromResponse = (response) => {
-    const data = response?.data || response;
-
-    if (Array.isArray(data)) {
-      return data;
-    }
-
-    if (Array.isArray(data.wishlist)) {
-      return data.wishlist;
-    }
-
-    if (Array.isArray(data.products)) {
-      return data.products;
-    }
-
-    if (Array.isArray(data.data)) {
-      return data.data;
-    }
-
-    return [];
-  };
-
-  const getProductIdFromWishlistItem = (item) => {
-    return item?._id || item?.productId || item?.product?._id || item?.productId?._id;
-  };
-
-  const fetchWishlist = async () => {
+  const fetchWishlist = useCallback(async () => {
     const token = getAuthToken();
 
     if (!token) {
@@ -90,7 +90,7 @@ function Home() {
       console.error("Lỗi khi lấy wishlist:", error);
       setWishlistIds([]);
     }
-  };
+  }, []);
 
   useEffect(() => {
     const fetchCars = async () => {
@@ -120,7 +120,7 @@ function Home() {
 
   useEffect(() => {
     fetchWishlist();
-  }, []);
+  }, [fetchWishlist]);
 
   useEffect(() => {
     const handleAuthChange = () => {
@@ -141,7 +141,7 @@ function Home() {
       window.removeEventListener("auth-change", handleAuthChange);
       window.removeEventListener("auth-expired", handleAuthChange);
     };
-  }, []);
+  }, [fetchWishlist]);
 
   const handleToggleWishlist = async (productId) => {
     const token = getAuthToken();

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
 import Footer from "../../components/Footer/Footer";
@@ -9,6 +9,30 @@ import "./CarDetail.css";
 import { useCart } from "../../context/CartContext";
 import add from "../../assets/icon/add.png";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
+
+const getAuthToken = () => {
+  return localStorage.getItem("authToken") || localStorage.getItem("token");
+};
+
+const getWishlistFromResponse = (response) => {
+  const data = response?.data || response;
+
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data.wishlist)) return data.wishlist;
+  if (Array.isArray(data.products)) return data.products;
+  if (Array.isArray(data.data)) return data.data;
+
+  return [];
+};
+
+const getProductIdFromWishlistItem = (item) => {
+  return (
+    item?._id ||
+    item?.productId ||
+    item?.product?._id ||
+    item?.productId?._id
+  );
+};
 
 function CarDetail() {
   const { id } = useParams();
@@ -28,31 +52,7 @@ function CarDetail() {
   const [reviewSubmitError, setReviewSubmitError] = useState("");
   const [reviewSubmitMessage, setReviewSubmitMessage] = useState("");
 
-  const getAuthToken = () => {
-    return localStorage.getItem("authToken") || localStorage.getItem("token");
-  };
-
-  const getWishlistFromResponse = (response) => {
-    const data = response?.data || response;
-
-    if (Array.isArray(data)) return data;
-    if (Array.isArray(data.wishlist)) return data.wishlist;
-    if (Array.isArray(data.products)) return data.products;
-    if (Array.isArray(data.data)) return data.data;
-
-    return [];
-  };
-
-  const getProductIdFromWishlistItem = (item) => {
-    return (
-      item?._id ||
-      item?.productId ||
-      item?.product?._id ||
-      item?.productId?._id
-    );
-  };
-
-  const fetchWishlistStatus = async () => {
+  const fetchWishlistStatus = useCallback(async () => {
     const token = getAuthToken();
 
     if (!token || !id) {
@@ -74,7 +74,7 @@ function CarDetail() {
       console.error("Lỗi khi lấy wishlist:", error);
       setIsWishlisted(false);
     }
-  };
+  }, [id]);
 
   const handleToggleWishlist = async () => {
     const token = getAuthToken();
@@ -120,7 +120,7 @@ function CarDetail() {
 
   useEffect(() => {
     fetchWishlistStatus();
-  }, [id]);
+  }, [fetchWishlistStatus]);
 
   useEffect(() => {
     const handleWishlistChange = () => {
@@ -136,7 +136,7 @@ function CarDetail() {
       window.removeEventListener("auth-expired", handleWishlistChange);
       window.removeEventListener("wishlist-change", handleWishlistChange);
     };
-  }, [id]);
+  }, [fetchWishlistStatus]);
 
   useEffect(() => {
     const fetchReviews = async () => {

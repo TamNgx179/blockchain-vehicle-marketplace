@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
 import Footer from "../../components/Footer/Footer";
@@ -23,6 +23,30 @@ const BRAND_LOGOS = {
   Toyota: toyotaLogo,
   Vinfast: vinfastLogo,
   VinFast: vinfastLogo,
+};
+
+const getAuthToken = () => {
+  return localStorage.getItem("authToken") || localStorage.getItem("token");
+};
+
+const getWishlistFromResponse = (response) => {
+  const data = response?.data || response;
+
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data.wishlist)) return data.wishlist;
+  if (Array.isArray(data.products)) return data.products;
+  if (Array.isArray(data.data)) return data.data;
+
+  return [];
+};
+
+const getProductIdFromWishlistItem = (item) => {
+  return (
+    item?._id ||
+    item?.productId ||
+    item?.product?._id ||
+    item?.productId?._id
+  );
 };
 
 function DualRange({
@@ -176,31 +200,7 @@ function Cars() {
   const [loading, setLoading] = useState(true);
   const { addToCart } = useCart();
 
-  const getAuthToken = () => {
-    return localStorage.getItem("authToken") || localStorage.getItem("token");
-  };
-
-  const getWishlistFromResponse = (response) => {
-    const data = response?.data || response;
-
-    if (Array.isArray(data)) return data;
-    if (Array.isArray(data.wishlist)) return data.wishlist;
-    if (Array.isArray(data.products)) return data.products;
-    if (Array.isArray(data.data)) return data.data;
-
-    return [];
-  };
-
-  const getProductIdFromWishlistItem = (item) => {
-    return (
-      item?._id ||
-      item?.productId ||
-      item?.product?._id ||
-      item?.productId?._id
-    );
-  };
-
-  const fetchWishlist = async () => {
+  const fetchWishlist = useCallback(async () => {
     const token = getAuthToken();
 
     if (!token) {
@@ -222,7 +222,7 @@ function Cars() {
       console.error("Lỗi khi lấy wishlist:", error);
       setWishlistIds([]);
     }
-  };
+  }, []);
 
   const handleToggleWishlist = async (productId) => {
     const token = getAuthToken();
@@ -275,7 +275,7 @@ function Cars() {
 
   useEffect(() => {
     fetchWishlist();
-  }, []);
+  }, [fetchWishlist]);
 
   useEffect(() => {
     const handleWishlistChange = () => {
@@ -298,7 +298,7 @@ function Cars() {
       window.removeEventListener("auth-expired", handleWishlistChange);
       window.removeEventListener("wishlist-change", handleWishlistChange);
     };
-  }, []);
+  }, [fetchWishlist]);
 
   const brandList = useMemo(() => {
     const values = Array.from(new Set(carsList.map((c) => c.brand).filter(Boolean)));
