@@ -8,11 +8,13 @@ import ReviewService from "../../services/reviewService";
 import "./CarDetail.css";
 import { useCart } from "../../context/CartContext";
 import add from "../../assets/icon/add.png";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
 function CarDetail() {
   const { id } = useParams();
   const [car, setCar] = useState(null); // State lưu dữ liệu từ API
   const [loading, setLoading] = useState(true);
   const [activeHeroImage, setActiveHeroImage] = useState("");
+  const [activeGalleryIndex, setActiveGalleryIndex] = useState(null);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const { addToCart } = useCart();
   const [reviews, setReviews] = useState([]);
@@ -155,8 +157,81 @@ function CarDetail() {
   }, [id]);
 
   // Logic xử lý dữ liệu dựa trên cấu trúc JSON mới của bạn
-  const heroImage = car?.heroImage || car?.thumbnailImage || "";
   const gallery = Array.isArray(car?.galleryImages) ? car.galleryImages : [];
+  const activeGalleryImage = activeGalleryIndex !== null ? gallery[activeGalleryIndex] : "";
+
+  const getImageSrc = (src) => {
+    if (!src) return "";
+    if (/^(https?:|data:|blob:)/i.test(src)) return src;
+    return src.startsWith("/") ? src : `/${src}`;
+  };
+
+  const closeGalleryLightbox = () => {
+    setActiveGalleryIndex(null);
+  };
+
+  const showPreviousGalleryImage = () => {
+    setActiveGalleryIndex((current) => {
+      if (!gallery.length) return null;
+      const safeCurrent = current ?? 0;
+      return (safeCurrent - 1 + gallery.length) % gallery.length;
+    });
+  };
+
+  const showNextGalleryImage = () => {
+    setActiveGalleryIndex((current) => {
+      if (!gallery.length) return null;
+      const safeCurrent = current ?? 0;
+      return (safeCurrent + 1) % gallery.length;
+    });
+  };
+
+  useEffect(() => {
+    setActiveGalleryIndex(null);
+  }, [id]);
+
+  useEffect(() => {
+    if (activeGalleryIndex === null) return;
+    if (activeGalleryIndex < 0 || activeGalleryIndex >= gallery.length) {
+      setActiveGalleryIndex(null);
+    }
+  }, [activeGalleryIndex, gallery.length]);
+
+  useEffect(() => {
+    if (activeGalleryIndex === null) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setActiveGalleryIndex(null);
+      }
+
+      if (event.key === "ArrowLeft") {
+        setActiveGalleryIndex((current) => {
+          if (!gallery.length) return null;
+          const safeCurrent = current ?? 0;
+          return (safeCurrent - 1 + gallery.length) % gallery.length;
+        });
+      }
+
+      if (event.key === "ArrowRight") {
+        setActiveGalleryIndex((current) => {
+          if (!gallery.length) return null;
+          const safeCurrent = current ?? 0;
+          return (safeCurrent + 1) % gallery.length;
+        });
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [activeGalleryIndex, gallery.length]);
 
   // Ánh xạ specifications từ API (dimensions, engine, power...)
   const specsEntries = car?.specifications
@@ -283,7 +358,7 @@ function CarDetail() {
           <div className="car-detail-top">
             <div className="car-detail-hero">
               <img
-                src={"/" + activeHeroImage}
+                src={getImageSrc(activeHeroImage)}
                 alt={car.name}
                 loading="eager"
                 decoding="async"
@@ -343,23 +418,98 @@ function CarDetail() {
 
           {gallery.length > 0 ? (
             <section className="car-detail-section">
-              <h2 className="car-detail-section-title">Gallery</h2>
-              <div
-                className="car-detail-gallery"
-                onMouseLeave={() => setActiveHeroImage(heroImage)}
-              >
-                {gallery.map((src) => (
-                  <img
-                    key={src}
-                    src={"/" + src}
-                    alt={`${car.name} gallery`}
-                    loading="lazy"
-                    decoding="async"
-                    onMouseEnter={() => setActiveHeroImage(src)}
-                  />
+              <h2 className="car-detail-section-title car-detail-gallery-title">Gallery</h2>
+              <div className="car-detail-gallery">
+                {gallery.map((src, index) => (
+                  <button
+                    key={`${src}-${index}`}
+                    type="button"
+                    className="car-detail-gallery-item"
+                    onClick={() => setActiveGalleryIndex(index)}
+                    aria-label={`View ${car.name} gallery image ${index + 1}`}
+                  >
+                    <img
+                      src={getImageSrc(src)}
+                      alt={`${car.name} gallery ${index + 1}`}
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </button>
                 ))}
               </div>
             </section>
+          ) : null}
+
+          {activeGalleryImage ? (
+            <div
+              className="car-detail-lightbox"
+              role="dialog"
+              aria-modal="true"
+              aria-label={`${car.name} gallery`}
+              onMouseDown={(event) => {
+                if (event.target === event.currentTarget) closeGalleryLightbox();
+              }}
+            >
+              <div className="car-detail-lightbox-panel">
+                <button
+                  type="button"
+                  className="car-detail-lightbox-close"
+                  onClick={closeGalleryLightbox}
+                  aria-label="Close gallery"
+                >
+                  <X size={24} strokeWidth={2.4} />
+                </button>
+
+                {gallery.length > 1 ? (
+                  <>
+                    <button
+                      type="button"
+                      className="car-detail-lightbox-nav car-detail-lightbox-prev"
+                      onClick={showPreviousGalleryImage}
+                      aria-label="Previous image"
+                    >
+                      <ChevronLeft size={30} strokeWidth={2.5} />
+                    </button>
+                    <button
+                      type="button"
+                      className="car-detail-lightbox-nav car-detail-lightbox-next"
+                      onClick={showNextGalleryImage}
+                      aria-label="Next image"
+                    >
+                      <ChevronRight size={30} strokeWidth={2.5} />
+                    </button>
+                  </>
+                ) : null}
+
+                <div className="car-detail-lightbox-image-wrap">
+                  <img
+                    className="car-detail-lightbox-image"
+                    src={getImageSrc(activeGalleryImage)}
+                    alt={`${car.name} gallery ${activeGalleryIndex + 1}`}
+                  />
+                </div>
+
+                <div className="car-detail-lightbox-count">
+                  {activeGalleryIndex + 1} / {gallery.length}
+                </div>
+
+                {gallery.length > 1 ? (
+                  <div className="car-detail-lightbox-strip">
+                    {gallery.map((src, index) => (
+                      <button
+                        key={`${src}-${index}`}
+                        type="button"
+                        className={`car-detail-lightbox-thumb ${index === activeGalleryIndex ? "active" : ""}`}
+                        onClick={() => setActiveGalleryIndex(index)}
+                        aria-label={`Open gallery image ${index + 1}`}
+                      >
+                        <img src={getImageSrc(src)} alt="" />
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            </div>
           ) : null}
 
           {specsEntries.length > 0 ||

@@ -82,6 +82,18 @@
   cursor: pointer;
   font-weight: bold;
   width: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  line-height: 1;
+}
+
+.metamask-icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 .wallet-info {

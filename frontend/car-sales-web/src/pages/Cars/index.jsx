@@ -463,8 +463,6 @@ function Cars() {
     setPage(1);
   };
 
-  if (loading) return <div className="loading">Loading cars...</div>;
-
   return (
     <>
       <Navbar />
@@ -662,10 +660,35 @@ function Cars() {
               </div>
             </div>
 
-            <div className="cars-results-subtitle">{filteredCars.length} cars</div>
+            <div className="cars-results-subtitle">
+              {loading ? "Preparing inventory..." : `${filteredCars.length} cars`}
+            </div>
 
             <div className="cars-list">
-              {visibleCars.map((car) => {
+              {loading ? (
+                Array.from({ length: 5 }).map((_, index) => (
+                  <div key={`cars-skeleton-${index}`} className="cars-item cars-skeleton-card" aria-hidden="true">
+                    <div className="cars-skeleton-media" />
+                    <div className="cars-skeleton-body">
+                      <div className="cars-skeleton-line cars-skeleton-line-lg" />
+                      <div className="cars-skeleton-line cars-skeleton-line-sm" />
+                      <div className="cars-skeleton-specs">
+                        <span />
+                        <span />
+                        <span />
+                        <span />
+                      </div>
+                      <div className="cars-skeleton-chips">
+                        <span />
+                        <span />
+                        <span />
+                      </div>
+                    </div>
+                    <div className="cars-skeleton-price" />
+                  </div>
+                ))
+              ) : visibleCars.length > 0 ? (
+                visibleCars.map((car) => {
                 const chipItems = [...(Array.isArray(car.safety) ? car.safety : []), ...(Array.isArray(car.convenience) ? car.convenience : [])];
                 const isExpanded = Boolean(expandedTagsById[car._id]);
                 const visibleChips = isExpanded ? chipItems : chipItems.slice(0, 4);
@@ -754,7 +777,12 @@ function Cars() {
                     </div>
                   </div>
                 );
-              })}
+              })
+              ) : (
+                <div className="cars-empty-state">
+                  No cars match the current filters.
+                </div>
+              )}
             </div>
           </section>
         </div>

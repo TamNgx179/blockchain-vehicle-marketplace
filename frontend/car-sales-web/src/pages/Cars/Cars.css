@@ -264,11 +264,13 @@
   place-items: center;
   padding: 18px;
   z-index: 50;
+  overflow-x: hidden;
 }
 
 .cars-make-modal {
   width: min(520px, 100%);
   max-height: min(620px, 90vh);
+  box-sizing: border-box;
   background: #fff;
   border-radius: 16px;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
@@ -276,6 +278,7 @@
   display: grid;
   grid-template-rows: auto auto auto 1fr;
   gap: 12px;
+  overflow: hidden;
 }
 
 .cars-make-header {
@@ -319,6 +322,8 @@
 
 .cars-make-search {
   position: relative;
+  width: 100%;
+  min-width: 0;
 }
 
 .cars-make-search-icon {
@@ -331,7 +336,9 @@
 }
 
 .cars-make-search input {
+  display: block;
   width: 100%;
+  box-sizing: border-box;
   height: 40px;
   padding: 0 12px 0 34px;
   border-radius: 12px;
@@ -356,7 +363,7 @@
 }
 
 .cars-make-tag {
-  height: 48px;
+  height: 64px;
   border-radius: 12px;
   border: 1px solid #e6e6e6;
   background: #fff;
@@ -370,14 +377,14 @@
 }
 
 .cars-make-tag img {
-  width: 26px;
-  height: 26px;
+  width: 44px;
+  height: 44px;
   object-fit: contain;
 }
 
 .cars-make-tag-fallback {
-  width: 26px;
-  height: 26px;
+  width: 44px;
+  height: 44px;
   border-radius: 999px;
   display: grid;
   place-items: center;
@@ -399,10 +406,11 @@
 .cars-make-row {
   width: 100%;
   display: grid;
-  grid-template-columns: 34px 1fr;
+  grid-template-columns: 52px 1fr;
   align-items: center;
-  gap: 10px;
-  padding: 10px 10px;
+  gap: 14px;
+  min-height: 66px;
+  padding: 12px 14px;
   border-radius: 12px;
   border: 1px solid transparent;
   background: transparent;
@@ -420,14 +428,14 @@
 }
 
 .cars-make-row-logo {
-  width: 28px;
-  height: 28px;
+  width: 42px;
+  height: 42px;
   object-fit: contain;
 }
 
 .cars-make-row-fallback {
-  width: 28px;
-  height: 28px;
+  width: 42px;
+  height: 42px;
   border-radius: 999px;
   display: grid;
   place-items: center;
@@ -661,6 +669,88 @@
   margin-top: 18px;
   display: grid;
   gap: 18px;
+}
+
+.cars-skeleton-card {
+  pointer-events: none;
+}
+
+.cars-skeleton-media,
+.cars-skeleton-line,
+.cars-skeleton-specs span,
+.cars-skeleton-chips span,
+.cars-skeleton-price {
+  border-radius: 12px;
+  background: linear-gradient(90deg, #f2f2f2 25%, #e7e7e7 38%, #f2f2f2 63%);
+  background-size: 400% 100%;
+  animation: cars-skeleton-pulse 1.2s ease-in-out infinite;
+}
+
+.cars-skeleton-media {
+  width: 100%;
+  height: 130px;
+}
+
+.cars-skeleton-body {
+  display: grid;
+  gap: 12px;
+}
+
+.cars-skeleton-line {
+  height: 18px;
+}
+
+.cars-skeleton-line-lg {
+  width: min(260px, 75%);
+}
+
+.cars-skeleton-line-sm {
+  width: min(160px, 48%);
+}
+
+.cars-skeleton-specs,
+.cars-skeleton-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.cars-skeleton-specs span {
+  width: 72px;
+  height: 16px;
+}
+
+.cars-skeleton-chips span {
+  width: 96px;
+  height: 28px;
+  border-radius: 999px;
+}
+
+.cars-skeleton-price {
+  width: 112px;
+  height: 28px;
+  justify-self: end;
+  align-self: end;
+}
+
+.cars-empty-state {
+  border: 1px solid #eee;
+  border-radius: 16px;
+  padding: 26px;
+  background: #ffffff;
+  color: #555;
+  font-weight: 800;
+  text-align: center;
+}
+
+@keyframes cars-skeleton-pulse {
+  0% {
+    background-position: 100% 0;
+  }
+
+  100% {
+    background-position: 0 0;
+  }
 }
 
 .cars-item {
