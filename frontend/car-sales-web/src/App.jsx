@@ -61,6 +61,30 @@ const AdminRoute = ({ children }) => {
 function App() {
   const notifyRef = useRef();
 
+  useEffect(() => {
+    // Listen for auth expiration event
+    const handleAuthExpired = () => {
+      // Show notification if available
+      if (notifyRef.current) {
+        notifyRef.current.showNotification(
+          "Session expired",
+          "Your session has expired. Please log in again.",
+          "error"
+        );
+      }
+
+      // Give user a moment to see the notification before redirecting
+      setTimeout(() => {
+        window.location.href = "/login";
+      }, 1500);
+    };
+
+    window.addEventListener("auth-expired", handleAuthExpired);
+    return () => {
+      window.removeEventListener("auth-expired", handleAuthExpired);
+    };
+  }, [notifyRef]);
+
   return (
     <CartProvider>
       <Notification ref={notifyRef} />

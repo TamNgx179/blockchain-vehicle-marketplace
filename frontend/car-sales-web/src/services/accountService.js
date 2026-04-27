@@ -43,10 +43,26 @@ const AccountService = {
    * BE: router.post("/logout", ...)
    */
   logout: async () => {
-    const refreshToken = localStorage.getItem("refreshToken");
-    const response = await api.post("/accounts/logout", { refreshToken });
-    localStorage.clear();
-    return response;
+    try {
+      const refreshToken = localStorage.getItem("refreshToken");
+      if (refreshToken) {
+        await api.post("/accounts/logout", { refreshToken });
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      // Clear all auth data regardless of API success/failure
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      localStorage.removeItem("authUsername");
+      localStorage.removeItem("authEmail");
+
+      // Dispatch event for components to listen to
+      window.dispatchEvent(new Event("auth-change"));
+      window.dispatchEvent(new Event("auth-expired"));
+    }
   },
 
   /* ================= WISHLIST (DANH SÁCH YÊU THÍCH) ================= */

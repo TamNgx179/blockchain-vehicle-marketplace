@@ -4,6 +4,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useSyncExternalStore, useState } from "react";
 import { LogOut, PackageCheck, Pencil, UserRound, X } from "lucide-react";
 import { useCart } from "../../context/CartContext";
+import AccountService from "../../services/accountService";
 import "./Navbar.css";
 
 const subscribeAuthStore = (callback) => {
@@ -66,18 +67,17 @@ function Navbar() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [userPanelOpen]);
 
-  const onLogout = (e) => {
+  const onLogout = async (e) => {
     e.preventDefault();
 
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("token");
-    localStorage.removeItem("authEmail");
-    localStorage.removeItem("authUsername");
-
-    window.dispatchEvent(new Event("auth-change"));
-
-    closeNavigation();
-    navigate("/", { replace: true });
+    try {
+      await AccountService.logout();
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      closeNavigation();
+      navigate("/", { replace: true });
+    }
   };
 
   return (
