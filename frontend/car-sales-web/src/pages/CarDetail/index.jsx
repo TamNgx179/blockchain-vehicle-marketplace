@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
 import Footer from "../../components/Footer/Footer";
 import ProductService from "../../services/ProductService";
-import AccountService from "../../services/AccountService";
+import AccountService from "../../services/accountService";
 import ReviewService from "../../services/reviewService";
 import "./CarDetail.css";
 import { useCart } from "../../context/CartContext";

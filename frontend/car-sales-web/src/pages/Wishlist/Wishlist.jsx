@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
 import Footer from "../../components/Footer/Footer";
-import AccountService from "../../services/AccountService";
+import AccountService from "../../services/accountService";
 import add from "../../assets/icon/add.png";
 import { useCart } from "../../context/CartContext";
 import "./Wishlist.css";

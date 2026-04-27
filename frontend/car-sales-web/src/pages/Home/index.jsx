@@ -5,7 +5,7 @@ import CarList from "../../components/CarList/CarList";
 import Navbar from "../../components/Navbar/Navbar";
 import Footer from "../../components/Footer/Footer";
 import ProductService from "../../services/ProductService";
-import AccountService from "../../services/AccountService";
+import AccountService from "../../services/accountService";
 
 function Home() {
   const [type, setType] = useState("All");
