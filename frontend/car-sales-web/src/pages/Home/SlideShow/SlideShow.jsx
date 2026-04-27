@@ -43,6 +43,7 @@ function SlideShow() {
               className={`slide ${i === index ? "active" : ""}`}
               alt={slide.alt}
               loading={i === 0 ? "eager" : "lazy"}
+              fetchPriority={i === 0 ? "high" : undefined}
             />
           </picture>
         ))}
