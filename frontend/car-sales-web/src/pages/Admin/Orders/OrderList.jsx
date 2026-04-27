@@ -48,6 +48,19 @@ const getVietnameseErrorMessage = (error, fallback) => {
   return rawMessage;
 };
 
+const isFullPaymentRecorded = (order) =>
+  order.paymentType === 'full' &&
+  (
+    order.status === 'payment_paid' ||
+    Boolean(order.fullTxHash) ||
+    Number(order.paidAmount || 0) >= Number(order.totalAmount || 0)
+  );
+
+const getOrderStatusKey = (order) =>
+  order.status === 'pending_payment' && isFullPaymentRecorded(order)
+    ? 'payment_paid'
+    : order.status?.toLowerCase();
+
 const OrderList = () => {
   const [orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -234,7 +247,7 @@ const OrderList = () => {
               <tr><td colSpan="9" className="text-center">Chưa có đơn hàng nào.</td></tr>
             ) : (
               orders.map((order) => {
-                const status = order.status?.toLowerCase();
+                const statusKey = getOrderStatusKey(order);
                 const productName = order.items?.length > 0
                   ? `${order.items[0].name} ${order.items.length > 1 ? `(+${order.items.length - 1})` : ''}`
                   : 'Không rõ';
@@ -242,7 +255,7 @@ const OrderList = () => {
                 // Điều kiện: Đã trả tiền (>0)
                 const isPaid = order.paidAmount > 0;
                 const isExpanded = expandedOrderId === order._id;
-                const canCancel = ['pending_deposit', 'pending_payment', 'deposit_paid'].includes(status);
+                const canCancel = ['pending_deposit', 'pending_payment', 'deposit_paid', 'payment_paid'].includes(statusKey);
                 const hasRunningAction = Boolean(processingAction);
                 const isRowProcessing = processingAction?.orderId === order._id;
                 const isConfirming = isRowProcessing && processingAction.action === 'confirm';
@@ -266,12 +279,12 @@ const OrderList = () => {
                       <td style={{ color: '#059669', fontWeight: 'bold' }}>
                         ${order.paidAmount?.toLocaleString('en-US') || 0}
                       </td>
-                      <td>{renderStatusBadge(order.status)}</td>
+                      <td>{renderStatusBadge(statusKey)}</td>
                       <td className="actions-cell">
 
                         {/* 2. NÚT XÁC NHẬN (Confirm) */}
                         {/* Hiện ra khi: Khách ĐÃ TRẢ TIỀN (cọc hoặc full) VÀ đơn hàng CHƯA được xác nhận/hoàn tất/hủy */}
-                        {isPaid && (status === 'deposit_paid' || status === 'payment_paid') && (
+                        {isPaid && (statusKey === 'deposit_paid' || statusKey === 'payment_paid') && (
                           <button
                             className={`btn-action btn-confirm ${isConfirming ? 'is-loading' : ''}`}
                             onClick={() => handleConfirmOrder(order)}

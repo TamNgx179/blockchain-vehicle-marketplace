@@ -1,6 +1,7 @@
 import express from "express";
 import {
   createOrderFromCart,
+  discardUnpaidOrderController,
   verifyDepositController,
   verifyFullPaymentController,
   verifySellerConfirmController,
@@ -19,6 +20,7 @@ import authenticateToken, {requireAdmin} from "../middlewares/authMiddleware.js"
 const router = express.Router();
 
 router.post("/create-from-cart", authenticateToken, createOrderFromCart);
+router.post("/:id/discard-unpaid", authenticateToken, discardUnpaidOrderController);
 
 router.get("/all-orders", authenticateToken, requireAdmin, getAllOrdersController);
 

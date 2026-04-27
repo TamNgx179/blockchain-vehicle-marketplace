@@ -1,5 +1,6 @@
 import {
   createOrderFromCartService,
+  discardUnpaidOrderService,
   verifyDepositService,
   verifyFullPaymentService,
   verifySellerConfirmService,
@@ -23,6 +24,24 @@ export const createOrderFromCart = async (req, res) => {
       success: true,
       message: "Tạo đơn hàng thành công",
       data: order,
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// ===== DISCARD UNPAID ORDER =====
+export const discardUnpaidOrderController = async (req, res) => {
+  try {
+    const result = await discardUnpaidOrderService(req.user.id, req.params.id);
+
+    res.status(200).json({
+      success: true,
+      message: "Order chua thanh toan da duoc huy tam",
+      data: result,
     });
   } catch (error) {
     res.status(400).json({

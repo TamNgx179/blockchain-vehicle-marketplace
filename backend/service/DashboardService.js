@@ -53,7 +53,7 @@ export const getSummaryService = async () => {
           pendingOrders: {
             $sum: {
               $cond: [
-                { $eq: ["$status", "pending_deposit"] },
+                { $in: ["$status", ["pending_deposit", "pending_payment", "payment_paid"]] },
                 1,
                 0,
               ],
@@ -220,7 +220,7 @@ export const getTopProductsService = async () => {
   return await Order.aggregate([
     {
       $match: {
-        status: { $in: ["deposit_paid", "processing", "completed"] }
+        status: { $in: ["deposit_paid", "payment_paid", "processing", "completed"] }
       }
     },
     { $unwind: "$items" },

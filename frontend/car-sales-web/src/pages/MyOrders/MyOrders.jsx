@@ -35,12 +35,17 @@ const STATUS_CONFIG = {
   pending_payment: {
     label: "Awaiting payment",
     tone: "warning",
-    description: "Your order is waiting for payment or showroom confirmation.",
+    description: "Your order is waiting for full payment.",
   },
   deposit_paid: {
     label: "Deposit paid",
     tone: "info",
     description: "Your deposit has been verified. The order is waiting for showroom confirmation.",
+  },
+  payment_paid: {
+    label: "Payment paid",
+    tone: "info",
+    description: "Your full payment has been verified. The order is waiting for showroom confirmation.",
   },
   processing: {
     label: "Processing",
@@ -101,9 +106,26 @@ const getErrorMessage = (error) => {
 };
 
 const getFullPaymentWei = (order) => {
+  if (order.totalAmountWei) {
+    return ethers.toBigInt(order.totalAmountWei);
+  }
+
   const ethAmount = (Number(order.totalAmount || 0) / USD_PER_ETH).toFixed(18);
   return ethers.parseEther(ethAmount);
 };
+
+const isFullPaymentRecorded = (order) =>
+  order.paymentType === "full" &&
+  (
+    order.status === "payment_paid" ||
+    Boolean(order.fullTxHash) ||
+    Number(order.paidAmount || 0) >= Number(order.totalAmount || 0)
+  );
+
+const getOrderStatusKey = (order) =>
+  order.status === "pending_payment" && isFullPaymentRecorded(order)
+    ? "payment_paid"
+    : order.status;
 
 function MyOrders() {
   const [orders, setOrders] = useState([]);
@@ -134,7 +156,8 @@ function MyOrders() {
   const filteredOrders = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
     return orders.filter((order) => {
-      const matchesStatus = statusFilter === "all" || order.status === statusFilter;
+      const orderStatusKey = getOrderStatusKey(order);
+      const matchesStatus = statusFilter === "all" || orderStatusKey === statusFilter;
       const matchesKeyword =
         !keyword ||
         [
@@ -153,7 +176,7 @@ function MyOrders() {
     () => ({
       total: orders.length,
       waiting: orders.filter((order) =>
-        ["pending_deposit", "pending_payment", "deposit_paid"].includes(order.status)
+        ["pending_deposit", "pending_payment", "deposit_paid", "payment_paid"].includes(getOrderStatusKey(order))
       ).length,
       processing: orders.filter((order) => order.status === "processing").length,
       completed: orders.filter((order) => order.status === "completed").length,
@@ -268,10 +291,9 @@ function MyOrders() {
 
   const renderAction = (order) => {
     const isRunning = actionState?.orderId === order._id;
-    const paidFullWaiting =
-      order.status === "pending_payment" && (order.fullTxHash || Number(order.paidAmount) > 0);
+    const orderStatusKey = getOrderStatusKey(order);
 
-    if (order.status === "pending_deposit") {
+    if (orderStatusKey === "pending_deposit") {
       return (
         <button className="order-action primary" onClick={() => handlePayDeposit(order)} disabled={Boolean(actionState)}>
           {isRunning && actionState.action === "payDeposit" ? <LoaderCircle className="spin-icon" size={17} /> : <Wallet size={17} />}
@@ -280,7 +302,7 @@ function MyOrders() {
       );
     }
 
-    if (order.status === "pending_payment" && !paidFullWaiting) {
+    if (orderStatusKey === "pending_payment") {
       return (
         <button className="order-action primary" onClick={() => handlePayFull(order)} disabled={Boolean(actionState)}>
           {isRunning && actionState.action === "payFull" ? <LoaderCircle className="spin-icon" size={17} /> : <CreditCard size={17} />}
@@ -289,7 +311,7 @@ function MyOrders() {
       );
     }
 
-    if (order.status === "processing") {
+    if (orderStatusKey === "processing") {
       return (
         <button className="order-action success" onClick={() => handleComplete(order)} disabled={Boolean(actionState)}>
           {isRunning && actionState.action === "complete" ? <LoaderCircle className="spin-icon" size={17} /> : <PackageCheck size={17} />}
@@ -302,7 +324,7 @@ function MyOrders() {
   };
 
   const canCancel = (order) =>
-    ["pending_deposit", "pending_payment", "deposit_paid"].includes(order.status);
+    ["pending_deposit", "pending_payment", "deposit_paid", "payment_paid"].includes(getOrderStatusKey(order));
 
   return (
     <>
@@ -356,7 +378,8 @@ function MyOrders() {
             <div className="orders-empty">No matching orders found.</div>
           ) : (
             filteredOrders.map((order) => {
-              const config = STATUS_CONFIG[order.status] || STATUS_CONFIG.pending_deposit;
+              const orderStatusKey = getOrderStatusKey(order);
+              const config = STATUS_CONFIG[orderStatusKey] || STATUS_CONFIG.pending_deposit;
               const isExpanded = expandedOrderId === order._id;
               const isRunning = actionState?.orderId === order._id;
               const txHash = order.fullTxHash || order.depositTxHash;
@@ -396,9 +419,9 @@ function MyOrders() {
 
                   <div className="order-progress">
                     <ProgressStep done label="Order created" />
-                    <ProgressStep done={["deposit_paid", "processing", "completed"].includes(order.status) || Boolean(order.fullTxHash)} label="Payment" />
-                    <ProgressStep done={["processing", "completed"].includes(order.status)} label="Showroom confirmed" />
-                    <ProgressStep done={order.status === "completed"} label="Completed" />
+                    <ProgressStep done={["deposit_paid", "payment_paid", "processing", "completed"].includes(orderStatusKey)} label="Payment" />
+                    <ProgressStep done={["processing", "completed"].includes(orderStatusKey)} label="Showroom confirmed" />
+                    <ProgressStep done={orderStatusKey === "completed"} label="Completed" />
                   </div>
 
                   <p className="order-status-note">{config.description}</p>

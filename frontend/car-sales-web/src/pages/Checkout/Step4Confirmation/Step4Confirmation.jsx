@@ -1,32 +1,38 @@
 import React from 'react';
 import './Step4Confirmation.css';
-function Step4Confirmation({ paymentDetails, txHash }) {
+
+const getOrderLabel = (items = []) => {
+  if (!items.length) return "vehicle order";
+
+  const labels = items.map((item) =>
+    item.quantity > 1 ? `${item.name} x${item.quantity}` : item.name
+  );
+
+  if (labels.length === 1) return labels[0];
+  if (labels.length === 2) return `${labels[0]} and ${labels[1]}`;
+
+  return `${labels.slice(0, -1).join(", ")}, and ${labels[labels.length - 1]}`;
+};
+
+function Step4Confirmation({ paymentDetails, orderedItems = [] }) {
+  const orderLabel = getOrderLabel(orderedItems);
+
   return (
-    <div className="confirmation-container" style={{ textAlign: 'center', padding: '40px' }}>
-      <h2>✅Order Placed Successfully!</h2>
-      <p>Thank you, <strong>{paymentDetails.fullName}</strong>. Your BMW order is being processed.</p>
+    <div className="confirmation-container">
+      <div className="confirmation-icon" aria-hidden="true">✓</div>
+      <h2>Order Placed Successfully!</h2>
+      <p>
+        Thank you, <strong>{paymentDetails.fullName}</strong>. Your{" "}
+        <strong>{orderLabel}</strong> order is being processed.
+      </p>
 
-      {txHash && (
-        <div className="tx-box" style={{ background: '#f8f9fa', padding: '15px', borderRadius: '8px', marginTop: '20px' }}>
-          <p style={{ margin: 0, fontSize: '14px' }}>Transaction Hash:</p>
-          <a
-            href={`https://sepolia.etherscan.io/tx/${txHash}`}
-            target="_blank"
-            rel="noreferrer"
-            style={{ wordBreak: 'break-all', color: '#007bff' }}
-          >
-            {txHash}
-          </a>
-        </div>
-      )}
-
-      <button
-        onClick={() => window.location.href = '/'}
-        style={{ marginTop: '30px', padding: '10px 25px', cursor: 'pointer' }}
-        className="home-button"
-      >
-        Back to Home
-      </button>
+      <div className="confirmation-next-steps">
+        <h3>Track your order status</h3>
+        <p>
+          Open My Orders to follow payment verification, showroom confirmation,
+          delivery progress, and transaction history.
+        </p>
+      </div>
     </div>
   );
 }
