@@ -7,10 +7,12 @@ import Checkout from "./pages/Checkout/Checkout";
 import { CartProvider } from "./context/CartContext";
 import Notification from "./components/Notification/Notification";
 import Auth from "./pages/Auth";
+import About from "./pages/About/About";
+import Wishlist from "./pages/Wishlist/Wishlist";
 import AccountService from "./services/accountService";
 import AdminLayout from "./pages/Admin/AdminLayout";
 import ProductEdit from "./pages/Admin/ProductEdit/ProductEdit";
-import { isAuthenticated, handleLogout } from "./utils/authUtils"; 
+import { isAuthenticated, handleLogout } from "./utils/authUtils";
 
 const AdminDashboard = lazy(() => import("./pages/Admin/Dashboard/Dashboard"));
 const OrderList = lazy(() => import("./pages/Admin/Orders/OrderList"));
@@ -18,20 +20,28 @@ const ProductList = lazy(() => import("./pages/Admin/Products/ProductList"));
 const MyOrders = lazy(() => import("./pages/MyOrders/MyOrders"));
 const Profile = lazy(() => import("./pages/Profile/Profile"));
 const Contact = lazy(() => import("./pages/Contact/Contact"));
-const About = lazy(() => import("./pages/About/About"));
 const AdminContactList = lazy(() =>
   import("./pages/Admin/Contacts/ContactList")
 );
 
 // --- 1. PROTECTED ROUTE (Cho User đã đăng nhập) ---
 const PrivateRoute = ({ children }) => {
-  if (!isAuthenticated()) {
-    handleLogout();
-    return null;
+  const authenticated = isAuthenticated();
+
+  useEffect(() => {
+    if (!authenticated) {
+      handleLogout();
+    }
+  }, [authenticated]);
+
+  if (!authenticated) {
+    return <Navigate to="/login" replace />;
   }
 
   return children;
 };
+
+const PageFallback = () => <div>Dang tai trang...</div>;
 
 // --- 2. ADMIN ROUTE (Check quyền qua API) ---
 const AdminRoute = ({ children }) => {
@@ -107,7 +117,7 @@ function App() {
       <Notification ref={notifyRef} />
 
       <BrowserRouter>
-        <Suspense fallback={<div>Đang tải trang...</div>}>
+        <Suspense fallback={<PageFallback />}>
           <Routes>
             {/* PUBLIC */}
             <Route path="/login" element={<Auth initialMode="login" />} />
@@ -136,6 +146,14 @@ function App() {
               element={
                 <PrivateRoute>
                   <MyOrders />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/wishlist"
+              element={
+                <PrivateRoute>
+                  <Wishlist />
                 </PrivateRoute>
               }
             />
