@@ -2,21 +2,23 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
 import Footer from "../../components/Footer/Footer";
-import ProductService from "../../services/ProductService"; // Import Service của bạn
+import ProductService from "../../services/ProductService";
 import AccountService from "../../services/AccountService";
 import ReviewService from "../../services/reviewService";
 import "./CarDetail.css";
 import { useCart } from "../../context/CartContext";
 import add from "../../assets/icon/add.png";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
+
 function CarDetail() {
   const { id } = useParams();
-  const [car, setCar] = useState(null); // State lưu dữ liệu từ API
+  const [car, setCar] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeHeroImage, setActiveHeroImage] = useState("");
   const [activeGalleryIndex, setActiveGalleryIndex] = useState(null);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const { addToCart } = useCart();
+
   const [reviews, setReviews] = useState([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [reviewsError, setReviewsError] = useState("");
@@ -99,14 +101,12 @@ function CarDetail() {
     }
   };
 
-  // 1. Gọi API lấy dữ liệu sản phẩm
   useEffect(() => {
     const fetchProduct = async () => {
       try {
         setLoading(true);
         const data = await ProductService.getProductById(id);
         setCar(data);
-        // Thiết lập ảnh hero mặc định từ API
         setActiveHeroImage(data?.heroImage || data?.thumbnailImage || "");
       } catch (error) {
         console.error("Lỗi khi lấy chi tiết sản phẩm:", error);
@@ -141,8 +141,10 @@ function CarDetail() {
   useEffect(() => {
     const fetchReviews = async () => {
       if (!id) return;
+
       setReviewsLoading(true);
       setReviewsError("");
+
       try {
         const res = await ReviewService.getReviewsByProductId(id);
         setReviews(Array.isArray(res?.data) ? res.data : []);
@@ -156,9 +158,9 @@ function CarDetail() {
     fetchReviews();
   }, [id]);
 
-  // Logic xử lý dữ liệu dựa trên cấu trúc JSON mới của bạn
   const gallery = Array.isArray(car?.galleryImages) ? car.galleryImages : [];
-  const activeGalleryImage = activeGalleryIndex !== null ? gallery[activeGalleryIndex] : "";
+  const activeGalleryImage =
+    activeGalleryIndex !== null ? gallery[activeGalleryIndex] : "";
 
   const getImageSrc = (src) => {
     if (!src) return "";
@@ -192,6 +194,7 @@ function CarDetail() {
 
   useEffect(() => {
     if (activeGalleryIndex === null) return;
+
     if (activeGalleryIndex < 0 || activeGalleryIndex >= gallery.length) {
       setActiveGalleryIndex(null);
     }
@@ -233,34 +236,101 @@ function CarDetail() {
     };
   }, [activeGalleryIndex, gallery.length]);
 
-  // Ánh xạ specifications từ API (dimensions, engine, power...)
+  const formatSpecKey = (key) => {
+    const labels = {
+      dimensions: "Dimensions",
+      fuelConsumption: "Fuel consumption",
+      batteryCapacity: "Battery capacity",
+      model: "Model",
+      engine: "Engine",
+      power: "Power",
+      torque: "Torque",
+      gear: "Gear",
+      topSpeed: "Top speed",
+      weight: "Weight",
+      powertrainType: "Powertrain type",
+    };
+
+    return labels[key] || key;
+  };
+
+  const formatSpecValue = (key, value) => {
+    if (value === undefined || value === null || value === "") return "";
+
+    if (key === "dimensions" && typeof value === "object") {
+      const { length, width, height } = value;
+
+      if (
+        length !== undefined &&
+        width !== undefined &&
+        height !== undefined &&
+        length !== null &&
+        width !== null &&
+        height !== null
+      ) {
+        return `${length} x ${width} x ${height} mm`;
+      }
+
+      return "";
+    }
+
+    if (key === "fuelConsumption" && typeof value === "object") {
+      if (value.value !== undefined && value.value !== null && value.unit) {
+        return `${value.value} ${value.unit}`;
+      }
+
+      return "";
+    }
+
+    if (key === "batteryCapacity" && typeof value === "object") {
+      if (value.value !== undefined && value.value !== null && value.unit) {
+        return `${value.value} ${value.unit}`;
+      }
+
+      return "";
+    }
+
+    if (key === "power") return `${value} hp`;
+    if (key === "torque") return `${value} Nm`;
+    if (key === "topSpeed") return `${value} km/h`;
+    if (key === "weight") return `${value} kg`;
+    if (key === "gear") return `${value} speeds`;
+
+    if (key === "powertrainType") {
+      if (value === "gasoline") return "Gasoline";
+      if (value === "electric") return "Electric";
+      return String(value);
+    }
+
+    return String(value);
+  };
+
   const specsEntries = car?.specifications
-    ? Object.entries(car.specifications).filter(([key]) => key !== "_id")
+    ? Object.entries(car.specifications).filter(([key, value]) => {
+        if (key === "_id") return false;
+
+        if (
+          key === "batteryCapacity" &&
+          car.specifications?.powertrainType === "gasoline"
+        ) {
+          return false;
+        }
+
+        const formattedValue = formatSpecValue(key, value);
+        return formattedValue !== "";
+      })
     : [];
 
   const safetyList = Array.isArray(car?.safety) ? car.safety : [];
   const convenienceList = Array.isArray(car?.convenience) ? car.convenience : [];
 
-  // Màn hình Loading
   if (loading) {
-    return (
-      <>
-        <Navbar />
-        <main className="car-detail"><div className="car-detail-container"><h1>Loading...</h1></div></main>
-        <Footer />
-      </>
-    );
-  }
-
-  // Màn hình lỗi/không tìm thấy
-  if (!car) {
     return (
       <>
         <Navbar />
         <main className="car-detail">
           <div className="car-detail-container">
-            <h1 className="car-detail-title">Không tìm thấy xe</h1>
-            <Link className="car-detail-back" to="/cars">Xem danh sách xe</Link>
+            <h1>Loading...</h1>
           </div>
         </main>
         <Footer />
@@ -268,32 +338,55 @@ function CarDetail() {
     );
   }
 
-  // Logic giá tiền (Giữ nguyên logic của bạn)
-  const usdPerEth = Number(import.meta.env.VITE_USD_PER_ETH || 2000000);
-  const usdPriceText = typeof car.price === "number"
-    ? new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      maximumFractionDigits: 0,
-    }).format(car.price)
-    : null;
+  if (!car) {
+    return (
+      <>
+        <Navbar />
+        <main className="car-detail">
+          <div className="car-detail-container">
+            <h1 className="car-detail-title">Không tìm thấy xe</h1>
+            <Link className="car-detail-back" to="/cars">
+              Xem danh sách xe
+            </Link>
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
 
-  const coinPriceText = typeof car.price === "number" && Number.isFinite(usdPerEth) && usdPerEth > 0
-    ? `${new Intl.NumberFormat("en-US", {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 6,
-    }).format(car.price / usdPerEth)} ETH`
-    : null;
+  const usdPerEth = Number(import.meta.env.VITE_USD_PER_ETH || 2000000);
+
+  const usdPriceText =
+    typeof car.price === "number"
+      ? new Intl.NumberFormat("en-US", {
+          style: "currency",
+          currency: "USD",
+          maximumFractionDigits: 0,
+        }).format(car.price)
+      : null;
+
+  const coinPriceText =
+    typeof car.price === "number" &&
+    Number.isFinite(usdPerEth) &&
+    usdPerEth > 0
+      ? `${new Intl.NumberFormat("en-US", {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 6,
+        }).format(car.price / usdPerEth)} ETH`
+      : null;
 
   const stock = Number(car?.stock) || 0;
   const stockText = stock <= 0 ? "Out of stock" : `${stock} left`;
 
   const authToken = localStorage.getItem("authToken");
   const authUsername = localStorage.getItem("authUsername") || "You";
+
   const ratingValue = Number.isFinite(Number(car?.averageRating))
     ? Number(car.averageRating)
     : reviews.length
-      ? reviews.reduce((sum, item) => sum + Number(item?.rating || 0), 0) / reviews.length
+      ? reviews.reduce((sum, item) => sum + Number(item?.rating || 0), 0) /
+        reviews.length
       : 0;
 
   const reviewCountValue = Number.isFinite(Number(car?.reviewCount))
@@ -312,6 +405,7 @@ function CarDetail() {
 
   const submitReview = async (e) => {
     e.preventDefault();
+
     setReviewSubmitError("");
     setReviewSubmitMessage("");
 
@@ -321,13 +415,19 @@ function CarDetail() {
     }
 
     const numericRating = Number(reviewRating);
-    if (!Number.isFinite(numericRating) || numericRating < 1 || numericRating > 5) {
+
+    if (
+      !Number.isFinite(numericRating) ||
+      numericRating < 1 ||
+      numericRating > 5
+    ) {
       setReviewSubmitError("Rating must be between 1 and 5");
       return;
     }
 
     try {
       setReviewSubmitting(true);
+
       await ReviewService.createReview({
         productId: id,
         rating: numericRating,
@@ -341,10 +441,13 @@ function CarDetail() {
         ProductService.getProductById(id),
         ReviewService.getReviewsByProductId(id),
       ]);
+
       setCar(product);
       setReviews(Array.isArray(reviewsRes?.data) ? reviewsRes.data : []);
     } catch (error) {
-      setReviewSubmitError(error?.response?.data?.message || "Failed to submit review");
+      setReviewSubmitError(
+        error?.response?.data?.message || "Failed to submit review"
+      );
     } finally {
       setReviewSubmitting(false);
     }
@@ -353,6 +456,7 @@ function CarDetail() {
   return (
     <>
       <Navbar />
+
       <main className="car-detail">
         <div className="car-detail-container">
           <div className="car-detail-top">
@@ -374,11 +478,16 @@ function CarDetail() {
 
               <div className="car-detail-title-row">
                 <h1 className="car-detail-title">{car.name}</h1>
+
                 <button
                   type="button"
-                  className={`car-detail-wishlist-btn ${isWishlisted ? "active" : ""}`}
+                  className={`car-detail-wishlist-btn ${
+                    isWishlisted ? "active" : ""
+                  }`}
                   onClick={handleToggleWishlist}
-                  aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+                  aria-label={
+                    isWishlisted ? "Remove from wishlist" : "Add to wishlist"
+                  }
                 >
                   <svg
                     viewBox="0 0 24 24"
@@ -389,22 +498,30 @@ function CarDetail() {
                   </svg>
                 </button>
               </div>
+
               <div className="car-detail-meta">
                 <span>{car.brand}</span>
                 <span>•</span>
-                <span>{car.category}</span> {/* Đổi car.type thành car.category cho khớp JSON */}
+                <span>{car.category}</span>
               </div>
+
               <div className="car-detail-rating">
                 <span className="car-detail-stars" aria-label={ratingText}>
                   {renderStars(ratingValue)}
                 </span>
                 <span className="car-detail-rating-text">{ratingText}</span>
               </div>
+
               <div className="car-detail-stock">{stockText}</div>
-              {usdPriceText ? <div className="car-detail-price">{usdPriceText}</div> : null}
+
+              {usdPriceText ? (
+                <div className="car-detail-price">{usdPriceText}</div>
+              ) : null}
+
               {coinPriceText ? (
                 <div className="car-detail-price-coin">{coinPriceText}</div>
               ) : null}
+
               <button
                 className="add-to-cart"
                 onClick={() => addToCart(car)}
@@ -418,7 +535,10 @@ function CarDetail() {
 
           {gallery.length > 0 ? (
             <section className="car-detail-section">
-              <h2 className="car-detail-section-title car-detail-gallery-title">Gallery</h2>
+              <h2 className="car-detail-section-title car-detail-gallery-title">
+                Gallery
+              </h2>
+
               <div className="car-detail-gallery">
                 {gallery.map((src, index) => (
                   <button
@@ -447,7 +567,9 @@ function CarDetail() {
               aria-modal="true"
               aria-label={`${car.name} gallery`}
               onMouseDown={(event) => {
-                if (event.target === event.currentTarget) closeGalleryLightbox();
+                if (event.target === event.currentTarget) {
+                  closeGalleryLightbox();
+                }
               }}
             >
               <div className="car-detail-lightbox-panel">
@@ -470,6 +592,7 @@ function CarDetail() {
                     >
                       <ChevronLeft size={30} strokeWidth={2.5} />
                     </button>
+
                     <button
                       type="button"
                       className="car-detail-lightbox-nav car-detail-lightbox-next"
@@ -499,7 +622,9 @@ function CarDetail() {
                       <button
                         key={`${src}-${index}`}
                         type="button"
-                        className={`car-detail-lightbox-thumb ${index === activeGalleryIndex ? "active" : ""}`}
+                        className={`car-detail-lightbox-thumb ${
+                          index === activeGalleryIndex ? "active" : ""
+                        }`}
                         onClick={() => setActiveGalleryIndex(index)}
                         aria-label={`Open gallery image ${index + 1}`}
                       >
@@ -513,8 +638,8 @@ function CarDetail() {
           ) : null}
 
           {specsEntries.length > 0 ||
-            safetyList.length > 0 ||
-            convenienceList.length > 0 ? (
+          safetyList.length > 0 ||
+          convenienceList.length > 0 ? (
             <section className="car-detail-section">
               <h2 className="car-detail-section-title car-detail-technical-title">
                 Technical detail
@@ -522,19 +647,21 @@ function CarDetail() {
 
               <div className="car-detail-technical-card">
                 <div className="car-detail-technical-grid">
-                  <div className="car-detail-tech-table">
-                    {specsEntries.map(([key, value]) => (
-                      <div key={key} className="car-detail-tech-row">
-                        <div className="car-detail-tech-key">{key}</div>
-                        <div className="car-detail-tech-value">
-                          {/* Xử lý trường hợp value là object (như dimensions) */}
-                          {typeof value === 'object'
-                            ? JSON.stringify(value).replace(/[{""}]/g, '')
-                            : String(value)}
+                  {specsEntries.length > 0 ? (
+                    <div className="car-detail-tech-table">
+                      {specsEntries.map(([key, value]) => (
+                        <div key={key} className="car-detail-tech-row">
+                          <div className="car-detail-tech-key">
+                            {formatSpecKey(key)}
+                          </div>
+
+                          <div className="car-detail-tech-value">
+                            {formatSpecValue(key, value)}
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  ) : null}
 
                   <div className="car-detail-tech-side">
                     {safetyList.length > 0 ? (
@@ -542,6 +669,7 @@ function CarDetail() {
                         <h3 className="car-detail-tech-heading">
                           Safety & Driving Assistance
                         </h3>
+
                         <ul className="car-detail-tech-bullets">
                           {safetyList.map((item) => (
                             <li key={item}>{item}</li>
@@ -552,7 +680,10 @@ function CarDetail() {
 
                     {convenienceList.length > 0 ? (
                       <div className="car-detail-tech-block">
-                        <h3 className="car-detail-tech-heading">Convenience</h3>
+                        <h3 className="car-detail-tech-heading">
+                          Convenience
+                        </h3>
+
                         <ul className="car-detail-tech-bullets">
                           {convenienceList.map((item) => (
                             <li key={item}>{item}</li>
@@ -578,9 +709,13 @@ function CarDetail() {
               ) : (
                 <form className="car-detail-review-form" onSubmit={submitReview}>
                   <div className="car-detail-review-form-top">
-                    <div className="car-detail-review-author">{authUsername}</div>
+                    <div className="car-detail-review-author">
+                      {authUsername}
+                    </div>
+
                     <label className="car-detail-review-rating">
                       <span>Rating</span>
+
                       <select
                         value={reviewRating}
                         onChange={(e) => setReviewRating(Number(e.target.value))}
@@ -605,13 +740,22 @@ function CarDetail() {
                   />
 
                   {reviewSubmitError ? (
-                    <div className="car-detail-review-error">{reviewSubmitError}</div>
-                  ) : null}
-                  {reviewSubmitMessage ? (
-                    <div className="car-detail-review-success">{reviewSubmitMessage}</div>
+                    <div className="car-detail-review-error">
+                      {reviewSubmitError}
+                    </div>
                   ) : null}
 
-                  <button className="car-detail-review-submit" type="submit" disabled={reviewSubmitting}>
+                  {reviewSubmitMessage ? (
+                    <div className="car-detail-review-success">
+                      {reviewSubmitMessage}
+                    </div>
+                  ) : null}
+
+                  <button
+                    className="car-detail-review-submit"
+                    type="submit"
+                    disabled={reviewSubmitting}
+                  >
                     {reviewSubmitting ? "Submitting..." : "Submit review"}
                   </button>
                 </form>
@@ -619,33 +763,46 @@ function CarDetail() {
             </div>
 
             {reviewsLoading ? (
-              <div className="car-detail-review-state">Loading reviews...</div>
+              <div className="car-detail-review-state">
+                Loading reviews...
+              </div>
             ) : reviewsError ? (
-              <div className="car-detail-review-state car-detail-review-error">{reviewsError}</div>
+              <div className="car-detail-review-state car-detail-review-error">
+                {reviewsError}
+              </div>
             ) : reviews.length === 0 ? (
               <div className="car-detail-review-state">No reviews yet.</div>
             ) : (
               <div className="car-detail-review-list">
                 {reviews
                   .slice()
-                  .sort((a, b) => new Date(b?.createdAt || 0) - new Date(a?.createdAt || 0))
+                  .sort(
+                    (a, b) =>
+                      new Date(b?.createdAt || 0) -
+                      new Date(a?.createdAt || 0)
+                  )
                   .map((review) => (
                     <div key={review?._id} className="car-detail-review-item">
                       <div className="car-detail-review-item-top">
                         <div className="car-detail-review-item-user">
                           {review?.userId?.username || "User"}
                         </div>
+
                         <div className="car-detail-review-item-stars">
                           {renderStars(review?.rating)}
                         </div>
                       </div>
+
                       {review?.comment ? (
-                        <div className="car-detail-review-item-comment">{review.comment}</div>
+                        <div className="car-detail-review-item-comment">
+                          {review.comment}
+                        </div>
                       ) : (
                         <div className="car-detail-review-item-comment car-detail-review-item-muted">
                           (No comment)
                         </div>
                       )}
+
                       <div className="car-detail-review-item-date">
                         {review?.createdAt
                           ? new Date(review.createdAt).toLocaleString("en-US")
@@ -658,6 +815,7 @@ function CarDetail() {
           </section>
         </div>
       </main>
+
       <Footer />
     </>
   );

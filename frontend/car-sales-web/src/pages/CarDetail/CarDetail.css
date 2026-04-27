@@ -6,7 +6,8 @@
 
 .car-detail button,
 .car-detail input,
-.car-detail select {
+.car-detail select,
+.car-detail textarea {
   font-family: inherit;
 }
 
@@ -168,8 +169,9 @@
   color: #111;
 }
 
+/* Gallery title chỉnh to bằng Technical detail */
 .car-detail-gallery-title {
-  font-size: 28px;
+  font-size: 34px;
   line-height: 1.2;
   margin-bottom: 20px;
 }
@@ -241,7 +243,7 @@
   font-weight: 600;
 }
 
-.car-detail-tech-bullets li+li {
+.car-detail-tech-bullets li + li {
   margin-top: 6px;
 }
 
@@ -437,47 +439,6 @@
   color: #222;
 }
 
-@media (max-width: 980px) {
-  .car-detail-top {
-    grid-template-columns: 1fr;
-  }
-
-  .car-detail-hero {
-    aspect-ratio: 4 / 3;
-  }
-
-  .car-detail-technical-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .car-detail-gallery {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 640px) {
-  .car-detail-container {
-    padding: 28px 20px;
-  }
-
-  .car-detail-title {
-    font-size: 28px;
-  }
-
-  .car-detail-gallery {
-    grid-template-columns: 1fr;
-  }
-
-  .car-detail-specs {
-    grid-template-columns: 1fr;
-  }
-
-  .car-detail-list {
-    grid-template-columns: 1fr;
-  }
-}
-
-
 /* ===============================
    STOCK STATUS
 =============================== */
@@ -519,7 +480,6 @@
   border-radius: 5px;
   cursor: pointer;
   aspect-ratio: 1 / 1;
-  /* Cố định tỉ lệ 1:1 */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -533,269 +493,18 @@
 }
 
 .add-to-cart:hover {
-  background-color: #3080F8;
-  /* Đổi sang màu xanh thương hiệu khi hover */
+  background-color: #3080f8;
   transform: translateY(-2px);
-  /* Nhấc nút lên một chút tạo chiều sâu */
   box-shadow: 0 4px 12px rgba(48, 128, 248, 0.3);
-  /* Đổ bóng nhẹ cùng tông màu */
 }
 
-/* Hiệu ứng cho icon bên trong khi hover */
 .add-to-cart:hover img {
   transform: scale(1.15) rotate(-5deg);
-  /* Phóng to và xoay nhẹ icon cho sinh động */
 }
 
-/* Hiệu ứng khi nhấn vào (Active) */
 .add-to-cart:active {
   transform: translateY(0);
-  /* Nút lún xuống khi bấm */
   filter: brightness(0.9);
-  /* Làm tối màu đi một chút */
-}
-
-/* =====================================
-   RESPONSIVE - CAR DETAIL PAGE
-   Gắn cuối file CSS hiện tại
-===================================== */
-
-/* Laptop nhỏ */
-@media (max-width: 1200px) {
-  .car-detail-container {
-    padding: 36px 5%;
-  }
-
-  .car-detail-top {
-    gap: 24px;
-  }
-
-  .car-detail-title {
-    font-size: 30px;
-  }
-
-  .car-detail-technical-grid {
-    gap: 24px;
-  }
-}
-
-/* Tablet ngang */
-@media (max-width: 980px) {
-  .car-detail-container {
-    padding: 32px 24px;
-  }
-
-  .car-detail-top {
-    grid-template-columns: 1fr;
-    gap: 24px;
-  }
-
-  .car-detail-hero {
-    aspect-ratio: 16 / 10;
-  }
-
-  .car-detail-summary {
-    gap: 12px;
-  }
-
-  .car-detail-title {
-    font-size: 28px;
-  }
-
-  .car-detail-price {
-    font-size: 20px;
-  }
-
-  .car-detail-technical-grid {
-    grid-template-columns: 1fr;
-    gap: 22px;
-  }
-
-  .car-detail-gallery {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .car-detail-gallery-item {
-    aspect-ratio: auto;
-    height: 180px;
-  }
-}
-
-/* Tablet dọc */
-@media (max-width: 768px) {
-  .car-detail-container {
-    padding: 28px 18px;
-  }
-
-  .car-detail-topbar {
-    margin-bottom: 14px;
-  }
-
-  .car-detail-title {
-    font-size: 25px;
-    line-height: 1.2;
-  }
-
-  .car-detail-meta {
-    flex-wrap: wrap;
-    gap: 8px;
-    font-size: 14px;
-  }
-
-  .car-detail-price {
-    font-size: 19px;
-  }
-
-  .car-detail-purchase {
-    height: 44px;
-    font-size: 13px;
-  }
-
-  .car-detail-back {
-    padding: 9px 14px;
-    font-size: 13px;
-  }
-
-  .car-detail-section {
-    margin-top: 34px;
-  }
-
-  .car-detail-section-title,
-  .car-detail-tech-heading {
-    font-size: 20px;
-  }
-
-  .car-detail-technical-title {
-    font-size: 28px;
-  }
-
-  .car-detail-tech-row {
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    padding: 10px 12px;
-  }
-
-  .car-detail-specs,
-  .car-detail-list {
-    grid-template-columns: 1fr;
-  }
-
-  .car-detail-spec {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-/* Mobile */
-@media (max-width: 576px) {
-  .car-detail-container {
-    padding: 24px 14px;
-  }
-
-  .car-detail-breadcrumb {
-    font-size: 12px;
-    gap: 6px;
-    flex-wrap: wrap;
-  }
-
-  .car-detail-title {
-    font-size: 22px;
-  }
-
-  .car-detail-price {
-    font-size: 18px;
-  }
-
-  .car-detail-price-coin {
-    font-size: 12px;
-    margin-top: -2px;
-  }
-
-  .car-detail-hero {
-    border-radius: 14px;
-    aspect-ratio: 4 / 3;
-  }
-
-  .car-detail-purchase {
-    height: 42px;
-    border-radius: 10px;
-    font-size: 12px;
-  }
-
-  .car-detail-gallery {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-
-  .car-detail-gallery-item {
-    aspect-ratio: auto;
-    height: 220px;
-  }
-
-  .car-detail-technical-card {
-    padding: 14px;
-  }
-
-  .car-detail-tech-row {
-    grid-template-columns: 1fr;
-    gap: 4px;
-  }
-
-  .car-detail-tech-key,
-  .car-detail-tech-value {
-    font-size: 13px;
-  }
-
-  .car-detail-spec {
-    grid-template-columns: 1fr;
-    gap: 6px;
-    padding: 12px;
-  }
-
-  .car-detail-spec dd {
-    text-align: left;
-  }
-
-  .car-detail-list li {
-    padding: 12px;
-    font-size: 14px;
-  }
-
-  .car-detail-summary .add-to-cart {
-    width: 38px;
-    padding: 8px;
-  }
-
-  .add-to-cart img {
-    width: 18px;
-    height: 18px;
-  }
-}
-
-/* Mobile nhỏ */
-@media (max-width: 400px) {
-  .car-detail-container {
-    padding: 20px 10px;
-  }
-
-  .car-detail-title {
-    font-size: 20px;
-  }
-
-  .car-detail-section-title {
-    font-size: 18px;
-  }
-
-  .car-detail-technical-title {
-    font-size: 22px;
-  }
-
-  .car-detail-gallery-item {
-    height: 180px;
-  }
-
-  .car-detail-purchase {
-    font-size: 11px;
-  }
 }
 
 .car-detail-rating {
@@ -824,6 +533,7 @@
   background: #ffffff;
   padding: 16px;
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
 }
 
 .car-detail-review-auth {
@@ -844,6 +554,7 @@
 .car-detail-review-form {
   display: grid;
   gap: 12px;
+  width: 100%;
 }
 
 .car-detail-review-form-top {
@@ -874,16 +585,27 @@
   font-weight: 800;
 }
 
+/* Fix textarea bị tràn ra khỏi card */
 .car-detail-review-textarea {
   width: 100%;
+  max-width: 100%;
+  display: block;
+  box-sizing: border-box;
   border-radius: 12px;
   border: 1px solid #ddd;
   padding: 12px;
   font-weight: 600;
   resize: vertical;
+  min-height: 120px;
+  outline: none;
+}
+
+.car-detail-review-textarea:focus {
+  border-color: #111;
 }
 
 .car-detail-review-submit {
+  width: 100%;
   height: 44px;
   border-radius: 12px;
   border: none;
@@ -1030,7 +752,225 @@
   stroke: currentColor;
 }
 
+/* =====================================
+   RESPONSIVE - CAR DETAIL PAGE
+===================================== */
+
+/* Laptop nhỏ */
+@media (max-width: 1200px) {
+  .car-detail-container {
+    padding: 36px 5%;
+  }
+
+  .car-detail-top {
+    gap: 24px;
+  }
+
+  .car-detail-title {
+    font-size: 30px;
+  }
+
+  .car-detail-technical-grid {
+    gap: 24px;
+  }
+}
+
+/* Tablet ngang */
+@media (max-width: 980px) {
+  .car-detail-container {
+    padding: 32px 24px;
+  }
+
+  .car-detail-top {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .car-detail-hero {
+    aspect-ratio: 16 / 10;
+  }
+
+  .car-detail-summary {
+    gap: 12px;
+  }
+
+  .car-detail-title {
+    font-size: 28px;
+  }
+
+  .car-detail-price {
+    font-size: 20px;
+  }
+
+  .car-detail-technical-grid {
+    grid-template-columns: 1fr;
+    gap: 22px;
+  }
+
+  .car-detail-gallery {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .car-detail-gallery-item {
+    aspect-ratio: auto;
+    height: 180px;
+  }
+}
+
+/* Tablet dọc */
+@media (max-width: 768px) {
+  .car-detail-container {
+    padding: 28px 18px;
+  }
+
+  .car-detail-topbar {
+    margin-bottom: 14px;
+  }
+
+  .car-detail-title {
+    font-size: 25px;
+    line-height: 1.2;
+  }
+
+  .car-detail-meta {
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 14px;
+  }
+
+  .car-detail-price {
+    font-size: 19px;
+  }
+
+  .car-detail-purchase {
+    height: 44px;
+    font-size: 13px;
+  }
+
+  .car-detail-back {
+    padding: 9px 14px;
+    font-size: 13px;
+  }
+
+  .car-detail-section {
+    margin-top: 34px;
+  }
+
+  .car-detail-section-title,
+  .car-detail-tech-heading {
+    font-size: 20px;
+  }
+
+  .car-detail-gallery-title,
+  .car-detail-technical-title {
+    font-size: 28px;
+  }
+
+  .car-detail-tech-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 10px 12px;
+  }
+
+  .car-detail-specs,
+  .car-detail-list {
+    grid-template-columns: 1fr;
+  }
+
+  .car-detail-spec {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .car-detail-review-form-top {
+    align-items: flex-start;
+  }
+}
+
+/* Mobile */
 @media (max-width: 576px) {
+  .car-detail-container {
+    padding: 24px 14px;
+  }
+
+  .car-detail-breadcrumb {
+    font-size: 12px;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .car-detail-title {
+    font-size: 22px;
+  }
+
+  .car-detail-price {
+    font-size: 18px;
+  }
+
+  .car-detail-price-coin {
+    font-size: 12px;
+    margin-top: -2px;
+  }
+
+  .car-detail-hero {
+    border-radius: 14px;
+    aspect-ratio: 4 / 3;
+  }
+
+  .car-detail-purchase {
+    height: 42px;
+    border-radius: 10px;
+    font-size: 12px;
+  }
+
+  .car-detail-gallery {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .car-detail-gallery-item {
+    aspect-ratio: auto;
+    height: 220px;
+  }
+
+  .car-detail-technical-card {
+    padding: 14px;
+  }
+
+  .car-detail-tech-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .car-detail-tech-key,
+  .car-detail-tech-value {
+    font-size: 13px;
+  }
+
+  .car-detail-spec {
+    grid-template-columns: 1fr;
+    gap: 6px;
+    padding: 12px;
+  }
+
+  .car-detail-spec dd {
+    text-align: left;
+  }
+
+  .car-detail-list li {
+    padding: 12px;
+    font-size: 14px;
+  }
+
+  .car-detail-summary .add-to-cart {
+    width: 38px;
+    padding: 8px;
+  }
+
+  .add-to-cart img {
+    width: 18px;
+    height: 18px;
+  }
+
   .car-detail-title-row {
     align-items: flex-start;
     gap: 10px;
@@ -1045,9 +985,52 @@
     width: 18px;
     height: 18px;
   }
+
+  .car-detail-review-card {
+    padding: 14px;
+  }
+
+  .car-detail-review-form-top {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .car-detail-review-rating {
+    justify-content: space-between;
+  }
+
+  .car-detail-review-rating select {
+    width: 80px;
+  }
 }
 
+/* Mobile nhỏ */
 @media (max-width: 400px) {
+  .car-detail-container {
+    padding: 20px 10px;
+  }
+
+  .car-detail-title {
+    font-size: 20px;
+  }
+
+  .car-detail-section-title {
+    font-size: 18px;
+  }
+
+  .car-detail-gallery-title,
+  .car-detail-technical-title {
+    font-size: 22px;
+  }
+
+  .car-detail-gallery-item {
+    height: 180px;
+  }
+
+  .car-detail-purchase {
+    font-size: 11px;
+  }
+
   .car-detail-wishlist-btn {
     width: 36px;
     height: 36px;
@@ -1059,6 +1042,7 @@
   }
 }
 
+/* Giữ hero image không bị nền, viền, shadow */
 .car-detail .car-detail-top .car-detail-hero {
   background: transparent !important;
   border: 0 !important;
