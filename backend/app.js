@@ -26,6 +26,16 @@ const app = express();
 // Kết nối Database
 connectDB();
 
+const deployedOrigins = [
+  process.env.FRONTEND_URL,
+  process.env.CLIENT_URL,
+  process.env.CORS_ORIGIN,
+]
+  .filter(Boolean)
+  .flatMap((value) => value.split(","))
+  .map((value) => value.trim().replace(/\/$/, ""))
+  .filter(Boolean);
+
 // Middleware cơ bản
 app.use(
   cors({
@@ -35,9 +45,12 @@ app.use(
         "http://127.0.0.1:5173",
         "http://192.168.0.4:5173",
       ]);
+      deployedOrigins.forEach((allowedOrigin) => {
+        allowedOrigins.add(allowedOrigin);
+      });
 
       if (!origin) return callback(null, true);
-      if (allowedOrigins.has(origin)) return callback(null, true);
+      if (allowedOrigins.has(origin.replace(/\/$/, ""))) return callback(null, true);
 
       return callback(new Error("Not allowed by CORS"));
     },

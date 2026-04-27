@@ -1,0 +1,12 @@
+[build]
+  base = "frontend/car-sales-web"
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  VITE_API_URL = "https://car-api-x622.onrender.com"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

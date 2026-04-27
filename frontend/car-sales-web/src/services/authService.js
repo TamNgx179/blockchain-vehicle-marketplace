@@ -1,5 +1,7 @@
 import api from "./api";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
 const AuthService = {
   // Đăng ký tài khoản mới
   register: (data) => api.post("/users/register", data),
@@ -40,7 +42,7 @@ const AuthService = {
 
   // Đăng nhập bằng Google
   googleLogin: () => {
-    window.location.href = "http://localhost:3000/api/users/auth/google";
+    window.location.href = `${API_URL}/api/users/auth/google`;
   },
 
   // Quên mật khẩu - gửi OTP về mail
