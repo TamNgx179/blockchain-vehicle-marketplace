@@ -1,0 +1,24 @@
+name: carsales
+
+services:
+  backend:
+    build:
+      context: ./backend
+    container_name: car-sales-backend
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./backend/.env
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend/car-sales-web
+      args:
+        VITE_API_URL: http://localhost:3000
+    container_name: car-sales-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
