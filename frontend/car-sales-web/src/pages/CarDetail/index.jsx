@@ -210,6 +210,9 @@ function CarDetail() {
     }).format(car.price / usdPerEth)} ETH`
     : null;
 
+  const stock = Number(car?.stock) || 0;
+  const stockText = stock <= 0 ? "Out of stock" : `${stock} left`;
+
   const authToken = localStorage.getItem("authToken");
   const authUsername = localStorage.getItem("authUsername") || "You";
   const ratingValue = Number.isFinite(Number(car?.averageRating))
@@ -322,11 +325,17 @@ function CarDetail() {
                 </span>
                 <span className="car-detail-rating-text">{ratingText}</span>
               </div>
+              <div className="car-detail-stock">{stockText}</div>
               {usdPriceText ? <div className="car-detail-price">{usdPriceText}</div> : null}
               {coinPriceText ? (
                 <div className="car-detail-price-coin">{coinPriceText}</div>
               ) : null}
-              <button className="add-to-cart" onClick={() => addToCart(car)}>
+              <button
+                className="add-to-cart"
+                onClick={() => addToCart(car)}
+                disabled={stock <= 0}
+                title={stock <= 0 ? "Out of stock" : "Add to cart"}
+              >
                 <img src={add} alt="Add to cart icon" />
               </button>
             </div>

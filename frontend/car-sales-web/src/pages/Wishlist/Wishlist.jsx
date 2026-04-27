@@ -129,8 +129,12 @@ function Wishlist() {
           </div>
         ) : (
           <div className="wishlist-grid">
-            {wishlist.map((car) => (
-              <article className="wishlist-card" key={car._id}>
+            {wishlist.map((car) => {
+              const stock = Number(car?.stock) || 0;
+              const stockText = stock <= 0 ? "Out of stock" : `${stock} left`;
+
+              return (
+                <article className="wishlist-card" key={car._id}>
                 <button
                   type="button"
                   className="wishlist-remove-heart"
@@ -162,6 +166,8 @@ function Wishlist() {
                   <div>
                     <h3>{car.name}</h3>
 
+                    <div className="wishlist-stock">{stockText}</div>
+
                     <div className="wishlist-card-meta">
                       <span>{car.brand || "Unknown brand"}</span>
                       <span>•</span>
@@ -178,14 +184,17 @@ function Wishlist() {
                       type="button"
                       className="add-to-cart"
                       onClick={() => addToCart(car)}
+                      disabled={stock <= 0}
+                      title={stock <= 0 ? "Out of stock" : "Add to cart"}
                       aria-label="Add to cart"
                     >
                       <img src={add} alt="Add to cart icon" />
                     </button>
                   </div>
                 </div>
-              </article>
-            ))}
+                </article>
+              );
+            })}
           </div>
         )}
       </main>

@@ -6,6 +6,7 @@ import { useCart } from "../../../context/CartContext";
 
 function CarCard({ car, delay, isWishlisted = false, onToggleWishlist }) {
   const { addToCart } = useCart();
+  const stock = Number(car?.stock) || 0;
 
   const handleWishlistClick = (e) => {
     e.preventDefault();
@@ -36,6 +37,10 @@ function CarCard({ car, delay, isWishlisted = false, onToggleWishlist }) {
         </svg>
       </button>
 
+      <div className={`stock-badge ${stock <= 0 ? "out" : stock <= 3 ? "low" : ""}`}>
+        {stock <= 0 ? "Out of stock" : `${stock} left`}
+      </div>
+
       <Link to={`/product/${car._id}`}>
         <img
           className="thumb-img"
@@ -51,6 +56,7 @@ function CarCard({ car, delay, isWishlisted = false, onToggleWishlist }) {
       <div className="body">
         <div className="title">
           <h3>{car.name}</h3>
+
           <p className="id" style={{ display: "none" }}>
             {car._id}
           </p>
@@ -60,7 +66,12 @@ function CarCard({ car, delay, isWishlisted = false, onToggleWishlist }) {
           </Link>
         </div>
 
-        <button className="add-to-cart" onClick={() => addToCart(car)}>
+        <button
+          className="add-to-cart"
+          onClick={() => addToCart(car)}
+          disabled={stock <= 0}
+          title={stock <= 0 ? "Out of stock" : "Add to cart"}
+        >
           <img src={add} alt="Add to cart icon" />
         </button>
       </div>

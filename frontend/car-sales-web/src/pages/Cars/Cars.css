@@ -732,6 +732,19 @@
   height: 18px;
 }
 
+.cars-item-stock {
+  width: fit-content;
+  margin-top: 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #333333;
+  border: 1px solid #e5e7eb;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+
 .cars-item-specs {
   margin-top: 10px;
   display: flex;
@@ -895,6 +908,23 @@
   /* Làm tối màu đi một chút */
 }
 
+.add-to-cart:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.add-to-cart:disabled:hover {
+  background: #cbd5e0;
+  transform: none;
+  box-shadow: none;
+}
+
+.add-to-cart:disabled:hover img {
+  transform: none;
+}
+
 /* ===============================
    RESPONSIVE IMPROVED
 =============================== */
@@ -1030,7 +1060,20 @@
     font-size: 18px;
   }
 
-  .cars-item-specs {
+  .cars-item-stock {
+  width: fit-content;
+  margin-top: 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #333333;
+  border: 1px solid #e5e7eb;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.cars-item-specs {
     gap: 10px;
   }
 
@@ -1170,6 +1213,33 @@
 }
 
 /* ===============================
+   REMOVE LINK UNDERLINES
+=============================== */
+
+.cars-page a,
+.cars-page a:visited,
+.cars-page a:hover,
+.cars-page a:active {
+  text-decoration: none;
+  color: inherit;
+}
+
+.cars-item a,
+.cars-item a:visited,
+.cars-item a:hover,
+.cars-item a:active {
+  text-decoration: none;
+  color: inherit;
+}
+
+.cars-item-name,
+.cars-item-brand,
+.cars-item-spec,
+.cars-chip {
+  text-decoration: none;
+}
+
+/* ===============================
    WISHLIST HEART BUTTON
 =============================== */
 
@@ -1259,5 +1329,12 @@
   .cars-wishlist-icon {
     width: 17px;
     height: 17px;
+  }
+}
+
+@media (max-width: 576px) {
+  .cars-item-stock {
+    font-size: 11px;
+    padding: 5px 8px;
   }
 }

@@ -344,6 +344,39 @@
 }
 
 
+/* ===============================
+   STOCK STATUS
+=============================== */
+
+.car-detail-stock {
+  width: fit-content;
+  padding: 7px 11px;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #333333;
+  border: 1px solid #e5e7eb;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.car-detail-summary .add-to-cart:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.car-detail-summary .add-to-cart:disabled:hover {
+  background: #cbd5e0;
+  transform: none;
+  box-shadow: none;
+}
+
+.car-detail-summary .add-to-cart:disabled:hover img {
+  transform: none;
+}
+
 /* icon add */
 .car-detail-summary .add-to-cart {
   color: #fff;

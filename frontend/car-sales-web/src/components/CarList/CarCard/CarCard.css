@@ -19,7 +19,6 @@
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
-/* Hover */
 .car-card:hover {
   transform: translateY(-5px);
   border-color: #1e90ff;
@@ -85,6 +84,32 @@
 .wishlist-btn.active .wishlist-icon {
   fill: currentColor;
   stroke: currentColor;
+}
+
+/* ===============================
+   STOCK BADGE
+=============================== */
+
+.stock-badge {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 3;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #333333;
+  border: 1px solid #e5e7eb;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.stock-badge.low,
+.stock-badge.out {
+  background: #ffffff;
+  color: #333333;
+  border-color: #e5e7eb;
 }
 
 /* ===============================
@@ -191,6 +216,23 @@
   filter: brightness(0.9);
 }
 
+.add-to-cart:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.add-to-cart:disabled:hover {
+  background: #cbd5e0;
+  transform: none;
+  box-shadow: none;
+}
+
+.add-to-cart:disabled:hover img {
+  transform: none;
+}
+
 /* ===============================
    TABLET
 =============================== */
@@ -223,6 +265,13 @@
   .wishlist-icon {
     width: 18px;
     height: 18px;
+  }
+
+  .stock-badge {
+    top: 11px;
+    left: 11px;
+    padding: 6px 9px;
+    font-size: 11px;
   }
 }
 
@@ -277,6 +326,13 @@
   .wishlist-icon {
     width: 17px;
     height: 17px;
+  }
+
+  .stock-badge {
+    top: 10px;
+    left: 10px;
+    padding: 5px 8px;
+    font-size: 11px;
   }
 }
 

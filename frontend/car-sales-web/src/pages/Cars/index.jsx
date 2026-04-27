@@ -6,7 +6,25 @@ import ProductService from "../../services/ProductService";
 import AccountService from "../../services/AccountService";
 import "./Cars.css";
 import add from "../../assets/icon/add.png";
+import bmwLogo from "../../assets/icon/bmw.png";
+import hondaLogo from "../../assets/icon/honda.png";
+import mercedesLogo from "../../assets/icon/mec.png";
+import porscheLogo from "../../assets/icon/porsche.png";
+import toyotaLogo from "../../assets/icon/toyota.png";
+import vinfastLogo from "../../assets/icon/vinfast.png";
 import { useCart } from "../../context/CartContext";
+
+const BRAND_LOGOS = {
+  BMW: bmwLogo,
+  Honda: hondaLogo,
+  Mercedes: mercedesLogo,
+  "Mercedes-Benz": mercedesLogo,
+  Porsche: porscheLogo,
+  Toyota: toyotaLogo,
+  Vinfast: vinfastLogo,
+  VinFast: vinfastLogo,
+};
+
 function DualRange({
   min,
   max,
@@ -304,10 +322,27 @@ function Cars() {
   }, [brandList]);
 
   const brandLogo = (brand) => {
-    const key = String(brand || "").toLowerCase();
-    const known = new Set(["bmw", "honda", "mercedes", "porsche", "toyota", "vinfast"]);
-    if (!known.has(key)) return null;
-    return `/images/logos/${key}-logo.png`;
+    const brandName = String(brand || "").trim();
+
+    if (BRAND_LOGOS[brandName]) {
+      return BRAND_LOGOS[brandName];
+    }
+
+    const normalizedBrand = brandName
+      .toLowerCase()
+      .replace(/\s+/g, "")
+      .replace(/-/g, "");
+
+    const matchedKey = Object.keys(BRAND_LOGOS).find((key) => {
+      const normalizedKey = key
+        .toLowerCase()
+        .replace(/\s+/g, "")
+        .replace(/-/g, "");
+
+      return normalizedKey === normalizedBrand;
+    });
+
+    return matchedKey ? BRAND_LOGOS[matchedKey] : null;
   };
 
   const toggleMake = (brand) => {
@@ -637,6 +672,8 @@ function Cars() {
                 const remaining = Math.max(0, chipItems.length - 4);
                 const cardImage = car.thumbnailImage || "/images/car.webp";
                 const isWishlisted = wishlistIds.includes(String(car._id));
+                const stock = Number(car?.stock) || 0;
+                const stockText = stock <= 0 ? "Out of stock" : `${stock} left`;
 
                 return (
                   <div key={car._id} className="cars-item">
@@ -674,6 +711,8 @@ function Cars() {
                           </div>
                         </div>
 
+                        <div className="cars-item-stock">{stockText}</div>
+
                         <div className="cars-item-specs">
                           <CarSpecItem icon={<IconYear />} text={`${new Date(car.createdAt).getFullYear()}`} />
                           <CarSpecItem icon={<IconTransmission />} text={getTransmission(car)} />
@@ -703,9 +742,16 @@ function Cars() {
                       </div>
                     </Link>
                     <div className="cars-item-price">
-                      <button className="add-to-cart" onClick={() => addToCart(car)}>
+                      <button
+                        className="add-to-cart"
+                        onClick={() => addToCart(car)}
+                        disabled={stock <= 0}
+                        title={stock <= 0 ? "Out of stock" : "Add to cart"}
+                      >
                         <img src={add} alt="Add to cart icon" />
-                      </button>{priceText(car.price)}</div>
+                      </button>
+                      {priceText(car.price)}
+                    </div>
                   </div>
                 );
               })}
