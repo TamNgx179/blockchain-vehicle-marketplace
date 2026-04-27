@@ -19,6 +19,7 @@ const MyOrders = lazy(() => import("./pages/MyOrders/MyOrders"));
 const Profile = lazy(() => import("./pages/Profile/Profile"));
 const Contact = lazy(() => import("./pages/Contact/Contact"));
 const About = lazy(() => import("./pages/About/About"));
+const Wishlist = lazy(() => import("./pages/Wishlist/Wishlist"));
 const AdminContactList = lazy(() =>
   import("./pages/Admin/Contacts/ContactList")
 );
@@ -136,6 +137,14 @@ function App() {
               element={
                 <PrivateRoute>
                   <MyOrders />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/wishlist"
+              element={
+                <PrivateRoute>
+                  <Wishlist />
                 </PrivateRoute>
               }
             />

@@ -3,11 +3,14 @@ import { Link } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
 import Footer from "../../components/Footer/Footer";
 import AccountService from "../../services/AccountService";
+import add from "../../assets/icon/add.png";
+import { useCart } from "../../context/CartContext";
 import "./Wishlist.css";
 
 function Wishlist() {
   const [wishlist, setWishlist] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { addToCart } = useCart();
 
   const getWishlistFromResponse = (response) => {
     const data = response?.data || response;
@@ -21,7 +24,25 @@ function Wishlist() {
   };
 
   const getProductFromItem = (item) => {
-    return item?.product || item?.productId || item;
+    if (item?.product && typeof item.product === "object") {
+      return item.product;
+    }
+
+    if (item?.productId && typeof item.productId === "object") {
+      return item.productId;
+    }
+
+    return item;
+  };
+
+  const getProductIdFromItem = (item) => {
+    return (
+      item?._id ||
+      item?.id ||
+      item?.productId ||
+      item?.product?._id ||
+      item?.productId?._id
+    );
   };
 
   const fetchWishlist = async () => {
@@ -39,7 +60,18 @@ function Wishlist() {
       const response = await AccountService.getWishlist();
       const list = getWishlistFromResponse(response);
 
-      const cars = list.map(getProductFromItem).filter(Boolean);
+      const cars = list
+        .map((item) => {
+          const product = getProductFromItem(item);
+          const productId = getProductIdFromItem(item);
+
+          return {
+            ...product,
+            _id: product?._id || productId,
+          };
+        })
+        .filter((car) => car && car._id);
+
       setWishlist(cars);
     } catch (error) {
       console.error("Lỗi khi lấy wishlist:", error);
@@ -114,18 +146,42 @@ function Wishlist() {
                   </svg>
                 </button>
 
-                <Link to={`/product/${car._id}`} className="wishlist-image-wrap">
-                  <img src={car.thumbnailImage} alt={car.name} />
+                <Link
+                  to={`/product/${car._id}`}
+                  className="wishlist-image-wrap"
+                >
+                  <img
+                    src={car.thumbnailImage}
+                    alt={car.name}
+                    loading="lazy"
+                    decoding="async"
+                  />
                 </Link>
 
                 <div className="wishlist-card-body">
                   <div>
                     <h3>{car.name}</h3>
+
+                    <div className="wishlist-card-meta">
+                      <span>{car.brand || "Unknown brand"}</span>
+                      <span>•</span>
+                      <span>{car.category || "Car"}</span>
+                    </div>
+
                     {car.price && <p>{car.price.toLocaleString()} USD</p>}
                   </div>
 
                   <div className="wishlist-actions">
                     <Link to={`/product/${car._id}`}>View details</Link>
+
+                    <button
+                      type="button"
+                      className="add-to-cart"
+                      onClick={() => addToCart(car)}
+                      aria-label="Add to cart"
+                    >
+                      <img src={add} alt="Add to cart icon" />
+                    </button>
                   </div>
                 </div>
               </article>

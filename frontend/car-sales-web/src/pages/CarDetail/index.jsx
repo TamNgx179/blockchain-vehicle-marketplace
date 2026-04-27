@@ -3,15 +3,17 @@ import { Link, useParams } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
 import Footer from "../../components/Footer/Footer";
 import ProductService from "../../services/ProductService"; // Import Service của bạn
+import AccountService from "../../services/AccountService";
 import ReviewService from "../../services/reviewService";
 import "./CarDetail.css";
 import { useCart } from "../../context/CartContext";
-import add from '../../assets/icon/add.png';
+import add from "../../assets/icon/add.png";
 function CarDetail() {
   const { id } = useParams();
   const [car, setCar] = useState(null); // State lưu dữ liệu từ API
   const [loading, setLoading] = useState(true);
   const [activeHeroImage, setActiveHeroImage] = useState("");
+  const [isWishlisted, setIsWishlisted] = useState(false);
   const { addToCart } = useCart();
   const [reviews, setReviews] = useState([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
@@ -21,6 +23,79 @@ function CarDetail() {
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const [reviewSubmitError, setReviewSubmitError] = useState("");
   const [reviewSubmitMessage, setReviewSubmitMessage] = useState("");
+
+  const getAuthToken = () => {
+    return localStorage.getItem("authToken") || localStorage.getItem("token");
+  };
+
+  const getWishlistFromResponse = (response) => {
+    const data = response?.data || response;
+
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data.wishlist)) return data.wishlist;
+    if (Array.isArray(data.products)) return data.products;
+    if (Array.isArray(data.data)) return data.data;
+
+    return [];
+  };
+
+  const getProductIdFromWishlistItem = (item) => {
+    return (
+      item?._id ||
+      item?.productId ||
+      item?.product?._id ||
+      item?.productId?._id
+    );
+  };
+
+  const fetchWishlistStatus = async () => {
+    const token = getAuthToken();
+
+    if (!token || !id) {
+      setIsWishlisted(false);
+      return;
+    }
+
+    try {
+      const response = await AccountService.getWishlist();
+      const wishlist = getWishlistFromResponse(response);
+
+      const ids = wishlist
+        .map(getProductIdFromWishlistItem)
+        .filter(Boolean)
+        .map(String);
+
+      setIsWishlisted(ids.includes(String(id)));
+    } catch (error) {
+      console.error("Lỗi khi lấy wishlist:", error);
+      setIsWishlisted(false);
+    }
+  };
+
+  const handleToggleWishlist = async () => {
+    const token = getAuthToken();
+
+    if (!token) {
+      alert("Vui lòng đăng nhập để thêm vào wishlist");
+      return;
+    }
+
+    const nextState = !isWishlisted;
+    setIsWishlisted(nextState);
+
+    try {
+      if (isWishlisted) {
+        await AccountService.removeFromWishlist(id);
+      } else {
+        await AccountService.addToWishlist(id);
+      }
+
+      window.dispatchEvent(new Event("wishlist-change"));
+    } catch (error) {
+      console.error("Lỗi khi cập nhật wishlist:", error);
+      setIsWishlisted(!nextState);
+    }
+  };
 
   // 1. Gọi API lấy dữ liệu sản phẩm
   useEffect(() => {
@@ -39,6 +114,26 @@ function CarDetail() {
     };
 
     if (id) fetchProduct();
+  }, [id]);
+
+  useEffect(() => {
+    fetchWishlistStatus();
+  }, [id]);
+
+  useEffect(() => {
+    const handleWishlistChange = () => {
+      fetchWishlistStatus();
+    };
+
+    window.addEventListener("auth-change", handleWishlistChange);
+    window.addEventListener("auth-expired", handleWishlistChange);
+    window.addEventListener("wishlist-change", handleWishlistChange);
+
+    return () => {
+      window.removeEventListener("auth-change", handleWishlistChange);
+      window.removeEventListener("auth-expired", handleWishlistChange);
+      window.removeEventListener("wishlist-change", handleWishlistChange);
+    };
   }, [id]);
 
   useEffect(() => {
@@ -199,7 +294,23 @@ function CarDetail() {
                 <span>{car.name}</span>
               </div>
 
-              <h1 className="car-detail-title">{car.name}</h1>
+              <div className="car-detail-title-row">
+                <h1 className="car-detail-title">{car.name}</h1>
+                <button
+                  type="button"
+                  className={`car-detail-wishlist-btn ${isWishlisted ? "active" : ""}`}
+                  onClick={handleToggleWishlist}
+                  aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="car-detail-wishlist-icon"
+                    aria-hidden="true"
+                  >
+                    <path d="M20.84 4.61C20.33 4.1 19.72 3.7 19.05 3.43C18.38 3.15 17.66 3.01 16.94 3.01C16.22 3.01 15.5 3.15 14.83 3.43C14.16 3.7 13.55 4.1 13.04 4.61L12 5.65L10.96 4.61C9.93 3.58 8.54 3 7.08 3C5.62 3 4.23 3.58 3.2 4.61C2.17 5.64 1.59 7.03 1.59 8.49C1.59 9.95 2.17 11.34 3.2 12.37L12 21.17L20.84 12.37C21.35 11.86 21.75 11.25 22.03 10.58C22.3 9.91 22.45 9.19 22.45 8.47C22.45 7.75 22.3 7.03 22.03 6.36C21.75 5.69 21.35 5.12 20.84 4.61Z" />
+                  </svg>
+                </button>
+              </div>
               <div className="car-detail-meta">
                 <span>{car.brand}</span>
                 <span>•</span>
