@@ -1,30 +1,58 @@
-import { useState, useEffect } from "react"; // Thêm useEffect
+import { useState, useEffect } from "react";
 import SlideShow from "./SlideShow/SlideShow";
 import Filter from "./Filter/Filter";
 import CarList from "../../components/CarList/CarList";
 import Navbar from "../../components/Navbar/Navbar";
 import Footer from "../../components/Footer/Footer";
-
-// Import ProductService bạn vừa tạo
 import ProductService from "../../services/ProductService";
 
 function Home() {
-  const [type, setType] = useState("EV");
-  const [cars, setCars] = useState([]); // State để lưu danh sách xe từ API
-  const [loading, setLoading] = useState(true); // State để hiển thị loading
+  const [type, setType] = useState("All");
+  const [cars, setCars] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [showLoading, setShowLoading] = useState(false);
 
-  // Gọi API mỗi khi 'type' thay đổi
+  const buildFilterParams = (selectedType) => {
+    if (selectedType === "EV") {
+      return { powertrainType: "electric" };
+    }
+
+    return { category: selectedType };
+  };
+
+  const getCarsFromResponse = (response) => {
+    if (Array.isArray(response)) {
+      return response;
+    }
+
+    if (Array.isArray(response.products)) {
+      return response.products;
+    }
+
+    if (Array.isArray(response.data)) {
+      return response.data;
+    }
+
+    return [];
+  };
+
   useEffect(() => {
     const fetchCars = async () => {
       setLoading(true);
+
       try {
-        // Bạn có thể dùng filterProducts để lấy theo type từ Backend
-        // Ví dụ: GET /api/products/filter?type=EV
-        const data = await ProductService.filterProducts({ type: type });
-        setCars(data.products);
+        let response;
+
+        if (type === "All") {
+          response = await ProductService.getAllProducts();
+        } else {
+          const params = buildFilterParams(type);
+          response = await ProductService.filterProducts(params);
+        }
+
+        setCars(getCarsFromResponse(response));
       } catch (error) {
         console.error("Lỗi khi lấy danh sách xe:", error);
-        // Nếu lỗi, có thể set cars về mảng rỗng
         setCars([]);
       } finally {
         setLoading(false);
@@ -32,7 +60,19 @@ function Home() {
     };
 
     fetchCars();
-  }, [type]); // Chạy lại mỗi khi type thay đổi
+  }, [type]);
+
+  useEffect(() => {
+    let timer;
+
+    if (loading) {
+      timer = setTimeout(() => setShowLoading(true), 200);
+    } else {
+      setShowLoading(false);
+    }
+
+    return () => clearTimeout(timer);
+  }, [loading]);
 
   return (
     <>
@@ -40,15 +80,34 @@ function Home() {
       <SlideShow />
       <Filter type={type} setType={setType} />
 
-      {/* Hiển thị trạng thái Loading nếu đang tải */}
-      {loading ? (
-        <div style={{ textAlign: "center", padding: "50px" }}>
-          <h3>Đang tải danh sách xe...</h3>
+      <div style={{ minHeight: "520px", position: "relative" }}>
+        <div
+          style={{
+            opacity: loading ? 0.45 : 1,
+            transition: "opacity 0.2s ease",
+            pointerEvents: loading ? "none" : "auto",
+          }}
+        >
+          <CarList key={type} cars={cars} />
         </div>
-      ) : (
-        /* Render danh sách xe từ API */
-        <CarList key={type} cars={cars} />
-      )}
+
+        {showLoading && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "flex-start",
+              paddingTop: "24px",
+              background: "rgba(255, 255, 255, 0.4)",
+              zIndex: 2,
+            }}
+          >
+            <h3>Đang tải danh sách xe...</h3>
+          </div>
+        )}
+      </div>
 
       <Footer />
     </>

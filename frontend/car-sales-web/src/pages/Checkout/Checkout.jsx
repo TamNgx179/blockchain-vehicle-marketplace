@@ -130,7 +130,7 @@ function Checkout({ notifyRef }) {
   };
   const handleNextStep = async () => {
     if (selectedIds.length === 0) {
-      notifyRef.current.show("Please select at least one BMW model!");
+      notifyRef.current.show("Please select at least one model!");
       return;
     }
 

@@ -229,12 +229,12 @@
 }
 
 .charts-grid {
-  grid-template-columns: minmax(0, 1.7fr) minmax(360px, 0.9fr);
+  grid-template-columns: minmax(0, 1.7fr) minmax(0, 0.9fr);
   margin-bottom: 20px;
 }
 
 .bottom-grid {
-  grid-template-columns: minmax(0, 1.35fr) minmax(360px, 0.9fr);
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.9fr);
 }
 
 .side-grid {
@@ -1007,5 +1007,102 @@
     width: 32px;
     height: 32px;
     font-size: 0.7rem;
+  }
+}
+
+/* ===== FIX HORIZONTAL OVERFLOW ===== */
+html,
+body,
+#root {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+.dashboard-container {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+.dashboard-header,
+.stat-grid,
+.charts-grid,
+.bottom-grid,
+.side-grid,
+.dashboard-panel,
+.recent-panel,
+.blockchain-panel,
+.top-products-panel {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.recent-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.recent-table {
+  width: 100%;
+  min-width: 680px;
+}
+
+/* Fix chart/recharts overflow */
+.revenue-chart-wrapper,
+.donut-chart-shell,
+.top-product-chart {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+/* Fix header actions overflow */
+.header-actions {
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+
+.btn-secondary,
+.btn-refresh,
+.btn-text,
+.chart-select {
+  max-width: 100%;
+}
+
+@media (max-width: 768px) {
+  .dashboard-container {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .charts-grid,
+  .bottom-grid,
+  .stat-grid,
+  .status-chart-layout,
+  .blockchain-metrics {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .recent-table {
+    min-width: 620px;
+  }
+}
+
+@media (max-width: 420px) {
+  .dashboard-container {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .recent-table {
+    min-width: 560px;
   }
 }

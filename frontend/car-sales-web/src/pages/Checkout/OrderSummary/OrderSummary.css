@@ -1,125 +1,109 @@
 /* ===============================
    ORDER SUMMARY
-   CLEAN / PREMIUM / RESPONSIVE
 =============================== */
 
 #Order-summary {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+#Order-summary *,
+#Order-summary *::before,
+#Order-summary *::after {
+  box-sizing: border-box;
 }
 
 #Order-summary h2 {
-  margin: 0 0 16px;
-  font-size: 24px;
+  margin: 0 0 14px;
+  font-size: 22px;
   font-weight: 700;
-  color: #1a1a1a;
-  letter-spacing: -0.3px;
+  color: #222;
 }
 
 /* ===============================
-   OUTER BOX
+   BOX
 =============================== */
 
 #summary {
   width: 100%;
   max-width: 100%;
-  box-sizing: border-box;
-  background: linear-gradient(180deg, #eef2ff 0%, #f5f7ff 100%);
-  border-radius: 20px;
-  padding: 20px;
-  overflow: hidden;
-  border: 1px solid #dde5ff;
+  padding: 18px;
+  background: #fff;
+  border: 1px solid #e2e2e2;
+  border-radius: 10px;
 }
 
 /* ===============================
-   INNER CARDS
-=============================== */
-
-.car-selected,
-.fee,
-.total-row {
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 16px;
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.04);
-  border: 1px solid #f0f0f0;
-}
-
-/* ===============================
-   ITEMS
+   SELECTED CAR
 =============================== */
 
 .car-selected {
+  padding-bottom: 14px;
   margin-bottom: 14px;
+  border-bottom: 1px solid #e5e5e5;
 }
 
 .car-selected label {
   display: block;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   font-size: 15px;
   font-weight: 700;
-  color: #111;
+  color: #222;
 }
 
 .list-car-selected {
   margin: 0;
   padding-left: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
 }
 
 .list-car-selected li {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 14px;
+  margin-bottom: 8px;
+  color: #444;
   font-size: 14px;
   line-height: 1.5;
-  color: #444;
-  word-break: break-word;
 }
 
-.list-car-selected li::marker {
-  font-weight: 700;
-  color: #1c69d4;
+.list-car-selected li:last-child {
+  margin-bottom: 0;
 }
 
 .list-car-selected li span {
-  flex-shrink: 0;
+  float: right;
+  margin-left: 12px;
   font-weight: 700;
-  color: #111;
+  color: #222;
   white-space: nowrap;
 }
 
 /* ===============================
-   FEE SECTION
+   FEE
 =============================== */
 
 .fee {
   display: flex;
   justify-content: space-between;
-  align-items: center;
   gap: 12px;
-  margin-bottom: 12px;
+  margin: 12px 0;
+  color: #444;
   font-size: 15px;
-  color: #333;
 }
 
 #delivery-fee {
   font-weight: 700;
+  color: #222;
+  white-space: nowrap;
 }
 
-/* Divider */
+/* ===============================
+   DIVIDER
+=============================== */
 
 #summary #cross-line {
   border: none;
-  border-top: 1px dashed #d9e1ff;
-  margin: 10px 2px;
+  border-top: 1px solid #e5e5e5;
+  margin: 14px 0;
 }
 
 /* ===============================
@@ -130,74 +114,37 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0;
+  gap: 12px;
 }
 
 .total-row label {
   font-size: 16px;
-  color: #111;
+  font-weight: 700;
+  color: #222;
 }
 
 #total-fee {
-  font-size: 24px;
-  font-weight: 800;
-  color: #28a745;
-  letter-spacing: -0.4px;
+  font-size: 22px;
+  font-weight: 700;
+  color: #111;
+  white-space: nowrap;
 }
 
 /* ===============================
-   HOVER EFFECT
-=============================== */
-
-.car-selected:hover,
-.fee:hover,
-.total-row:hover {
-  transform: translateY(-1px);
-  transition: 0.2s ease;
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.05);
-}
-
-/* ===============================
-   TABLET
-=============================== */
-
-@media (max-width: 992px) {
-  #summary {
-    padding: 18px;
-  }
-
-  #Order-summary h2 {
-    font-size: 22px;
-  }
-
-  #total-fee {
-    font-size: 22px;
-  }
-}
-
-/* ===============================
-   MOBILE
+   RESPONSIVE
 =============================== */
 
 @media (max-width: 768px) {
   #summary {
     padding: 15px;
-    border-radius: 16px;
   }
 
-  .car-selected,
-  .fee,
-  .total-row {
-    padding: 14px;
-    border-radius: 14px;
+  #Order-summary h2 {
+    font-size: 20px;
   }
 
-  .list-car-selected li {
-    font-size: 13px;
-  }
-
-  .fee,
-  .total-row label {
+  .list-car-selected li,
+  .fee {
     font-size: 14px;
   }
 
@@ -206,71 +153,53 @@
   }
 }
 
-/* ===============================
-   SMALL MOBILE
-=============================== */
-
 @media (max-width: 576px) {
-  #Order-summary h2 {
-    font-size: 20px;
-    margin-bottom: 14px;
-  }
-
   #summary {
-    padding: 12px;
+    padding: 14px;
+    border-radius: 8px;
   }
 
-  .car-selected,
-  .fee,
-  .total-row {
-    padding: 12px;
+  .list-car-selected {
+    padding-left: 16px;
   }
 
-  .list-car-selected li,
+  .list-car-selected li span {
+    float: none;
+    display: block;
+    margin-left: 0;
+    margin-top: 2px;
+    text-align: right;
+  }
+
   .fee,
   .total-row {
-    flex-direction: column;
     align-items: flex-start;
-    gap: 4px;
-  }
-
-  .list-car-selected li span,
-  #delivery-fee,
-  #total-fee {
-    align-self: flex-end;
   }
 
   #total-fee {
-    font-size: 18px;
+    font-size: 19px;
   }
 }
 
-/* ===============================
-   EXTRA SMALL
-=============================== */
-
 @media (max-width: 400px) {
-  #summary {
-    padding: 10px;
-  }
-
   #Order-summary h2 {
     font-size: 18px;
   }
 
-  .car-selected,
-  .fee,
-  .total-row {
-    padding: 10px;
+  #summary {
+    padding: 12px;
   }
 
   .list-car-selected li,
-  .fee,
+  .fee {
+    font-size: 13px;
+  }
+
   .total-row label {
-    font-size: 12px;
+    font-size: 15px;
   }
 
   #total-fee {
-    font-size: 16px;
+    font-size: 18px;
   }
 }
