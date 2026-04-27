@@ -104,8 +104,15 @@ export const CartProvider = ({ children }) => {
     }
   };
 
+  const removePurchasedItems = (ids = []) => {
+    const purchasedIds = new Set((Array.isArray(ids) ? ids : [ids]).filter(Boolean));
+    if (purchasedIds.size === 0) return;
+
+    setCartItems(prev => prev.filter(item => !purchasedIds.has(item._id)));
+  };
+
   return (
-    <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, updateQuantity, loading }}>
+    <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, updateQuantity, removePurchasedItems, loading }}>
       {children}
     </CartContext.Provider>
   );

@@ -268,6 +268,7 @@ function Checkout({ notifyRef }) {
     }
 
     let orderData = null;
+    let paymentCompleted = false;
 
     try {
       setLoading(true);
@@ -292,6 +293,7 @@ function Checkout({ notifyRef }) {
             orderData.totalAmountWei
           );
 
+      paymentCompleted = true;
       setFinalTxHash(txHash);
       setConfirmedItems(selectedItemsForOrder);
       removePurchasedItems(selectedIds);
@@ -299,7 +301,10 @@ function Checkout({ notifyRef }) {
       setStep(4);
     } catch (error) {
       console.error("Checkout payment failed:", error);
-      if (orderData?._id) {
+      if (paymentCompleted) {
+        showMessage("Payment completed. Please open My Orders if the confirmation screen did not update.");
+        setStep(4);
+      } else if (orderData?._id) {
         await discardUnpaidOrder(orderData._id, error);
       } else {
         showMessage("Order failed: " + getCheckoutErrorMessage(error));
