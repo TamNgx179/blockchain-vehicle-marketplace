@@ -13,18 +13,14 @@ import {
   ShieldCheck,
   Wallet,
 } from "lucide-react";
-import { ethers } from "ethers";
 import Navbar from "../../components/Navbar/Navbar";
 import { orderService } from "../../services/orderService";
-import contractArtifact from "../../config/abi.json";
+import {
+  getBuyerMarketplaceContract,
+  getFullPaymentWei,
+  getPositiveWeiValue,
+} from "../../utils/blockchainClient";
 import "./MyOrders.css";
-
-const CONTRACT_ADDRESS =
-  import.meta.env.VITE_CONTRACT_ADDRESS ||
-  "0xD0CF607f0bCD60B5ed02896e682450eA4dBf5BB0";
-const USD_PER_ETH = Number(import.meta.env.VITE_USD_PER_ETH || 2000000);
-const SEPOLIA_CHAIN_ID = 11155111n;
-const SEPOLIA_CHAIN_HEX = "0xaa36a7";
 
 const STATUS_CONFIG = {
   pending_deposit: {
@@ -105,15 +101,6 @@ const getErrorMessage = (error) => {
   return raw;
 };
 
-const getFullPaymentWei = (order) => {
-  if (order.totalAmountWei) {
-    return ethers.toBigInt(order.totalAmountWei);
-  }
-
-  const ethAmount = (Number(order.totalAmount || 0) / USD_PER_ETH).toFixed(18);
-  return ethers.parseEther(ethAmount);
-};
-
 const isFullPaymentRecorded = (order) =>
   order.paymentType === "full" &&
   (
@@ -184,51 +171,6 @@ function MyOrders() {
     [orders]
   );
 
-  const getContract = async (order) => {
-    if (!window.ethereum) {
-      throw new Error("MetaMask is not installed in this browser.");
-    }
-
-    const provider = new ethers.BrowserProvider(window.ethereum);
-    await provider.send("eth_requestAccounts", []);
-    const network = await provider.getNetwork();
-
-    if (network.chainId !== SEPOLIA_CHAIN_ID) {
-      try {
-        await window.ethereum.request({
-          method: "wallet_switchEthereumChain",
-          params: [{ chainId: SEPOLIA_CHAIN_HEX }],
-        });
-      } catch (switchError) {
-        if (switchError?.code !== 4902) throw switchError;
-        await window.ethereum.request({
-          method: "wallet_addEthereumChain",
-          params: [
-            {
-              chainId: SEPOLIA_CHAIN_HEX,
-              chainName: "Sepolia",
-              nativeCurrency: { name: "Sepolia ETH", symbol: "ETH", decimals: 18 },
-              rpcUrls: ["https://rpc.sepolia.org"],
-              blockExplorerUrls: ["https://sepolia.etherscan.io"],
-            },
-          ],
-        });
-      }
-    }
-
-    const signer = await provider.getSigner();
-    const connectedWallet = await signer.getAddress();
-
-    if (
-      order.buyerWallet &&
-      connectedWallet.toLowerCase() !== order.buyerWallet.toLowerCase()
-    ) {
-      throw new Error("The connected MetaMask wallet is not the buyer wallet for this order.");
-    }
-
-    return new ethers.Contract(CONTRACT_ADDRESS, contractArtifact.abi, signer);
-  };
-
   const runOrderAction = async (order, action, handler) => {
     if (actionState) return;
     try {
@@ -245,9 +187,9 @@ function MyOrders() {
 
   const handlePayDeposit = (order) => {
     runOrderAction(order, "payDeposit", async () => {
-      const contract = await getContract(order);
+      const contract = await getBuyerMarketplaceContract(order);
       const tx = await contract.payDeposit(order.blockchainOrderId, {
-        value: ethers.toBigInt(order.depositAmountWei),
+        value: await getPositiveWeiValue(order.depositAmountWei),
       });
       await tx.wait();
       await orderService.verifyDeposit(order._id, tx.hash);
@@ -257,9 +199,9 @@ function MyOrders() {
 
   const handlePayFull = (order) => {
     runOrderAction(order, "payFull", async () => {
-      const contract = await getContract(order);
+      const contract = await getBuyerMarketplaceContract(order);
       const tx = await contract.payFull(order.blockchainOrderId, {
-        value: getFullPaymentWei(order),
+        value: await getFullPaymentWei(order),
       });
       await tx.wait();
       await orderService.verifyFullPayment(order._id, tx.hash);
@@ -270,7 +212,7 @@ function MyOrders() {
   const handleComplete = (order) => {
     if (!window.confirm("Have you received the car and want to complete this transaction?")) return;
     runOrderAction(order, "complete", async () => {
-      const contract = await getContract(order);
+      const contract = await getBuyerMarketplaceContract(order);
       const tx = await contract.completeOrder(order.blockchainOrderId);
       await tx.wait();
       await orderService.verifyComplete(order._id, tx.hash);
@@ -281,7 +223,7 @@ function MyOrders() {
   const handleCancel = (order) => {
     if (!window.confirm("Are you sure you want to cancel this order?")) return;
     runOrderAction(order, "cancel", async () => {
-      const contract = await getContract(order);
+      const contract = await getBuyerMarketplaceContract(order);
       const tx = await contract.cancelOrder(order.blockchainOrderId);
       await tx.wait();
       await orderService.verifyCancel(order._id, tx.hash);
