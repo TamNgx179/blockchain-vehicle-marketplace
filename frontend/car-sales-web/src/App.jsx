@@ -1,19 +1,18 @@
 import { useRef, lazy, Suspense, useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Home from "./pages/Home";
+import CarDetail from "./pages/CarDetail";
+import Cars from "./pages/Cars";
 import { CartProvider } from "./context/CartContext";
 import Notification from "./components/Notification/Notification";
+import Auth from "./pages/Auth";
 import AccountService from "./services/accountService";
+import AdminLayout from "./pages/Admin/AdminLayout";
+import ProductEdit from "./pages/Admin/ProductEdit/ProductEdit";
 import { isAuthenticated, handleLogout } from "./utils/authUtils";
 
-const Auth = lazy(() => import("./pages/Auth"));
-const Cars = lazy(() => import("./pages/Cars"));
-const CarDetail = lazy(() => import("./pages/CarDetail"));
-const Checkout = lazy(() => import("./pages/Checkout/Checkout"));
-const AdminLayout = lazy(() => import("./pages/Admin/AdminLayout"));
-const ProductEdit = lazy(() => import("./pages/Admin/ProductEdit/ProductEdit"));
-
 const AdminDashboard = lazy(() => import("./pages/Admin/Dashboard/Dashboard"));
+const Checkout = lazy(() => import("./pages/Checkout/Checkout"));
 const OrderList = lazy(() => import("./pages/Admin/Orders/OrderList"));
 const ProductList = lazy(() => import("./pages/Admin/Products/ProductList"));
 const MyOrders = lazy(() => import("./pages/MyOrders/MyOrders"));

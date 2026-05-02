@@ -10,10 +10,11 @@ import {
   createOrderOnChain,
   confirmOrderOnChain,
   cancelOrderOnChain,
-  verifyTransaction,
-  getTransactionDetail,
+  getVerifiedMarketplaceReceipt,
+  assertMarketplaceEvent,
   getOrderByBlockchainOrderId,
   getServerWalletAddress,
+  MARKETPLACE_EVENTS,
   CONTRACT_PAYMENT_TYPE,
   CONTRACT_ORDER_STATUS,
 } from "../service/BlockchainService.js";
@@ -70,6 +71,21 @@ const assertServerSellerWallet = (order) => {
       "Ví server không khớp sellerWallet của đơn hàng. Vui lòng kiểm tra SELLER_WALLET và SEPOLIA_PRIVATE_KEY trong .env"
     );
   }
+};
+
+const assertReceiptSender = (receipt, expectedWallet, message) => {
+  if (
+    expectedWallet &&
+    receipt.from?.toLowerCase() !== expectedWallet.toLowerCase()
+  ) {
+    throw new Error(message);
+  }
+};
+
+const getVerifiedActionReceipt = async (txHash, eventName, blockchainOrderId) => {
+  const receipt = await getVerifiedMarketplaceReceipt(txHash);
+  assertMarketplaceEvent(receipt, eventName, blockchainOrderId);
+  return receipt;
 };
 
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -425,6 +441,7 @@ export const verifyDepositService = async (userId, orderId, txHash) => {
     const result = await verifyDeposit(
       order.blockchainOrderId,
       txHash,
+      order.buyerWallet,
       order.sellerWallet,
       order.totalAmount
     );
@@ -498,20 +515,16 @@ export const verifyFullPaymentService = async (userId, orderId, txHash) => {
 
     if (existedTx) throw new Error("Transaction đã được sử dụng");
 
-    const txCheck = await verifyTransaction(txHash);
-    if (!txCheck.exists) throw new Error("Transaction không tồn tại");
-    if (!txCheck.success) throw new Error("Transaction thất bại");
-
-    const tx = await getTransactionDetail(txHash);
-    if (!tx) throw new Error("Không lấy được transaction");
-
-    if (
-      order.buyerWallet &&
-      tx.from &&
-      tx.from.toLowerCase() !== order.buyerWallet.toLowerCase()
-    ) {
-      throw new Error("Transaction này không phải do buyer thực hiện");
-    }
+    const receipt = await getVerifiedActionReceipt(
+      txHash,
+      MARKETPLACE_EVENTS.FULL_PAID,
+      order.blockchainOrderId
+    );
+    assertReceiptSender(
+      receipt,
+      order.buyerWallet,
+      "Transaction nay khong phai do buyer thuc hien"
+    );
 
     const contractOrder = await getOrderByBlockchainOrderId(order.blockchainOrderId);
 
@@ -600,16 +613,16 @@ export const verifySellerConfirmService = async (orderId, txHash) => {
 
     if (existedTx) throw new Error("Transaction đã được sử dụng");
 
-    const txCheck = await verifyTransaction(txHash);
-    if (!txCheck.exists) throw new Error("Transaction không tồn tại");
-    if (!txCheck.success) throw new Error("Transaction thất bại");
-
-    const tx = await getTransactionDetail(txHash);
-    if (!tx) throw new Error("Không lấy được transaction");
-
-    if (!tx.from || tx.from.toLowerCase() !== order.sellerWallet.toLowerCase()) {
-      throw new Error("Transaction này không phải do seller thực hiện");
-    }
+    const receipt = await getVerifiedActionReceipt(
+      txHash,
+      MARKETPLACE_EVENTS.SELLER_CONFIRMED,
+      order.blockchainOrderId
+    );
+    assertReceiptSender(
+      receipt,
+      order.sellerWallet,
+      "Transaction nay khong phai do seller thuc hien"
+    );
 
     const contractOrder = await getOrderByBlockchainOrderId(order.blockchainOrderId);
 
@@ -674,20 +687,16 @@ export const verifyCompleteOrderService = async (userId, orderId, txHash) => {
 
     if (existedTx) throw new Error("Transaction đã được sử dụng");
 
-    const txCheck = await verifyTransaction(txHash);
-    if (!txCheck.exists) throw new Error("Transaction không tồn tại");
-    if (!txCheck.success) throw new Error("Transaction thất bại");
-
-    const tx = await getTransactionDetail(txHash);
-    if (!tx) throw new Error("Không lấy được transaction");
-
-    if (
-      order.buyerWallet &&
-      tx.from &&
-      tx.from.toLowerCase() !== order.buyerWallet.toLowerCase()
-    ) {
-      throw new Error("Transaction này không phải do buyer thực hiện");
-    }
+    const receipt = await getVerifiedActionReceipt(
+      txHash,
+      MARKETPLACE_EVENTS.ORDER_COMPLETED,
+      order.blockchainOrderId
+    );
+    assertReceiptSender(
+      receipt,
+      order.buyerWallet,
+      "Transaction nay khong phai do buyer thuc hien"
+    );
 
     const contractOrder = await getOrderByBlockchainOrderId(order.blockchainOrderId);
 
@@ -729,20 +738,18 @@ export const verifyCancelOrderService = async (actor, orderId, txHash) => {
       throw new Error("Order đã bị hủy trước đó");
     }
 
-    const txCheck = await verifyTransaction(txHash);
-    if (!txCheck.exists) throw new Error("Transaction không tồn tại");
-    if (!txCheck.success) throw new Error("Transaction thất bại");
-
-    const tx = await getTransactionDetail(txHash);
-    if (!tx) throw new Error("Không lấy được transaction");
-
-    const txFrom = tx.from?.toLowerCase();
+    const receipt = await getVerifiedActionReceipt(
+      txHash,
+      MARKETPLACE_EVENTS.ORDER_CANCELLED,
+      order.blockchainOrderId
+    );
+    const txFrom = receipt.from?.toLowerCase();
     const allowedWallets = [order.buyerWallet, order.sellerWallet]
       .filter(Boolean)
       .map((wallet) => wallet.toLowerCase());
 
     if (!txFrom || !allowedWallets.includes(txFrom)) {
-      throw new Error("Transaction hủy đơn không phải do buyer hoặc seller thực hiện");
+      throw new Error("Transaction huy don khong phai do buyer hoac seller thuc hien");
     }
 
     const contractOrder = await getOrderByBlockchainOrderId(order.blockchainOrderId);

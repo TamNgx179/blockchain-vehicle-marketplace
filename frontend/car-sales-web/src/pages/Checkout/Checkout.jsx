@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ethers } from 'ethers';
 import { useCart } from '../../context/CartContext';
 import Navbar from '../../components/Navbar/Navbar';
 import './Checkout.css';
@@ -9,14 +8,11 @@ import OrderSummary from './OrderSummary/OrderSummary';
 import Step2Delivery from './Step2Delivery/Step2Delivery';
 import Step3Payment from './Step3Payment/Step3Payment';
 import Step4Confirmation from './Step4Confirmation/Step4Confirmation';
-import contractABI from '../../config/abi.json';
 import { orderService } from '../../services/orderService';
-
-const CONTRACT_ADDRESS =
-  import.meta.env.VITE_CONTRACT_ADDRESS ||
-  "0xD0CF607f0bCD60B5ed02896e682450eA4dBf5BB0";
-const SEPOLIA_CHAIN_ID = 11155111n;
-const SEPOLIA_CHAIN_HEX = "0xaa36a7";
+import {
+  getMarketplaceContract,
+  getPositiveWeiValue,
+} from '../../utils/blockchainClient';
 
 const getCheckoutErrorMessage = (error) => {
   const raw = String(
@@ -86,61 +82,12 @@ function Checkout({ notifyRef }) {
     ? confirmedItems
     : selectedItemsForOrder;
 
-  const ensureSepoliaNetwork = async () => {
-    if (!window.ethereum) {
-      throw new Error("MetaMask is not installed in this browser.");
-    }
-
-    const provider = new ethers.BrowserProvider(window.ethereum);
-    const network = await provider.getNetwork();
-
-    if (network.chainId === SEPOLIA_CHAIN_ID) {
-      return provider;
-    }
-
-    try {
-      await window.ethereum.request({
-        method: "wallet_switchEthereumChain",
-        params: [{ chainId: SEPOLIA_CHAIN_HEX }],
-      });
-    } catch (switchError) {
-      if (switchError?.code !== 4902) throw switchError;
-      await window.ethereum.request({
-        method: "wallet_addEthereumChain",
-        params: [
-          {
-            chainId: SEPOLIA_CHAIN_HEX,
-            chainName: "Sepolia",
-            nativeCurrency: { name: "Sepolia ETH", symbol: "ETH", decimals: 18 },
-            rpcUrls: ["https://rpc.sepolia.org"],
-            blockExplorerUrls: ["https://sepolia.etherscan.io"],
-          },
-        ],
-      });
-    }
-
-    return new ethers.BrowserProvider(window.ethereum);
-  };
-
-  const getContract = async () => {
-    const provider = await ensureSepoliaNetwork();
-    const signer = await provider.getSigner();
-    return new ethers.Contract(CONTRACT_ADDRESS, contractABI.abi, signer);
-  };
-
-  const getWeiValue = (amountWei) => {
-    if (!amountWei) throw new Error("Payment amount is missing.");
-    const value = ethers.toBigInt(amountWei);
-    if (value <= 0n) throw new Error("Payment amount is invalid.");
-    return value;
-  };
-
   const handleBlockchainPayment = async (dbOrderId, blockchainOrderId, totalAmountWei) => {
     showMessage("Please confirm the payment in MetaMask...");
 
-    const contract = await getContract();
+    const contract = await getMarketplaceContract();
     const tx = await contract.payFull(blockchainOrderId, {
-      value: getWeiValue(totalAmountWei)
+      value: await getPositiveWeiValue(totalAmountWei)
     });
 
     setFinalTxHash(tx.hash);
@@ -159,9 +106,9 @@ function Checkout({ notifyRef }) {
   const handleDepositPayment = async (dbOrderId, blockchainOrderId, depositAmountWei) => {
     showMessage("Please confirm the deposit in MetaMask...");
 
-    const contract = await getContract();
+    const contract = await getMarketplaceContract();
     const tx = await contract.payDeposit(blockchainOrderId, {
-      value: getWeiValue(depositAmountWei)
+      value: await getPositiveWeiValue(depositAmountWei)
     });
 
     setFinalTxHash(tx.hash);
