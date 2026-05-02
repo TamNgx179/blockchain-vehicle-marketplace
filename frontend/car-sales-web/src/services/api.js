@@ -1,10 +1,5 @@
 import axios from "axios";
-
-const API_URL =
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.PROD
-    ? "https://car-api-x622.onrender.com"
-    : "http://localhost:3000");
+import { API_URL } from "./apiConfig";
 
 const api = axios.create({
   baseURL: `${API_URL}/api`,

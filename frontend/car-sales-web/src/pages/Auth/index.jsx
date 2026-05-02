@@ -1,40 +1,29 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { ArrowLeft, LockKeyhole } from "lucide-react";
 import Navbar from "../../components/Navbar/Navbar";
 import Footer from "../../components/Footer/Footer";
 import AuthService from "../../services/authService";
+import { API_URL } from "../../services/apiConfig";
 import googleLogo from "../../assets/icon/google.webp";
 import "./Auth.css";
 
-const API_URL =
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.PROD
-    ? "https://car-api-x622.onrender.com"
-    : "http://localhost:3000");
+const REQUEST_TIMEOUT_MS = 20000;
 
 const MESSAGE_MAP = {
-  "Đăng nhập thành công": "Login successful",
-  "Đăng nhập thất bại": "Login failed",
-  "Đăng ký thất bại": "Sign up failed",
-  "OTP đã được gửi tới email": "OTP has been sent to your email",
   "OTP sent to email. Please verify your account.":
     "OTP has been sent to your email. Please verify your account.",
-  "Xác thực OTP thất bại": "OTP verification failed",
-  "Xác thực thành công": "Verification successful",
-  "Xác thực thành công, hãy đăng nhập": "Verification successful. Please sign in.",
-  "Email chưa được xác thực": "Email has not been verified yet",
-  "Username or Email already exists": "Username or email already exists",
-  "Passwords do not match": "Passwords do not match",
-  "Password is invalid": "Password is invalid",
-  "Confirm password is invalid": "Confirm password is invalid",
-  "Invalid email or password": "Invalid email or password",
-  "OTP không tồn tại hoặc đã hết hạn": "OTP does not exist or has expired",
-  "OTP đã hết hạn": "OTP has expired",
-  "OTP không chính xác": "Incorrect OTP",
-  "Invalid OTP": "Invalid OTP",
+  "OTP has been sent to your email":
+    "OTP has been sent to your email.",
+  "Verification successful":
+    "Verification successful. Please sign in.",
+  "Password has been updated successfully":
+    "Password reset successful. Please sign in.",
+  "Username or Email already exists":
+    "Username or email already exists",
 };
 
-function toEnglishMessage(message, fallback) {
+function toDisplayMessage(message, fallback) {
   if (!message) return fallback;
   return MESSAGE_MAP[message] || message;
 }
@@ -60,11 +49,66 @@ function getPostLoginPath(token) {
   return getTokenPayload(token)?.isadmin ? "/admin" : "/";
 }
 
+function normalizeInitialMode(mode) {
+  if (mode === "signup") return "signup";
+  if (mode === "reset" || mode === "forgot") return "forgot";
+  return "login";
+}
+
+async function readJsonResponse(response) {
+  try {
+    return await response.json();
+  } catch {
+    return {};
+  }
+}
+
+async function postJson(path, body, fallbackMessage) {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(
+    () => controller.abort(),
+    REQUEST_TIMEOUT_MS
+  );
+
+  try {
+    const response = await fetch(`${API_URL}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+
+    const json = await readJsonResponse(response);
+    if (!response.ok) {
+      throw new Error(toDisplayMessage(json?.message, fallbackMessage));
+    }
+
+    return json;
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      throw new Error(
+        "Request timed out while sending OTP. Please check the backend or SMTP settings."
+      );
+    }
+
+    if (error instanceof TypeError) {
+      throw new Error(
+        "Cannot connect to the server. Please make sure the backend is running."
+      );
+    }
+
+    throw error;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
+
 function Auth({ initialMode = "login" }) {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [mode, setMode] = useState(initialMode);
+  const [mode, setMode] = useState(() => normalizeInitialMode(initialMode));
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -98,7 +142,10 @@ function Auth({ initialMode = "login" }) {
   );
 
   useEffect(() => {
-    setMode(initialMode);
+    setMode(normalizeInitialMode(initialMode));
+    setForgotStep(1);
+    setMessage("");
+    setError("");
   }, [initialMode]);
 
   useEffect(() => {
@@ -112,9 +159,7 @@ function Auth({ initialMode = "login" }) {
     localStorage.setItem("authToken", token);
     localStorage.setItem("token", token);
 
-    if (email) {
-      localStorage.setItem("authEmail", email);
-    }
+    if (email) localStorage.setItem("authEmail", email);
 
     localStorage.setItem(
       "authUsername",
@@ -159,15 +204,15 @@ function Auth({ initialMode = "login" }) {
   };
 
   const onChangeLogin = (field, value) => {
-    setLoginForm((p) => ({ ...p, [field]: value }));
+    setLoginForm((prev) => ({ ...prev, [field]: value }));
   };
 
   const onChangeSignup = (field, value) => {
-    setSignupForm((p) => ({ ...p, [field]: value }));
+    setSignupForm((prev) => ({ ...prev, [field]: value }));
   };
 
   const onChangeForgot = (field, value) => {
-    setForgotForm((p) => ({ ...p, [field]: value }));
+    setForgotForm((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleGoogleLogin = () => {
@@ -176,150 +221,142 @@ function Auth({ initialMode = "login" }) {
     AuthService.googleLogin();
   };
 
-  const submitLogin = async (e) => {
-    e.preventDefault();
+  const submitLogin = async (event) => {
+    event.preventDefault();
     setLoading(true);
     setError("");
     setMessage("");
 
     try {
-      const res = await fetch(`${API_URL}/api/users/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(loginForm),
-      });
+      const payload = {
+        email: loginForm.email.trim().toLowerCase(),
+        password: loginForm.password,
+      };
+      const json = await postJson("/api/users/login", payload, "Login failed");
 
-      const json = await res.json();
-      if (!res.ok) throw new Error(toEnglishMessage(json?.message, "Login failed"));
       if (!json?.token) throw new Error("Login failed");
 
-      const payload = getTokenPayload(json.token);
+      const tokenPayload = getTokenPayload(json.token);
 
       localStorage.setItem("authToken", json.token);
       localStorage.setItem("token", json.token);
-      localStorage.setItem("authEmail", loginForm.email);
-      localStorage.setItem("authUsername", payload?.username || "");
+      if (json.refreshToken) localStorage.setItem("refreshToken", json.refreshToken);
+      localStorage.setItem("authEmail", payload.email);
+      localStorage.setItem("authUsername", tokenPayload?.username || "");
 
       window.dispatchEvent(new Event("auth-change"));
       navigate(getPostLoginPath(json.token), { replace: true });
     } catch (err) {
-      setError(toEnglishMessage(err?.message, "Login failed"));
+      setError(toDisplayMessage(err?.message, "Login failed"));
     } finally {
       setLoading(false);
     }
   };
 
-  const submitSignup = async (e) => {
-    e.preventDefault();
+  const submitSignup = async (event) => {
+    event.preventDefault();
     setLoading(true);
     setError("");
     setMessage("");
 
     try {
-      const res = await fetch(`${API_URL}/api/users/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(signupForm),
-      });
+      const payload = {
+        username: signupForm.username.trim(),
+        email: signupForm.email.trim().toLowerCase(),
+        password: signupForm.password,
+        resPassword: signupForm.resPassword,
+      };
+      const json = await postJson(
+        "/api/users/register",
+        payload,
+        "Sign up failed"
+      );
 
-      const json = await res.json();
-      if (!res.ok) throw new Error(toEnglishMessage(json?.message, "Sign up failed"));
-
-      setPendingEmail(signupForm.email);
-      setMessage(toEnglishMessage(json?.message, "OTP sent"));
+      setSignupForm(payload);
+      setPendingEmail(payload.email);
+      setOtp("");
+      setMessage(
+        toDisplayMessage(
+          json?.message,
+          "OTP has been sent to your email. Please verify your account."
+        )
+      );
     } catch (err) {
-      setError(toEnglishMessage(err?.message, "Sign up failed"));
+      setError(toDisplayMessage(err?.message, "Sign up failed"));
     } finally {
       setLoading(false);
     }
   };
 
-  const submitOtp = async (e) => {
-    e.preventDefault();
+  const submitOtp = async (event) => {
+    event.preventDefault();
     setLoading(true);
     setError("");
     setMessage("");
 
     try {
-      const res = await fetch(`${API_URL}/api/users/verifyOtp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: pendingEmail, otp }),
-      });
+      const json = await postJson(
+        "/api/users/verifyOtp",
+        { email: pendingEmail, otp: otp.trim() },
+        "OTP verification failed"
+      );
 
-      const json = await res.json();
-      if (!res.ok) throw new Error(toEnglishMessage(json?.message, "OTP failed"));
-
+      const verifiedEmail = pendingEmail;
       setPendingEmail("");
       setOtp("");
       setMode("login");
-      setLoginForm((p) => ({ ...p, email: signupForm.email }));
-      setMessage("Verification successful. Please sign in.");
+      setLoginForm((prev) => ({ ...prev, email: verifiedEmail }));
+      setSignupForm({
+        username: "",
+        email: "",
+        password: "",
+        resPassword: "",
+      });
+      setMessage(
+        toDisplayMessage(
+          json?.message,
+          "Verification successful. Please sign in."
+        )
+      );
     } catch (err) {
-      setError(toEnglishMessage(err?.message, "OTP failed"));
+      setError(toDisplayMessage(err?.message, "OTP verification failed"));
     } finally {
       setLoading(false);
     }
   };
 
-  const submitForgotEmail = async (e) => {
-    e.preventDefault();
+  const submitForgotEmail = async (event) => {
+    event.preventDefault();
     setLoading(true);
     setError("");
     setMessage("");
 
     try {
-      const res = await fetch(`${API_URL}/api/users/forgot-password`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: forgotForm.email }),
-      });
+      const email = forgotForm.email.trim().toLowerCase();
+      const json = await postJson(
+        "/api/users/forgot-password",
+        { email },
+        "Failed to send reset code"
+      );
 
-      const json = await res.json();
-      if (!res.ok) throw new Error(toEnglishMessage(json?.message, "Failed"));
-
+      setForgotForm((prev) => ({
+        ...prev,
+        email,
+        otp: "",
+        newPassword: "",
+        confirmPassword: "",
+      }));
       setForgotStep(2);
-      setMessage("OTP sent to your email");
+      setMessage(toDisplayMessage(json?.message, "OTP sent to your email."));
     } catch (err) {
-      setError(toEnglishMessage(err?.message, "Failed"));
+      setError(toDisplayMessage(err?.message, "Failed to send reset code"));
     } finally {
       setLoading(false);
     }
   };
 
-  const submitForgotOtp = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    setMessage("");
-
-    try {
-      const res = await fetch(`${API_URL}/api/users/verifyOtp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: forgotForm.email,
-          otp: forgotForm.otp,
-        }),
-      });
-
-      const json = await res.json();
-      if (!res.ok) {
-        throw new Error(toEnglishMessage(json?.message, "OTP verification failed"));
-      }
-
-      setForgotStep(3);
-      setMessage("OTP verified. Please enter your new password.");
-    } catch (err) {
-      setError(toEnglishMessage(err?.message, "OTP verification failed"));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const submitResetPassword = async (e) => {
-    e.preventDefault();
+  const submitResetPassword = async (event) => {
+    event.preventDefault();
     setLoading(true);
     setError("");
     setMessage("");
@@ -329,31 +366,34 @@ function Auth({ initialMode = "login" }) {
         throw new Error("Passwords do not match");
       }
 
-      const res = await fetch(`${API_URL}/api/users/reset-password`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const json = await postJson(
+        "/api/users/reset-password",
+        {
           email: forgotForm.email,
-          otp: forgotForm.otp,
+          otp: forgotForm.otp.trim(),
           newPassword: forgotForm.newPassword,
-        }),
-      });
+        },
+        "Reset failed"
+      );
 
-      const json = await res.json();
-      if (!res.ok) throw new Error(toEnglishMessage(json?.message, "Reset failed"));
-
-      setMessage("Password reset successful. Please sign in.");
+      const resetEmail = forgotForm.email;
       setMode("login");
       setForgotStep(1);
-      setLoginForm((p) => ({ ...p, email: forgotForm.email, password: "" }));
+      setLoginForm((prev) => ({ ...prev, email: resetEmail, password: "" }));
       setForgotForm({
         email: "",
         otp: "",
         newPassword: "",
         confirmPassword: "",
       });
+      setMessage(
+        toDisplayMessage(
+          json?.message,
+          "Password reset successful. Please sign in."
+        )
+      );
     } catch (err) {
-      setError(toEnglishMessage(err?.message, "Reset failed"));
+      setError(toDisplayMessage(err?.message, "Reset failed"));
     } finally {
       setLoading(false);
     }
@@ -369,11 +409,21 @@ function Auth({ initialMode = "login" }) {
             {mode !== "forgot" && (
               <>
                 <div className="auth-header">
-                  <span className="auth-kicker">Welcome back</span>
-                  <h1>{mode === "login" ? "Sign in to your account" : "Create your account"}</h1>
+                  <span className="auth-kicker">
+                    {isOtpStep ? "Email verification" : "Welcome back"}
+                  </span>
+                  <h1>
+                    {mode === "login"
+                      ? "Sign in to your account"
+                      : isOtpStep
+                      ? "Verify your email"
+                      : "Create your account"}
+                  </h1>
                   <p>
                     {mode === "login"
                       ? "Continue with your email and password."
+                      : isOtpStep
+                      ? "Enter the OTP sent to your inbox to activate your account."
                       : "Join us and verify your email to get started."}
                   </p>
                 </div>
@@ -400,18 +450,19 @@ function Auth({ initialMode = "login" }) {
             {mode === "forgot" && (
               <div className="auth-header auth-forgot-header">
                 <button type="button" className="auth-back-link" onClick={backToLogin}>
-                  ← Back to login
+                  <ArrowLeft size={16} />
+                  Back to login
                 </button>
 
-                <div className="auth-icon">🔐</div>
+                <div className="auth-icon">
+                  <LockKeyhole size={24} />
+                </div>
                 <span className="auth-kicker">Account recovery</span>
                 <h1>Reset your password</h1>
                 <p>
                   {forgotStep === 1
-                    ? "Enter your email and we’ll send you a one-time code to reset your password."
-                    : forgotStep === 2
-                    ? "Enter the OTP sent to your email."
-                    : "Choose a new password for your account."}
+                    ? "Enter your email and we will send you a one-time code."
+                    : "Enter the OTP sent to your email and choose a new password."}
                 </p>
               </div>
             )}
@@ -427,7 +478,8 @@ function Auth({ initialMode = "login" }) {
                     type="email"
                     placeholder="you@example.com"
                     value={loginForm.email}
-                    onChange={(e) => onChangeLogin("email", e.target.value)}
+                    onChange={(event) => onChangeLogin("email", event.target.value)}
+                    required
                   />
                 </label>
 
@@ -437,7 +489,10 @@ function Auth({ initialMode = "login" }) {
                     type="password"
                     placeholder="Enter your password"
                     value={loginForm.password}
-                    onChange={(e) => onChangeLogin("password", e.target.value)}
+                    onChange={(event) =>
+                      onChangeLogin("password", event.target.value)
+                    }
+                    required
                   />
                 </label>
 
@@ -479,7 +534,10 @@ function Auth({ initialMode = "login" }) {
                     type="email"
                     placeholder="you@example.com"
                     value={forgotForm.email}
-                    onChange={(e) => onChangeForgot("email", e.target.value)}
+                    onChange={(event) =>
+                      onChangeForgot("email", event.target.value)
+                    }
+                    required
                   />
                 </label>
 
@@ -490,9 +548,11 @@ function Auth({ initialMode = "login" }) {
             )}
 
             {mode === "forgot" && forgotStep === 2 && (
-              <form onSubmit={submitForgotOtp} className="auth-form">
+              <form onSubmit={submitResetPassword} className="auth-form">
                 <div className="auth-email-note">
-                  Code sent to <strong>{forgotForm.email}</strong>
+                  <span>
+                    Code sent to <strong>{forgotForm.email}</strong>
+                  </span>
                   <button type="button" onClick={() => setForgotStep(1)}>
                     Change
                   </button>
@@ -503,21 +563,12 @@ function Auth({ initialMode = "login" }) {
                   <input
                     placeholder="Enter OTP"
                     value={forgotForm.otp}
-                    onChange={(e) => onChangeForgot("otp", e.target.value)}
+                    onChange={(event) => onChangeForgot("otp", event.target.value)}
+                    inputMode="numeric"
+                    maxLength={6}
+                    required
                   />
                 </label>
-
-                <button type="submit" disabled={loading}>
-                  {loading ? "Verifying..." : "Verify OTP"}
-                </button>
-              </form>
-            )}
-
-            {mode === "forgot" && forgotStep === 3 && (
-              <form onSubmit={submitResetPassword} className="auth-form">
-                <div className="auth-email-note">
-                  OTP verified for <strong>{forgotForm.email}</strong>
-                </div>
 
                 <label className="auth-field">
                   <span>New password</span>
@@ -525,7 +576,10 @@ function Auth({ initialMode = "login" }) {
                     type="password"
                     placeholder="Enter new password"
                     value={forgotForm.newPassword}
-                    onChange={(e) => onChangeForgot("newPassword", e.target.value)}
+                    onChange={(event) =>
+                      onChangeForgot("newPassword", event.target.value)
+                    }
+                    required
                   />
                 </label>
 
@@ -535,7 +589,10 @@ function Auth({ initialMode = "login" }) {
                     type="password"
                     placeholder="Confirm new password"
                     value={forgotForm.confirmPassword}
-                    onChange={(e) => onChangeForgot("confirmPassword", e.target.value)}
+                    onChange={(event) =>
+                      onChangeForgot("confirmPassword", event.target.value)
+                    }
+                    required
                   />
                 </label>
 
@@ -552,7 +609,10 @@ function Auth({ initialMode = "login" }) {
                   <input
                     placeholder="Your username"
                     value={signupForm.username}
-                    onChange={(e) => onChangeSignup("username", e.target.value)}
+                    onChange={(event) =>
+                      onChangeSignup("username", event.target.value)
+                    }
+                    required
                   />
                 </label>
 
@@ -562,7 +622,10 @@ function Auth({ initialMode = "login" }) {
                     type="email"
                     placeholder="you@example.com"
                     value={signupForm.email}
-                    onChange={(e) => onChangeSignup("email", e.target.value)}
+                    onChange={(event) =>
+                      onChangeSignup("email", event.target.value)
+                    }
+                    required
                   />
                 </label>
 
@@ -572,7 +635,10 @@ function Auth({ initialMode = "login" }) {
                     type="password"
                     placeholder="Create a password"
                     value={signupForm.password}
-                    onChange={(e) => onChangeSignup("password", e.target.value)}
+                    onChange={(event) =>
+                      onChangeSignup("password", event.target.value)
+                    }
+                    required
                   />
                 </label>
 
@@ -582,7 +648,10 @@ function Auth({ initialMode = "login" }) {
                     type="password"
                     placeholder="Confirm your password"
                     value={signupForm.resPassword}
-                    onChange={(e) => onChangeSignup("resPassword", e.target.value)}
+                    onChange={(event) =>
+                      onChangeSignup("resPassword", event.target.value)
+                    }
+                    required
                   />
                 </label>
 
@@ -609,15 +678,31 @@ function Auth({ initialMode = "login" }) {
             {mode === "signup" && isOtpStep && (
               <form onSubmit={submitOtp} className="auth-form">
                 <div className="auth-email-note">
-                  OTP sent to <strong>{pendingEmail}</strong>
+                  <span>
+                    OTP sent to <strong>{pendingEmail}</strong>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPendingEmail("");
+                      setOtp("");
+                      setMessage("");
+                      setError("");
+                    }}
+                  >
+                    Change
+                  </button>
                 </div>
 
                 <label className="auth-field">
                   <span>OTP code</span>
                   <input
                     value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
+                    onChange={(event) => setOtp(event.target.value)}
                     placeholder="Enter OTP"
+                    inputMode="numeric"
+                    maxLength={6}
+                    required
                   />
                 </label>
 

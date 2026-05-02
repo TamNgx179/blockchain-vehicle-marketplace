@@ -6,111 +6,158 @@ import sendMail from "../utils/mailer.js";
 import {
   generateAccessToken,
   generateRefreshToken,
-  verifyToken
+  verifyToken,
 } from "../utils/jwtUtils.js";
+
+const OTP_TTL_MS = 5 * 60 * 1000;
 
 const generateOtp = () =>
   Math.floor(100000 + Math.random() * 900000).toString();
 
-/*
-REGISTER
-*/
-export const registerService = async ({ username, email, password, resPassword }) => {
+const normalizeEmail = (email) =>
+  typeof email === "string" ? email.trim().toLowerCase() : "";
 
-  if (!password || typeof password !== "string")
-    throw new Error("Password is invalid");
+const normalizeUsername = (username) =>
+  typeof username === "string" ? username.trim() : "";
 
-  if (!resPassword || typeof resPassword !== "string")
-    throw new Error("Confirm password is invalid");
-
-  if (password !== resPassword)
-    throw new Error("Passwords do not match");
-
-  const userExists = await User.findOne({
-    $or: [{ email }, { username }]
-  });
-
-  if (userExists)
-    throw new Error("Username or Email already exists");
-
-  const hashedPassword = await bcrypt.hash(password, 10);
-
-  await User.create({
-    username,
-    email,
-    password: hashedPassword,
-    isVerified: false
-  });
-
+const createOtpForEmail = async (email) => {
   const otp = generateOtp();
   const hashedOtp = await bcrypt.hash(otp, 10);
 
-  const otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
-
+  await Otp.deleteMany({ email });
   await Otp.create({
     email,
     otp: hashedOtp,
-    expiresAt: otpExpiry
+    expiresAt: new Date(Date.now() + OTP_TTL_MS),
   });
 
-  await sendMail(
-    email,
-    "Xác nhận đăng ký tài khoản",
-    `<div>OTP của bạn: <b>${otp}</b> (hết hạn 5 phút)</div>`
-  );
+  return otp;
+};
+
+const buildOtpEmail = ({ title, intro, otp }) => `
+  <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
+    <h2 style="margin: 0 0 12px;">${title}</h2>
+    <p style="margin: 0 0 16px;">${intro}</p>
+    <div style="font-size: 28px; font-weight: 800; letter-spacing: 6px; padding: 14px 18px; background: #f3f4f6; border-radius: 10px; display: inline-block;">
+      ${otp}
+    </div>
+    <p style="margin: 16px 0 0; color: #6b7280;">This code expires in 5 minutes.</p>
+  </div>
+`;
+
+/*
+REGISTER
+*/
+export const registerService = async ({
+  username,
+  email,
+  password,
+  resPassword,
+}) => {
+  const normalizedEmail = normalizeEmail(email);
+  const normalizedUsername = normalizeUsername(username);
+
+  if (!normalizedUsername) throw new Error("Username is required");
+  if (!normalizedEmail) throw new Error("Email is required");
+  if (!password || typeof password !== "string")
+    throw new Error("Password is invalid");
+  if (!resPassword || typeof resPassword !== "string")
+    throw new Error("Confirm password is invalid");
+  if (password !== resPassword) throw new Error("Passwords do not match");
+
+  const existingByEmail = await User.findOne({ email: normalizedEmail });
+  const existingByUsername = await User.findOne({ username: normalizedUsername });
+
+  if (existingByUsername && existingByUsername.email !== normalizedEmail) {
+    throw new Error("Username or Email already exists");
+  }
+
+  if (existingByEmail?.isVerified) {
+    throw new Error("Username or Email already exists");
+  }
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+  let user = existingByEmail;
+  let createdUser = false;
+
+  if (user) {
+    user.username = normalizedUsername;
+    user.password = hashedPassword;
+    user.isVerified = false;
+    await user.save();
+  } else {
+    user = await User.create({
+      username: normalizedUsername,
+      email: normalizedEmail,
+      password: hashedPassword,
+      isVerified: false,
+    });
+    createdUser = true;
+  }
+
+  const otp = await createOtpForEmail(normalizedEmail);
+
+  try {
+    await sendMail(
+      normalizedEmail,
+      "Saigon Speed - Verify your account",
+      buildOtpEmail({
+        title: "Verify your Saigon Speed account",
+        intro: "Use this OTP to finish creating your account.",
+        otp,
+      })
+    );
+  } catch {
+    await Otp.deleteMany({ email: normalizedEmail });
+    if (createdUser) await User.deleteOne({ _id: user._id });
+    throw new Error("Unable to send OTP email. Please try again.");
+  }
 
   return true;
 };
-
 
 /*
 VERIFY OTP
 */
 export const verifyOtpService = async (email, otp) => {
+  const normalizedEmail = normalizeEmail(email);
 
-  const otpRecord = await Otp
-    .findOne({ email })
-    .sort({ createdAt: -1 });
+  if (!normalizedEmail) throw new Error("Email is required");
+  if (!otp || typeof otp !== "string") throw new Error("OTP is required");
 
-  if (!otpRecord)
-    throw new Error("OTP không tồn tại hoặc đã hết hạn");
+  const otpRecord = await Otp.findOne({ email: normalizedEmail }).sort({
+    createdAt: -1,
+  });
 
-  if (otpRecord.expiresAt < new Date())
-    throw new Error("OTP đã hết hạn");
+  if (!otpRecord) throw new Error("OTP does not exist or has expired");
 
-  const isMatch = await bcrypt.compare(otp, otpRecord.otp);
+  if (otpRecord.expiresAt < new Date()) {
+    await Otp.deleteOne({ _id: otpRecord._id });
+    throw new Error("OTP has expired");
+  }
 
-  if (!isMatch)
-    throw new Error("Invalid OTP");
+  const isMatch = await bcrypt.compare(otp.trim(), otpRecord.otp);
+  if (!isMatch) throw new Error("Invalid OTP");
 
-  await User.updateOne(
-    { email },
-    { isVerified: true }
-  );
-
-  await Otp.deleteOne({ email });
+  await User.updateOne({ email: normalizedEmail }, { isVerified: true });
+  await Otp.deleteOne({ _id: otpRecord._id });
 
   return true;
 };
-
 
 /*
 LOGIN
 */
 export const loginService = async (email, password) => {
+  const normalizedEmail = normalizeEmail(email);
+  const user = await User.findOne({ email: normalizedEmail });
 
-  const user = await User.findOne({ email });
-
-  if (!user)
-    throw new Error("Invalid email or password");
-
-  if (!user.isVerified)
-    throw new Error("Email chưa được xác thực");
+  if (!user) throw new Error("Invalid email or password");
+  if (!user.isVerified) throw new Error("Email has not been verified yet");
+  if (!user.password) throw new Error("Invalid email or password");
 
   const isMatch = await bcrypt.compare(password, user.password);
-
-  if (!isMatch)
-    throw new Error("Invalid email or password");
+  if (!isMatch) throw new Error("Invalid email or password");
 
   const token = generateAccessToken(user);
   const refreshToken = generateRefreshToken(user);
@@ -121,20 +168,17 @@ export const loginService = async (email, password) => {
   return {
     token,
     refreshToken,
-    user
+    user,
   };
 };
-
 
 /*
 GOOGLE LOGIN
 */
 export const googleAuthService = async (googleId) => {
-
   const user = await User.findOne({ googleId });
 
-  if (!user)
-    throw new Error("Người dùng chưa đăng ký với Google");
+  if (!user) throw new Error("User has not registered with Google");
 
   const token = generateAccessToken(user);
   const refreshToken = generateRefreshToken(user);
@@ -145,36 +189,28 @@ export const googleAuthService = async (googleId) => {
   return {
     token,
     refreshToken,
-    user
+    user,
   };
 };
-
 
 /*
 REFRESH TOKEN
 */
 export const refreshAccessTokenService = async (refreshToken) => {
+  if (!refreshToken) throw new Error("Refresh token is invalid");
 
-  if (!refreshToken)
-    throw new Error("Refresh token không hợp lệ");
-
-  const decoded = verifyToken(
-    refreshToken,
-    process.env.JWT_REFRESH_SECRET
-  );
-
-  if (!decoded)
-    throw new Error("Refresh token không hợp lệ hoặc đã hết hạn");
+  const decoded = verifyToken(refreshToken, process.env.JWT_REFRESH_SECRET);
+  if (!decoded) throw new Error("Refresh token is invalid or expired");
 
   const user = await User.findById(decoded.id);
   if (!user || user.refreshToken !== refreshToken)
-    throw new Error("Refresh token không hợp lệ");
+    throw new Error("Refresh token is invalid");
 
   const newToken = jwt.sign(
     {
       id: decoded.id,
       username: decoded.username,
-      isadmin: decoded.isadmin
+      isadmin: decoded.isadmin,
     },
     process.env.JWT_SECRET,
     { expiresIn: "1h" }
@@ -183,69 +219,71 @@ export const refreshAccessTokenService = async (refreshToken) => {
   return newToken;
 };
 
-
 /*
 FORGOT PASSWORD
 */
 export const forgotPasswordService = async (email) => {
+  const normalizedEmail = normalizeEmail(email);
+  if (!normalizedEmail) throw new Error("Email is required");
 
-  const user = await User.findOne({ email });
+  const user = await User.findOne({ email: normalizedEmail });
+  if (!user) throw new Error("Email does not exist in the system");
 
-  if (!user)
-    throw new Error("Email không tồn tại trong hệ thống");
+  const otp = await createOtpForEmail(normalizedEmail);
 
-  const otp = generateOtp();
-  const hashedOtp = await bcrypt.hash(otp, 10);
-
-  const otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
-
-  await Otp.create({
-    email,
-    otp: hashedOtp,
-    expiresAt: otpExpiry
-  });
-
-  await sendMail(
-    email,
-    "Khôi phục mật khẩu",
-    `<div>OTP reset: <b>${otp}</b></div>`
-  );
+  try {
+    await sendMail(
+      normalizedEmail,
+      "Saigon Speed - Reset password OTP",
+      buildOtpEmail({
+        title: "Reset your Saigon Speed password",
+        intro: "Use this OTP to set a new password for your account.",
+        otp,
+      })
+    );
+  } catch {
+    await Otp.deleteMany({ email: normalizedEmail });
+    throw new Error("Unable to send OTP email. Please try again.");
+  }
 
   return true;
 };
-
 
 /*
 RESET PASSWORD
 */
 export const resetPasswordService = async ({ email, otp, newPassword }) => {
+  const normalizedEmail = normalizeEmail(email);
 
-  const otpRecord = await Otp
-    .findOne({ email })
-    .sort({ createdAt: -1 });
+  if (!normalizedEmail) throw new Error("Email is required");
+  if (!otp || typeof otp !== "string") throw new Error("OTP is required");
+  if (!newPassword || typeof newPassword !== "string")
+    throw new Error("Password is invalid");
 
-  if (!otpRecord)
-    throw new Error("OTP không hợp lệ hoặc đã hết hạn");
+  const otpRecord = await Otp.findOne({ email: normalizedEmail }).sort({
+    createdAt: -1,
+  });
 
-  if (otpRecord.expiresAt < new Date())
-    throw new Error("OTP đã hết hạn");
+  if (!otpRecord) throw new Error("OTP is invalid or has expired");
 
-  const isMatch = await bcrypt.compare(
-    otp,
-    otpRecord.otp
-  );
+  if (otpRecord.expiresAt < new Date()) {
+    await Otp.deleteOne({ _id: otpRecord._id });
+    throw new Error("OTP has expired");
+  }
 
-  if (!isMatch)
-    throw new Error("OTP không chính xác");
+  const isMatch = await bcrypt.compare(otp.trim(), otpRecord.otp);
+  if (!isMatch) throw new Error("Incorrect OTP");
+
+  const user = await User.findOne({ email: normalizedEmail });
+  if (!user) throw new Error("Email does not exist in the system");
 
   const hashedPassword = await bcrypt.hash(newPassword, 10);
 
   await User.updateOne(
-    { email },
-    { password: hashedPassword }
+    { email: normalizedEmail },
+    { password: hashedPassword, isVerified: true }
   );
-
-  await Otp.deleteOne({ email });
+  await Otp.deleteOne({ _id: otpRecord._id });
 
   return true;
 };
