@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import Navbar from "../../components/Navbar/Navbar";
 import AccountService from "../../services/accountService";
+import WalletManagement from "./WalletManagement/WalletManagement";
 import "./Profile.css";
 
 const emptyProfile = {
@@ -196,10 +197,26 @@ function Profile() {
               </div>
             ) : (
               <div className="profile-summary-list">
-                <ProfileInfo icon={<AtSign size={18} />} label="Email" value={profile.email || "Not available"} />
-                <ProfileInfo icon={<Phone size={18} />} label="Phone" value={profile.phoneNumber || "Not available"} />
-                <ProfileInfo icon={<MapPin size={18} />} label="Address" value={profile.address || "Not available"} />
-                <ProfileInfo icon={<CalendarDays size={18} />} label="Joined" value={joinedDate} />
+                <ProfileInfo
+                  icon={<AtSign size={18} />}
+                  label="Email"
+                  value={profile.email || "Not available"}
+                />
+                <ProfileInfo
+                  icon={<Phone size={18} />}
+                  label="Phone"
+                  value={profile.phoneNumber || "Not available"}
+                />
+                <ProfileInfo
+                  icon={<MapPin size={18} />}
+                  label="Address"
+                  value={profile.address || "Not available"}
+                />
+                <ProfileInfo
+                  icon={<CalendarDays size={18} />}
+                  label="Joined"
+                  value={joinedDate}
+                />
               </div>
             )}
           </article>
@@ -229,7 +246,9 @@ function Profile() {
                 <span>Username</span>
                 <input
                   value={form.username}
-                  onChange={(event) => updateField("username", event.target.value)}
+                  onChange={(event) =>
+                    updateField("username", event.target.value)
+                  }
                   disabled={!editing || saving || loading}
                   placeholder="Your name"
                   required
@@ -245,7 +264,9 @@ function Profile() {
                 <span>Phone number</span>
                 <input
                   value={form.phoneNumber}
-                  onChange={(event) => updateField("phoneNumber", event.target.value)}
+                  onChange={(event) =>
+                    updateField("phoneNumber", event.target.value)
+                  }
                   disabled={!editing || saving || loading}
                   placeholder="Add your phone number"
                 />
@@ -255,7 +276,9 @@ function Profile() {
                 <span>Address</span>
                 <textarea
                   value={form.address}
-                  onChange={(event) => updateField("address", event.target.value)}
+                  onChange={(event) =>
+                    updateField("address", event.target.value)
+                  }
                   disabled={!editing || saving || loading}
                   placeholder="Add your address"
                   rows={4}
@@ -264,11 +287,24 @@ function Profile() {
 
               {editing && (
                 <div className="profile-actions">
-                  <button type="button" className="profile-secondary-button" onClick={cancelEditing} disabled={saving}>
+                  <button
+                    type="button"
+                    className="profile-secondary-button"
+                    onClick={cancelEditing}
+                    disabled={saving}
+                  >
                     Cancel
                   </button>
-                  <button type="submit" className="profile-primary-button" disabled={saving || loading}>
-                    {saving ? <LoaderCircle className="spin-icon" size={17} /> : <Save size={17} />}
+                  <button
+                    type="submit"
+                    className="profile-primary-button"
+                    disabled={saving || loading}
+                  >
+                    {saving ? (
+                      <LoaderCircle className="spin-icon" size={17} />
+                    ) : (
+                      <Save size={17} />
+                    )}
                     Save changes
                   </button>
                 </div>
@@ -285,8 +321,12 @@ function Profile() {
               <LockKeyhole size={22} />
             </div>
 
-            {passwordMessage && <div className="profile-alert success">{passwordMessage}</div>}
-            {passwordError && <div className="profile-alert error">{passwordError}</div>}
+            {passwordMessage && (
+              <div className="profile-alert success">{passwordMessage}</div>
+            )}
+            {passwordError && (
+              <div className="profile-alert error">{passwordError}</div>
+            )}
 
             <form className="profile-form" onSubmit={submitPassword}>
               <label className="profile-field">
@@ -294,7 +334,9 @@ function Profile() {
                 <input
                   type="password"
                   value={passwordForm.oldPassword}
-                  onChange={(event) => updatePasswordField("oldPassword", event.target.value)}
+                  onChange={(event) =>
+                    updatePasswordField("oldPassword", event.target.value)
+                  }
                   placeholder="Enter current password"
                   required
                 />
@@ -305,7 +347,9 @@ function Profile() {
                 <input
                   type="password"
                   value={passwordForm.newPassword}
-                  onChange={(event) => updatePasswordField("newPassword", event.target.value)}
+                  onChange={(event) =>
+                    updatePasswordField("newPassword", event.target.value)
+                  }
                   placeholder="At least 8 characters"
                   minLength={8}
                   required
@@ -317,18 +361,32 @@ function Profile() {
                 <input
                   type="password"
                   value={passwordForm.resNewPassword}
-                  onChange={(event) => updatePasswordField("resNewPassword", event.target.value)}
+                  onChange={(event) =>
+                    updatePasswordField("resNewPassword", event.target.value)
+                  }
                   placeholder="Confirm new password"
                   minLength={8}
                   required
                 />
               </label>
 
-              <button type="submit" className="profile-primary-button" disabled={changingPassword}>
-                {changingPassword ? <LoaderCircle className="spin-icon" size={17} /> : <Save size={17} />}
+              <button
+                type="submit"
+                className="profile-primary-button"
+                disabled={changingPassword}
+              >
+                {changingPassword ? (
+                  <LoaderCircle className="spin-icon" size={17} />
+                ) : (
+                  <Save size={17} />
+                )}
                 Update password
               </button>
             </form>
+          </article>
+
+          <article className="profile-card profile-wallet-card">
+            <WalletManagement />
           </article>
         </section>
       </main>

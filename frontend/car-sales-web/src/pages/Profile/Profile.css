@@ -105,6 +105,21 @@
   grid-column: 2;
 }
 
+.profile-wallet-card {
+  grid-column: 1 / -1;
+  padding: 22px;
+}
+
+.profile-wallet-card .wallet-management {
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+}
+
+.profile-wallet-card .wallet-management h2 {
+  margin-top: 0;
+}
+
 .profile-card-title {
   display: flex;
   align-items: center;
@@ -345,7 +360,8 @@
     grid-template-columns: 1fr;
   }
 
-  .profile-security-card {
+  .profile-security-card,
+  .profile-wallet-card {
     grid-column: auto;
   }
 }

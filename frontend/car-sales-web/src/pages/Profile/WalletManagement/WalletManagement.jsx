@@ -15,18 +15,11 @@ function Step3Payment({
   const [wallets, setWallets] = useState([]);
   const [loadingWallets, setLoadingWallets] = useState(false);
   const [connectingWallet, setConnectingWallet] = useState(false);
-  const [showWalletList, setShowWalletList] = useState(false);
 
   const shortenAddress = (address) => {
     if (!address) return "";
     return `${address.substring(0, 10)}...${address.slice(-4)}`;
   };
-
-  const selectedWallet = wallets.find(
-    (wallet) =>
-      wallet.address?.toLowerCase() ===
-      paymentDetails.walletAddress?.toLowerCase()
-  );
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -76,8 +69,6 @@ function Step3Payment({
       ...prev,
       walletAddress,
     }));
-
-    setShowWalletList(false);
   };
 
   const connectWallet = async () => {
@@ -120,9 +111,7 @@ function Step3Payment({
         walletAddress,
       }));
 
-      setShowWalletList(false);
       await loadWallets();
-
       showNotify("MetaMask connected successfully");
     } catch (error) {
       if (error.code === 4001) {
@@ -245,82 +234,53 @@ function Step3Payment({
             <div className="wallet-section-header">
               <div>
                 <h3>Wallet</h3>
-                <p>Ví mặc định đã được chọn sẵn. Bấm đổi ví nếu muốn.</p>
+                <p>Ví mặc định đã được chọn sẵn. Bấm ví khác nếu muốn đổi.</p>
               </div>
             </div>
 
             {loadingWallets ? (
               <p className="wallet-loading-text">Loading your wallets...</p>
             ) : wallets.length > 0 ? (
-              <div className="checkout-wallet-picker">
-                <div className="selected-wallet-box">
-                  <div className="checkout-wallet-main">
-                    <span className="checkout-wallet-name">
-                      {selectedWallet?.name || "Wallet"}
-                    </span>
-                    <code>
-                      {shortenAddress(
-                        selectedWallet?.address || paymentDetails.walletAddress
-                      )}
-                    </code>
-                  </div>
+              <div className="wallet-card-list">
+                {wallets.map((wallet) => {
+                  const selected =
+                    wallet.address?.toLowerCase() ===
+                    paymentDetails.walletAddress?.toLowerCase();
 
-                  <div className="checkout-wallet-meta">
-                    <span>{selectedWallet?.network || "sepolia"}</span>
-
-                    {selectedWallet?.isDefault && (
-                      <span className="checkout-wallet-default">Mặc định</span>
-                    )}
-
-                    <span className="checkout-wallet-selected">Đang chọn</span>
-                  </div>
-
-                  {wallets.length > 1 && (
+                  return (
                     <button
+                      key={wallet._id}
                       type="button"
-                      className="change-wallet-btn"
-                      onClick={() => setShowWalletList((prev) => !prev)}
+                      className={`checkout-wallet-card ${
+                        selected ? "selected" : ""
+                      }`}
+                      onClick={() => handleSelectWallet(wallet.address)}
                     >
-                      {showWalletList ? "Thu gọn" : "Đổi ví"}
+                      <div className="checkout-wallet-main">
+                        <span className="checkout-wallet-name">
+                          {wallet.name || "Wallet"}
+                        </span>
+                        <code>{shortenAddress(wallet.address)}</code>
+                      </div>
+
+                      <div className="checkout-wallet-meta">
+                        <span>{wallet.network || "sepolia"}</span>
+
+                        {wallet.isDefault && (
+                          <span className="checkout-wallet-default">
+                            Mặc định
+                          </span>
+                        )}
+
+                        {selected && (
+                          <span className="checkout-wallet-selected">
+                            Đang chọn
+                          </span>
+                        )}
+                      </div>
                     </button>
-                  )}
-                </div>
-
-                {showWalletList && (
-                  <div className="wallet-card-list">
-                    {wallets
-                      .filter(
-                        (wallet) =>
-                          wallet.address?.toLowerCase() !==
-                          paymentDetails.walletAddress?.toLowerCase()
-                      )
-                      .map((wallet) => (
-                        <button
-                          key={wallet._id}
-                          type="button"
-                          className="checkout-wallet-card"
-                          onClick={() => handleSelectWallet(wallet.address)}
-                        >
-                          <div className="checkout-wallet-main">
-                            <span className="checkout-wallet-name">
-                              {wallet.name || "Wallet"}
-                            </span>
-                            <code>{shortenAddress(wallet.address)}</code>
-                          </div>
-
-                          <div className="checkout-wallet-meta">
-                            <span>{wallet.network || "sepolia"}</span>
-
-                            {wallet.isDefault && (
-                              <span className="checkout-wallet-default">
-                                Mặc định
-                              </span>
-                            )}
-                          </div>
-                        </button>
-                      ))}
-                  </div>
-                )}
+                  );
+                })}
               </div>
             ) : (
               <div className="no-wallet-box">
@@ -343,6 +303,13 @@ function Step3Payment({
                   />
                   {connectingWallet ? "Connecting..." : "Connect MetaMask"}
                 </button>
+              </div>
+            )}
+
+            {paymentDetails.walletAddress && (
+              <div className="wallet-info">
+                <span>Selected wallet: </span>
+                <code>{shortenAddress(paymentDetails.walletAddress)}</code>
               </div>
             )}
 
