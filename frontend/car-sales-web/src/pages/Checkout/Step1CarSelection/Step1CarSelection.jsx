@@ -7,7 +7,14 @@ import engine from '../../../assets/icon/engine.png';
 import energy from '../../../assets/icon/energy.png';
 import add from '../../../assets/icon/add.png';
 
-function Step1CarSelection({ cartItems, removeFromCart, updateQuantity, selectedIds, toggleSelectCar }) {
+function Step1CarSelection({
+  cartItems = [],
+  removeFromCart,
+  updateQuantity,
+  selectedIds = [],
+  toggleSelectCar,
+  actionLoading = {}
+}) {
   return (
     <div className="step-1-wrapper">
       <h2 id="header">Selection of cars for inspection</h2>
@@ -21,45 +28,75 @@ function Step1CarSelection({ cartItems, removeFromCart, updateQuantity, selected
 
         {cartItems.length > 0 ? (
           cartItems.map((item) => {
-            const isSelected = selectedIds.includes(item._id);
+            const product = item.productId;
+            const cartItemId = item._id;
+            const productId = product?._id;
+
+            const quantity = Number(item.quantity || 1);
+            const price = Number(item.price || product?.price || 0);
+            const specs = product?.specifications || {};
+            const isSelected = selectedIds.includes(cartItemId);
+            const isLoading = Boolean(actionLoading[cartItemId]);
 
             return (
               <div
                 className={`carform ${isSelected ? 'selected-outline' : ''}`}
-                key={item._id}
-                onClick={() => toggleSelectCar(item._id)}
-                style={{ cursor: 'pointer' }}
+                key={cartItemId}
+                onClick={() => {
+                  if (!isLoading) toggleSelectCar(cartItemId);
+                }}
+                style={{ cursor: isLoading ? 'not-allowed' : 'pointer' }}
               >
-                {/* Đổi từ item.display sang item.thumbnailImage */}
-                <img className="img-car" src={item.thumbnailImage} alt={item.name} />
+                <img
+                  className="img-car"
+                  src={product?.thumbnailImage || ''}
+                  alt={product?.name || 'car'}
+                />
 
                 <hr className="line" />
+
                 <div className="car-infomation">
                   <div className="car-and-close">
-                    <h4 className="car-name">{item.name}</h4>
+                    <h4 className="car-name">
+                      {product?.name || 'Unnamed car'}
+                    </h4>
+
                     <img
                       className="icon trash-icon"
                       src={trashcan}
                       onClick={(e) => {
+                        e.preventDefault();
                         e.stopPropagation();
-                        removeFromCart(item._id);
+
+                        if (isLoading || !productId) return;
+
+                        removeFromCart({
+                          cartItemId,
+                          productId
+                        });
                       }}
                       alt="remove"
+                      style={{
+                        opacity: isLoading ? 0.5 : 1,
+                        pointerEvents: isLoading ? 'none' : 'auto'
+                      }}
                     />
                   </div>
 
                   <div className="info-line">
                     <div className="info-item">
                       <img className="icon" src={weight} alt="" />
-                      <span>{item.specifications?.weight ? `${item.specifications.weight} kg` : 'N/A'}</span>
+                      <span>{specs.weight ? `${specs.weight} kg` : 'N/A'}</span>
                     </div>
+
                     <div className="info-item">
                       <img className="icon" src={engine} alt="" />
-                      <span>{item.specifications?.power ? `${item.specifications.power} HP` : 'N/A'}</span>
+                      <span>{specs.power ? `${specs.power} HP` : 'N/A'}</span>
                     </div>
+
                     <div className="info-item">
                       <img className="icon" src={energy} alt="" />
-                      <span>{item.specifications?.topSpeed ? `${item.specifications.topSpeed} km/h` : 'N/A'}</span>
+                      <span>{specs.topSpeed ? `${specs.topSpeed} km/h` : 'N/A'}</span>
                     </div>
                   </div>
 
@@ -67,16 +104,58 @@ function Step1CarSelection({ cartItems, removeFromCart, updateQuantity, selected
                     <button
                       type="button"
                       className="qty-btn"
-                      onClick={(e) => { e.stopPropagation(); updateQuantity(item._id, -1); }}
-                    >-</button>
-                    <input type="number" value={item.quantity} readOnly className="qty-input" onClick={(e) => e.stopPropagation()} />
+                      disabled={quantity <= 1 || isLoading || !productId}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        if (quantity <= 1 || isLoading || !productId) return;
+
+                        updateQuantity({
+                          cartItemId,
+                          productId,
+                          quantity: quantity - 1
+                        });
+                      }}
+                    >
+                      -
+                    </button>
+
+                    <input
+                      type="number"
+                      value={quantity}
+                      readOnly
+                      className="qty-input"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
+                    />
+
                     <button
                       type="button"
                       className="qty-btn"
-                      onClick={(e) => { e.stopPropagation(); updateQuantity(item._id, 1); }}
-                    >+</button>
+                      disabled={isLoading || !productId}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        if (isLoading || !productId) return;
+
+                        updateQuantity({
+                          cartItemId,
+                          productId,
+                          quantity: quantity + 1
+                        });
+                      }}
+                    >
+                      +
+                    </button>
                   </div>
-                  <h3 className="car-price">${(item.price * item.quantity).toLocaleString()}</h3>
+
+                  <h3 className="car-price">
+                    ${(price * quantity).toLocaleString()}
+                  </h3>
                 </div>
               </div>
             );

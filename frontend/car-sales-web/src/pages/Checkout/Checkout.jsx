@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import Navbar from '../../components/Navbar/Navbar';
@@ -49,7 +49,18 @@ const normalizeOrderData = (response) => response?.data || response;
 
 function Checkout({ notifyRef }) {
   const navigate = useNavigate();
-  const { cartItems, removeFromCart, updateQuantity, removePurchasedItems } = useCart();
+
+  const {
+    cartItems,
+    fetchCart,
+    updateQuantity,
+    removeFromCart,
+    removePurchasedItems,
+    loading: cartLoading
+  } = useCart();
+
+  const [cartActionLoading, setCartActionLoading] = useState({});
+
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [paymentType, setPaymentType] = useState('full');
@@ -67,15 +78,21 @@ function Checkout({ notifyRef }) {
 
   const [finalTxHash, setFinalTxHash] = useState('');
 
-  const showMessage = (message) => {
+  const showMessage = useCallback((message) => {
     notifyRef?.current?.show?.(message);
-  };
+  }, [notifyRef]);
+
+  useEffect(() => {
+    fetchCart?.();
+  }, [fetchCart]);
+
+  const checkoutCartItems = cartItems || [];
 
   const deliveryFee = useMemo(() => (deliveryMethod === 'delivery' ? 50 : 0), [deliveryMethod]);
 
   const selectedItemsForOrder = useMemo(
-    () => cartItems.filter(item => selectedIds.includes(item._id)),
-    [cartItems, selectedIds]
+    () => checkoutCartItems.filter(item => selectedIds.includes(item._id)),
+    [checkoutCartItems, selectedIds]
   );
 
   const summaryItems = step === 4 && confirmedItems.length > 0
@@ -163,7 +180,7 @@ function Checkout({ notifyRef }) {
     const isPickup = deliveryMethod === 'pickup';
 
     return {
-      selectedItems: selectedIds.filter(Boolean),
+      selectedItems: selectedItemsForOrder.map(item => item.productId._id),
       paymentType,
       buyerWallet: paymentDetails.walletAddress,
       deliveryMethod: isPickup ? "pickup" : "delivery",
@@ -248,6 +265,7 @@ function Checkout({ notifyRef }) {
       setStep(4);
     } catch (error) {
       console.error("Checkout payment failed:", error);
+
       if (paymentCompleted) {
         showMessage("Payment completed. Please open My Orders if the confirmation screen did not update.");
         setStep(4);
@@ -258,6 +276,44 @@ function Checkout({ notifyRef }) {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const setItemActionLoading = (cartItemId, value) => {
+    setCartActionLoading(prev => ({
+      ...prev,
+      [cartItemId]: value
+    }));
+  };
+
+  const handleRemoveFromCart = async ({ cartItemId, productId }) => {
+    if (!cartItemId || !productId) return;
+
+    try {
+      setItemActionLoading(cartItemId, true);
+      setSelectedIds(prev => prev.filter(id => id !== cartItemId));
+
+      await removeFromCart(productId);
+    } catch (error) {
+      console.error("Remove cart item failed:", error);
+      showMessage(error?.response?.data?.message || "Could not remove item from cart.");
+    } finally {
+      setItemActionLoading(cartItemId, false);
+    }
+  };
+
+  const handleUpdateQuantity = async ({ cartItemId, productId, quantity }) => {
+    if (!cartItemId || !productId || quantity < 1) return;
+
+    try {
+      setItemActionLoading(cartItemId, true);
+
+      await updateQuantity(productId, quantity);
+    } catch (error) {
+      console.error("Update cart quantity failed:", error);
+      showMessage(error?.response?.data?.message || "Could not update quantity.");
+    } finally {
+      setItemActionLoading(cartItemId, false);
     }
   };
 
@@ -272,11 +328,12 @@ function Checkout({ notifyRef }) {
       case 1:
         return (
           <Step1CarSelection
-            cartItems={cartItems}
-            removeFromCart={removeFromCart}
-            updateQuantity={updateQuantity}
+            cartItems={checkoutCartItems}
+            removeFromCart={handleRemoveFromCart}
+            updateQuantity={handleUpdateQuantity}
             selectedIds={selectedIds}
             toggleSelectCar={toggleSelectCar}
+            actionLoading={cartActionLoading}
             showNotify={showMessage}
           />
         );
@@ -319,6 +376,7 @@ function Checkout({ notifyRef }) {
   return (
     <>
       <Navbar />
+
       <div className="checkout-page">
         <div id="purchasing-progress">
           <ol id="step-purchasing">
@@ -335,23 +393,35 @@ function Checkout({ notifyRef }) {
 
         <div id="main-content">
           <div id="Choosing-method">
-            {renderStepContent()}
+            {cartLoading && step === 1 ? (
+              <p>Loading cart...</p>
+            ) : (
+              renderStepContent()
+            )}
+
             <div id="button-block">
               {step > 1 && step < 4 && (
-                <button type="button" className="back-step" onClick={() => setStep(step - 1)} disabled={loading}>
+                <button
+                  type="button"
+                  className="back-step"
+                  onClick={() => setStep(step - 1)}
+                  disabled={loading}
+                >
                   Back
                 </button>
               )}
+
               <button
                 type="button"
                 className="next-step"
                 onClick={handleNextStep}
-                disabled={loading}
+                disabled={loading || cartLoading}
               >
                 {loading ? "Processing..." : (step === 4 ? "View My Orders" : "Next")}
               </button>
             </div>
           </div>
+
           <OrderSummary
             cartItems={summaryItems}
             deliveryFee={summaryItems.length > 0 ? deliveryFee : 0}
