@@ -2,7 +2,7 @@ import User from "../models/AuthModel.js";
 import Otp from "../models/OTPModel.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import sendMail from "../utils/mailer.js";
+import sendMail, { describeMailerError } from "../utils/mailer.js";
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -77,41 +77,22 @@ export const registerService = async ({
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
-  let user = existingByEmail;
-  let createdUser = false;
 
-  if (user) {
-    user.username = normalizedUsername;
-    user.password = hashedPassword;
-    user.isVerified = false;
-    await user.save();
+  if (existingByEmail) {
+    existingByEmail.username = normalizedUsername;
+    existingByEmail.password = hashedPassword;
+    existingByEmail.isVerified = true;
+    await existingByEmail.save();
   } else {
-    user = await User.create({
+    await User.create({
       username: normalizedUsername,
       email: normalizedEmail,
       password: hashedPassword,
-      isVerified: false,
+      isVerified: true,
     });
-    createdUser = true;
   }
 
-  const otp = await createOtpForEmail(normalizedEmail);
-
-  try {
-    await sendMail(
-      normalizedEmail,
-      "Saigon Speed - Verify your account",
-      buildOtpEmail({
-        title: "Verify your Saigon Speed account",
-        intro: "Use this OTP to finish creating your account.",
-        otp,
-      })
-    );
-  } catch {
-    await Otp.deleteMany({ email: normalizedEmail });
-    if (createdUser) await User.deleteOne({ _id: user._id });
-    throw new Error("Unable to send OTP email. Please try again.");
-  }
+  await Otp.deleteMany({ email: normalizedEmail });
 
   return true;
 };
@@ -241,9 +222,9 @@ export const forgotPasswordService = async (email) => {
         otp,
       })
     );
-  } catch {
+  } catch (error) {
     await Otp.deleteMany({ email: normalizedEmail });
-    throw new Error("Unable to send OTP email. Please try again.");
+    throw new Error(describeMailerError(error));
   }
 
   return true;

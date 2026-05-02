@@ -13,7 +13,7 @@ const isValidEthereumAddress = (address) => {
 
 const validateObjectId = (id) => {
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    throw createError("ID ví không hợp lệ", 400);
+    throw createError("Wallet id is invalid", 400);
   }
 };
 
@@ -29,11 +29,11 @@ export const createWallet = async (userId, payload) => {
     const { name, address, network, isDefault } = payload;
 
     if (!address) {
-      throw createError("Vui lòng nhập địa chỉ ví", 400);
+      throw createError("Wallet address is required", 400);
     }
 
     if (!isValidEthereumAddress(address)) {
-      throw createError("Địa chỉ ví không hợp lệ", 400);
+      throw createError("Wallet address is invalid", 400);
     }
 
     const normalizedAddress = address.toLowerCase();
@@ -44,10 +44,13 @@ export const createWallet = async (userId, payload) => {
     });
 
     if (existedWallet) {
-      throw createError("Ví này đã tồn tại", 409);
+      throw createError("This wallet is already saved", 409);
     }
 
-    if (isDefault) {
+    const walletCount = await Wallet.countDocuments({ user: userId });
+    const shouldBeDefault = walletCount === 0 || Boolean(isDefault);
+
+    if (shouldBeDefault) {
       await Wallet.updateMany(
         { user: userId },
         { $set: { isDefault: false } }
@@ -56,79 +59,43 @@ export const createWallet = async (userId, payload) => {
 
     return await Wallet.create({
       user: userId,
-      name,
+      name: name?.trim() || "MetaMask",
       address: normalizedAddress,
-      network,
-      isDefault: Boolean(isDefault),
+      network: network || "sepolia",
+      isDefault: shouldBeDefault,
     });
   } catch (error) {
     if (error.code === 11000) {
-      throw createError("Ví này đã tồn tại", 409);
+      throw createError("This wallet is already saved", 409);
     }
 
     throw error;
   }
 };
 
-export const updateWalletById = async (userId, walletId, payload) => {
-  try {
-    validateObjectId(walletId);
+export const updateWalletById = async (userId, walletId, payload = {}) => {
+  validateObjectId(walletId);
 
-    const { name, address, network, isDefault } = payload;
+  const wallet = await Wallet.findOne({
+    _id: walletId,
+    user: userId,
+  });
 
-    const wallet = await Wallet.findOne({
-      _id: walletId,
-      user: userId,
-    });
-
-    if (!wallet) {
-      throw createError("Không tìm thấy ví", 404);
-    }
-
-    if (address) {
-      if (!isValidEthereumAddress(address)) {
-        throw createError("Địa chỉ ví không hợp lệ", 400);
-      }
-
-      const normalizedAddress = address.toLowerCase();
-
-      const existedWallet = await Wallet.findOne({
-        _id: { $ne: walletId },
-        user: userId,
-        address: normalizedAddress,
-      });
-
-      if (existedWallet) {
-        throw createError("Ví này đã tồn tại", 409);
-      }
-
-      wallet.address = normalizedAddress;
-    }
-
-    if (name !== undefined) wallet.name = name;
-    if (network !== undefined) wallet.network = network;
-
-    if (isDefault === true) {
-      await Wallet.updateMany(
-        { user: userId, _id: { $ne: walletId } },
-        { $set: { isDefault: false } }
-      );
-
-      wallet.isDefault = true;
-    }
-
-    if (isDefault === false) {
-      wallet.isDefault = false;
-    }
-
-    return await wallet.save();
-  } catch (error) {
-    if (error.code === 11000) {
-      throw createError("Ví này đã tồn tại", 409);
-    }
-
-    throw error;
+  if (!wallet) {
+    throw createError("Wallet not found", 404);
   }
+
+  if (payload.isDefault !== true) {
+    throw createError("Wallet details cannot be edited", 400);
+  }
+
+  await Wallet.updateMany(
+    { user: userId, _id: { $ne: walletId } },
+    { $set: { isDefault: false } }
+  );
+
+  wallet.isDefault = true;
+  return await wallet.save();
 };
 
 export const deleteWalletById = async (userId, walletId) => {
@@ -140,7 +107,18 @@ export const deleteWalletById = async (userId, walletId) => {
   });
 
   if (!wallet) {
-    throw createError("Không tìm thấy ví", 404);
+    throw createError("Wallet not found", 404);
+  }
+
+  if (wallet.isDefault) {
+    const nextDefaultWallet = await Wallet.findOne({ user: userId }).sort({
+      createdAt: -1,
+    });
+
+    if (nextDefaultWallet) {
+      nextDefaultWallet.isDefault = true;
+      await nextDefaultWallet.save();
+    }
   }
 
   return wallet;

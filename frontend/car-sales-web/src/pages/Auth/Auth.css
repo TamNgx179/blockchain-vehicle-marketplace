@@ -516,6 +516,68 @@
 }
 
 /* ===============================
+   SECURITY CODE
+=============================== */
+
+.auth-captcha-panel {
+  position: relative;
+  min-height: 96px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  overflow: hidden;
+
+  background:
+    repeating-linear-gradient(
+      14deg,
+      rgba(17, 17, 17, 0.08) 0 2px,
+      transparent 2px 13px
+    ),
+    radial-gradient(circle at 20% 24%, rgba(255, 77, 77, 0.15), transparent 28%),
+    radial-gradient(circle at 80% 70%, rgba(17, 17, 17, 0.12), transparent 24%),
+    #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+}
+
+.auth-captcha-panel::before,
+.auth-captcha-panel::after {
+  content: "";
+  position: absolute;
+  inset: 14px;
+  pointer-events: none;
+  border-top: 2px solid rgba(17, 17, 17, 0.16);
+  border-bottom: 2px solid rgba(255, 77, 77, 0.16);
+  transform: rotate(-4deg);
+}
+
+.auth-captcha-panel::after {
+  inset: 26px 10px;
+  border-color: rgba(17, 17, 17, 0.12);
+  transform: rotate(6deg);
+}
+
+.auth-captcha-panel span {
+  position: relative;
+  z-index: 1;
+
+  color: rgba(17, 17, 17, 0.72);
+  font-size: 46px;
+  font-weight: 900;
+  letter-spacing: 0.28em;
+  line-height: 1;
+
+  filter: blur(0.7px);
+  text-shadow:
+    2px 2px 0 rgba(255, 77, 77, 0.14),
+    -2px -1px 0 rgba(17, 17, 17, 0.1);
+  transform: rotate(-3deg);
+  user-select: none;
+}
+
+/* ===============================
    ACCESSIBILITY
 =============================== */
 

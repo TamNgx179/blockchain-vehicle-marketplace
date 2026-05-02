@@ -8,6 +8,11 @@ const SEPOLIA_CHAIN_ID = 11155111n;
 const SEPOLIA_CHAIN_HEX = "0xaa36a7";
 const USD_PER_ETH = Number(import.meta.env.VITE_USD_PER_ETH || 2000000);
 
+const shortenAddress = (address) => {
+  if (!address) return "";
+  return `${address.substring(0, 10)}...${address.slice(-4)}`;
+};
+
 export const getPositiveWeiValue = (amountWei) => {
   if (!amountWei) throw new Error("Payment amount is missing.");
 
@@ -65,15 +70,39 @@ export const ensureSepoliaNetwork = async () => {
   return switchedProvider;
 };
 
-export const getMarketplaceContract = async () => {
-  const provider = await ensureSepoliaNetwork();
+const getVerifiedSigner = async (provider, expectedWallet) => {
   const signer = await provider.getSigner();
+
+  if (!expectedWallet) return signer;
+
+  const connectedWallet = await signer.getAddress();
+
+  if (connectedWallet.toLowerCase() !== expectedWallet.toLowerCase()) {
+    throw new Error(
+      `Please switch MetaMask to the selected wallet ${shortenAddress(
+        expectedWallet
+      )} before continuing.`
+    );
+  }
+
+  return signer;
+};
+
+export const ensureSelectedWalletReady = async (expectedWallet) => {
+  const provider = await ensureSepoliaNetwork();
+  const signer = await getVerifiedSigner(provider, expectedWallet);
+  return signer.getAddress();
+};
+
+export const getMarketplaceContract = async (expectedWallet) => {
+  const provider = await ensureSepoliaNetwork();
+  const signer = await getVerifiedSigner(provider, expectedWallet);
 
   return new Contract(CONTRACT_ADDRESS, contractArtifact.abi, signer);
 };
 
 export const getBuyerMarketplaceContract = async (order) => {
-  const contract = await getMarketplaceContract();
+  const contract = await getMarketplaceContract(order?.buyerWallet);
   const connectedWallet = await contract.runner.getAddress();
 
   if (

@@ -10,6 +10,7 @@ import Step3Payment from './Step3Payment/Step3Payment';
 import Step4Confirmation from './Step4Confirmation/Step4Confirmation';
 import { orderService } from '../../services/orderService';
 import {
+  ensureSelectedWalletReady,
   getMarketplaceContract,
   getPositiveWeiValue,
 } from '../../utils/blockchainClient';
@@ -86,7 +87,7 @@ function Checkout({ notifyRef }) {
     fetchCart?.();
   }, [fetchCart]);
 
-  const checkoutCartItems = cartItems || [];
+  const checkoutCartItems = useMemo(() => cartItems || [], [cartItems]);
 
   const deliveryFee = useMemo(() => (deliveryMethod === 'delivery' ? 50 : 0), [deliveryMethod]);
 
@@ -99,10 +100,10 @@ function Checkout({ notifyRef }) {
     ? confirmedItems
     : selectedItemsForOrder;
 
-  const handleBlockchainPayment = async (dbOrderId, blockchainOrderId, totalAmountWei) => {
+  const handleBlockchainPayment = async (dbOrderId, blockchainOrderId, totalAmountWei, buyerWallet) => {
     showMessage("Please confirm the payment in MetaMask...");
 
-    const contract = await getMarketplaceContract();
+    const contract = await getMarketplaceContract(buyerWallet);
     const tx = await contract.payFull(blockchainOrderId, {
       value: await getPositiveWeiValue(totalAmountWei)
     });
@@ -120,10 +121,10 @@ function Checkout({ notifyRef }) {
     return tx.hash;
   };
 
-  const handleDepositPayment = async (dbOrderId, blockchainOrderId, depositAmountWei) => {
+  const handleDepositPayment = async (dbOrderId, blockchainOrderId, depositAmountWei, buyerWallet) => {
     showMessage("Please confirm the deposit in MetaMask...");
 
-    const contract = await getMarketplaceContract();
+    const contract = await getMarketplaceContract(buyerWallet);
     const tx = await contract.payDeposit(blockchainOrderId, {
       value: await getPositiveWeiValue(depositAmountWei)
     });
@@ -238,6 +239,8 @@ function Checkout({ notifyRef }) {
       setLoading(true);
       setFinalTxHash('');
 
+      await ensureSelectedWalletReady(paymentDetails.walletAddress);
+
       const response = await orderService.createOrder(buildOrderPayload());
       orderData = normalizeOrderData(response);
 
@@ -249,12 +252,14 @@ function Checkout({ notifyRef }) {
         ? await handleDepositPayment(
             orderData._id,
             orderData.blockchainOrderId,
-            orderData.depositAmountWei
+            orderData.depositAmountWei,
+            paymentDetails.walletAddress
           )
         : await handleBlockchainPayment(
             orderData._id,
             orderData.blockchainOrderId,
-            orderData.totalAmountWei
+            orderData.totalAmountWei,
+            paymentDetails.walletAddress
           );
 
       paymentCompleted = true;

@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
+import { Banknote, Blocks, CheckCircle, Plus } from "lucide-react";
 import "./Step3Payment.css";
 import metamaskIcon from "../../../assets/icon/metamask.png";
 import { getMyWallets, addWallet } from "../../../services/walletService";
+import { requestMetaMaskAccounts } from "../../../utils/metamaskWallets";
 
 function Step3Payment({
   paymentMethod,
@@ -15,11 +17,19 @@ function Step3Payment({
   const [wallets, setWallets] = useState([]);
   const [loadingWallets, setLoadingWallets] = useState(false);
   const [connectingWallet, setConnectingWallet] = useState(false);
-  const [showWalletList, setShowWalletList] = useState(false);
+
+  const notify = (message) => showNotify?.(message);
 
   const shortenAddress = (address) => {
     if (!address) return "";
     return `${address.substring(0, 10)}...${address.slice(-4)}`;
+  };
+
+  const normalizeWalletResponse = (response) => {
+    if (Array.isArray(response)) return response;
+    if (Array.isArray(response?.wallets)) return response.wallets;
+    if (Array.isArray(response?.data)) return response.data;
+    return [];
   };
 
   const selectedWallet = wallets.find(
@@ -42,7 +52,7 @@ function Step3Payment({
       setLoadingWallets(true);
 
       const response = await getMyWallets();
-      const walletList = response.data || [];
+      const walletList = normalizeWalletResponse(response);
 
       setWallets(walletList);
 
@@ -55,10 +65,13 @@ function Step3Payment({
           walletAddress: defaultWallet.address,
         }));
       }
+
+      return walletList;
     } catch (error) {
-      showNotify(
-        error.response?.data?.message || "Could not load your saved wallets"
+      notify(
+        error.response?.data?.message || "Could not load your saved wallets."
       );
+      return [];
     } finally {
       setLoadingWallets(false);
     }
@@ -76,61 +89,77 @@ function Step3Payment({
       ...prev,
       walletAddress,
     }));
-
-    setShowWalletList(false);
   };
 
   const connectWallet = async () => {
-    if (!window.ethereum) {
-      showNotify("Please install MetaMask to use this feature!");
-      return;
-    }
-
     try {
       setConnectingWallet(true);
 
-      const accounts = await window.ethereum.request({
-        method: "eth_requestAccounts",
-      });
+      const accounts = await requestMetaMaskAccounts();
 
-      const walletAddress = accounts?.[0];
-
-      if (!walletAddress) {
-        showNotify("Could not get wallet address from MetaMask");
+      if (!accounts.length) {
+        notify("Could not get any wallet address from MetaMask.");
         return;
       }
 
-      const walletData = {
-        name: "MetaMask",
-        address: walletAddress,
-        network: "sepolia",
-        isDefault: wallets.length === 0,
-      };
+      const existingAddresses = new Set(
+        wallets.map((wallet) => wallet.address?.toLowerCase()).filter(Boolean)
+      );
+      let savedCount = 0;
+      let duplicateCount = 0;
 
-      try {
-        await addWallet(walletData);
-      } catch (error) {
-        if (error.response?.status !== 409) {
-          throw error;
+      for (const [index, walletAddress] of accounts.entries()) {
+        const normalizedAddress = walletAddress.toLowerCase();
+
+        try {
+          await addWallet({
+            name: "MetaMask",
+            address: walletAddress,
+            network: "sepolia",
+            isDefault:
+              wallets.length === 0 &&
+              savedCount === 0 &&
+              index === 0 &&
+              !existingAddresses.size,
+          });
+          savedCount += 1;
+          existingAddresses.add(normalizedAddress);
+        } catch (error) {
+          if (error.response?.status === 409) {
+            duplicateCount += 1;
+          } else {
+            throw error;
+          }
         }
       }
 
       setPaymentDetails((prev) => ({
         ...prev,
-        walletAddress,
+        walletAddress: accounts[0],
       }));
 
-      setShowWalletList(false);
       await loadWallets();
 
-      showNotify("MetaMask connected successfully");
+      if (savedCount > 0) {
+        notify(
+          `${savedCount} MetaMask ${
+            savedCount === 1 ? "wallet" : "wallets"
+          } connected successfully.`
+        );
+      } else if (duplicateCount > 0) {
+        notify("Selected MetaMask wallet is already saved.");
+      }
     } catch (error) {
       if (error.code === 4001) {
-        showNotify("User denied MetaMask connection");
+        notify("MetaMask connection was rejected.");
         return;
       }
 
-      showNotify(error.response?.data?.message || "Could not connect MetaMask");
+      notify(
+        error.response?.data?.message ||
+          error.message ||
+          "Could not connect MetaMask."
+      );
     } finally {
       setConnectingWallet(false);
     }
@@ -141,29 +170,35 @@ function Step3Payment({
       <h2>Payment & Contact Information</h2>
 
       <div className="payment-grid">
-        <div
+        <button
+          type="button"
           className={`payment-card ${paymentMethod === "cash" ? "active" : ""}`}
           onClick={() => setPaymentMethod("cash")}
         >
-          <div className="payment-icon">💵</div>
+          <div className="payment-icon">
+            <Banknote size={25} />
+          </div>
           <div className="payment-info">
             <h3>Cash Payment</h3>
             <p>Pay at showroom</p>
           </div>
-        </div>
+        </button>
 
-        <div
+        <button
+          type="button"
           className={`payment-card ${
             paymentMethod === "blockchain" ? "active" : ""
           }`}
           onClick={() => setPaymentMethod("blockchain")}
         >
-          <div className="payment-icon">⛓️</div>
+          <div className="payment-icon">
+            <Blocks size={25} />
+          </div>
           <div className="payment-info">
             <h3>Blockchain</h3>
-            <p>Smart Contract</p>
+            <p>Smart contract payment</p>
           </div>
-        </div>
+        </button>
       </div>
 
       {paymentMethod === "blockchain" && (
@@ -185,7 +220,7 @@ function Step3Payment({
               />
               <div className="type-content">
                 <strong>Full Payment</strong>
-                <span>Pay 100% total amount</span>
+                <span>Pay 100% of the total amount</span>
               </div>
             </label>
 
@@ -203,7 +238,7 @@ function Step3Payment({
               />
               <div className="type-content">
                 <strong>Deposit</strong>
-                <span>Secure with a small fee</span>
+                <span>Pay a deposit first and complete later</span>
               </div>
             </label>
           </div>
@@ -242,117 +277,102 @@ function Step3Payment({
 
         {paymentMethod === "blockchain" && (
           <div className="blockchain-section">
-            <div className="wallet-section-header">
+            <div className="checkout-wallet-header">
               <div>
-                <h3>Wallet</h3>
-                <p>Ví mặc định đã được chọn sẵn. Bấm đổi ví nếu muốn.</p>
+                <h3>Payment Wallet</h3>
+                <p>
+                  Choose one of your saved MetaMask wallets. The same wallet
+                  must be active in MetaMask when you confirm the payment.
+                </p>
               </div>
+
+              <button
+                type="button"
+                className="connect-btn"
+                onClick={connectWallet}
+                disabled={connectingWallet}
+              >
+                {connectingWallet ? (
+                  "Connecting..."
+                ) : (
+                  <>
+                    <Plus size={16} />
+                    Connect wallet
+                  </>
+                )}
+              </button>
             </div>
 
             {loadingWallets ? (
               <p className="wallet-loading-text">Loading your wallets...</p>
             ) : wallets.length > 0 ? (
-              <div className="checkout-wallet-picker">
-                <div className="selected-wallet-box">
-                  <div className="checkout-wallet-main">
-                    <span className="checkout-wallet-name">
-                      {selectedWallet?.name || "Wallet"}
-                    </span>
-                    <code>
-                      {shortenAddress(
-                        selectedWallet?.address || paymentDetails.walletAddress
-                      )}
-                    </code>
-                  </div>
+              <div className="checkout-wallet-grid">
+                {wallets.map((wallet) => {
+                  const isSelected =
+                    wallet.address?.toLowerCase() ===
+                    paymentDetails.walletAddress?.toLowerCase();
 
-                  <div className="checkout-wallet-meta">
-                    <span>{selectedWallet?.network || "sepolia"}</span>
-
-                    {selectedWallet?.isDefault && (
-                      <span className="checkout-wallet-default">Mặc định</span>
-                    )}
-
-                    <span className="checkout-wallet-selected">Đang chọn</span>
-                  </div>
-
-                  {wallets.length > 1 && (
+                  return (
                     <button
+                      key={wallet._id || wallet.address}
                       type="button"
-                      className="change-wallet-btn"
-                      onClick={() => setShowWalletList((prev) => !prev)}
+                      className={`checkout-wallet-card ${
+                        isSelected ? "selected" : ""
+                      }`}
+                      onClick={() => handleSelectWallet(wallet.address)}
                     >
-                      {showWalletList ? "Thu gọn" : "Đổi ví"}
+                      <div className="checkout-wallet-card-main">
+                        <div className="checkout-wallet-avatar">
+                          <img src={metamaskIcon} alt="MetaMask" />
+                        </div>
+
+                        <div className="checkout-wallet-main">
+                          <span className="checkout-wallet-name">
+                            {wallet.name || "MetaMask"}
+                          </span>
+                          <code title={wallet.address}>
+                            {shortenAddress(wallet.address)}
+                          </code>
+                        </div>
+                      </div>
+
+                      <div className="checkout-wallet-meta">
+                        <span>{wallet.network || "sepolia"}</span>
+
+                        {wallet.isDefault && (
+                          <span className="checkout-wallet-default">
+                            Default
+                          </span>
+                        )}
+
+                        {isSelected && (
+                          <span className="checkout-wallet-selected">
+                            <CheckCircle size={12} />
+                            Selected
+                          </span>
+                        )}
+                      </div>
                     </button>
-                  )}
-                </div>
-
-                {showWalletList && (
-                  <div className="wallet-card-list">
-                    {wallets
-                      .filter(
-                        (wallet) =>
-                          wallet.address?.toLowerCase() !==
-                          paymentDetails.walletAddress?.toLowerCase()
-                      )
-                      .map((wallet) => (
-                        <button
-                          key={wallet._id}
-                          type="button"
-                          className="checkout-wallet-card"
-                          onClick={() => handleSelectWallet(wallet.address)}
-                        >
-                          <div className="checkout-wallet-main">
-                            <span className="checkout-wallet-name">
-                              {wallet.name || "Wallet"}
-                            </span>
-                            <code>{shortenAddress(wallet.address)}</code>
-                          </div>
-
-                          <div className="checkout-wallet-meta">
-                            <span>{wallet.network || "sepolia"}</span>
-
-                            {wallet.isDefault && (
-                              <span className="checkout-wallet-default">
-                                Mặc định
-                              </span>
-                            )}
-                          </div>
-                        </button>
-                      ))}
-                  </div>
-                )}
+                  );
+                })}
               </div>
             ) : (
               <div className="no-wallet-box">
                 <div>
-                  <strong>Chưa có ví</strong>
-                  <p>Kết nối MetaMask để thêm ví và tiếp tục thanh toán.</p>
+                  <strong>No wallets connected</strong>
+                  <p>Connect MetaMask to add a wallet and continue checkout.</p>
                 </div>
-
-                <button
-                  type="button"
-                  className="connect-btn"
-                  onClick={connectWallet}
-                  disabled={connectingWallet}
-                >
-                  <img
-                    className="metamask-icon"
-                    src={metamaskIcon}
-                    alt=""
-                    aria-hidden="true"
-                  />
-                  {connectingWallet ? "Connecting..." : "Connect MetaMask"}
-                </button>
               </div>
             )}
 
-            <p className="note">
-              Note:{" "}
-              {paymentType === "deposit"
-                ? "You chose to Pay Deposit."
-                : "You chose to Pay Full Amount."}{" "}
-              Confirm in the next step.
-            </p>
+            {selectedWallet && (
+              <p className="note">
+                Selected wallet: {shortenAddress(selectedWallet.address)}.{" "}
+                {paymentType === "deposit"
+                  ? "You chose to pay a deposit."
+                  : "You chose to pay the full amount."}
+              </p>
+            )}
           </div>
         )}
       </div>

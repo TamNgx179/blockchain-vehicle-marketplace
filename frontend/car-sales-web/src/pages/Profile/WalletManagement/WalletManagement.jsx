@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Star, Trash2 } from "lucide-react";
 import "./WalletManagement.css";
 import metamaskIcon from "../../../assets/icon/metamask.png";
 import {
@@ -7,6 +8,7 @@ import {
   updateWallet,
   deleteWallet,
 } from "../../../services/walletService";
+import { requestMetaMaskAccounts } from "../../../utils/metamaskWallets";
 
 function WalletManagement() {
   const [wallets, setWallets] = useState([]);
@@ -14,14 +16,13 @@ function WalletManagement() {
   const [connectingWallet, setConnectingWallet] = useState(false);
   const [updatingWalletId, setUpdatingWalletId] = useState(null);
   const [deletingWalletId, setDeletingWalletId] = useState(null);
-  const [editingWalletId, setEditingWalletId] = useState(null);
-  const [editForm, setEditForm] = useState({
-    name: "",
-    network: "sepolia",
-    isDefault: false,
-  });
   const [message, setMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+
+  const defaultWallet = useMemo(
+    () => wallets.find((wallet) => wallet.isDefault),
+    [wallets]
+  );
 
   const shortenAddress = (address) => {
     if (!address) return "";
@@ -37,7 +38,7 @@ function WalletManagement() {
 
   const getWalletId = (wallet) => wallet._id || wallet.id;
 
-  const loadWallets = async () => {
+  const loadWallets = useCallback(async () => {
     try {
       setLoadingWallets(true);
       setErrorMessage("");
@@ -46,131 +47,89 @@ function WalletManagement() {
       const walletList = normalizeWalletResponse(response);
 
       setWallets(walletList);
+      return walletList;
     } catch (error) {
       setErrorMessage(
-        error.response?.data?.message || "Could not load your saved wallets"
+        error.response?.data?.message || "Could not load your saved wallets."
       );
+      return [];
     } finally {
       setLoadingWallets(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadWallets();
-  }, []);
+  }, [loadWallets]);
 
   const connectWallet = async () => {
-    if (!window.ethereum) {
-      setErrorMessage("Please install MetaMask to use this feature!");
-      return;
-    }
-
     try {
       setConnectingWallet(true);
       setErrorMessage("");
       setMessage("");
 
-      const accounts = await window.ethereum.request({
-        method: "eth_requestAccounts",
-      });
+      const accounts = await requestMetaMaskAccounts();
 
-      const walletAddress = accounts?.[0];
-
-      if (!walletAddress) {
-        setErrorMessage("Could not get wallet address from MetaMask");
+      if (!accounts.length) {
+        setErrorMessage("Could not get any wallet address from MetaMask.");
         return;
       }
 
-      const walletData = {
-        name: "MetaMask",
-        address: walletAddress,
-        network: "sepolia",
-        isDefault: wallets.length === 0,
-      };
+      const existingAddresses = new Set(
+        wallets.map((wallet) => wallet.address?.toLowerCase()).filter(Boolean)
+      );
+      let savedCount = 0;
+      let duplicateCount = 0;
 
-      try {
-        await addWallet(walletData);
-        setMessage("MetaMask connected successfully");
-      } catch (error) {
-        if (error.response?.status === 409) {
-          setMessage("This wallet is already saved");
-        } else {
-          throw error;
+      for (const [index, walletAddress] of accounts.entries()) {
+        const normalizedAddress = walletAddress.toLowerCase();
+
+        try {
+          await addWallet({
+            name: "MetaMask",
+            address: walletAddress,
+            network: "sepolia",
+            isDefault:
+              wallets.length === 0 &&
+              savedCount === 0 &&
+              index === 0 &&
+              !existingAddresses.size,
+          });
+          savedCount += 1;
+          existingAddresses.add(normalizedAddress);
+        } catch (error) {
+          if (error.response?.status === 409) {
+            duplicateCount += 1;
+          } else {
+            throw error;
+          }
         }
+      }
+
+      if (savedCount > 0) {
+        setMessage(
+          `${savedCount} MetaMask ${
+            savedCount === 1 ? "wallet" : "wallets"
+          } connected successfully.`
+        );
+      } else if (duplicateCount > 0) {
+        setMessage("Selected MetaMask wallet is already saved.");
       }
 
       await loadWallets();
     } catch (error) {
       if (error.code === 4001) {
-        setErrorMessage("User denied MetaMask connection");
+        setErrorMessage("MetaMask connection was rejected.");
         return;
       }
 
       setErrorMessage(
-        error.response?.data?.message || "Could not connect MetaMask"
+        error.response?.data?.message ||
+          error.message ||
+          "Could not connect MetaMask."
       );
     } finally {
       setConnectingWallet(false);
-    }
-  };
-
-  const startEditWallet = (wallet) => {
-    const walletId = getWalletId(wallet);
-
-    setEditingWalletId(walletId);
-    setEditForm({
-      name: wallet.name || "",
-      network: wallet.network || "sepolia",
-      isDefault: Boolean(wallet.isDefault),
-    });
-    setMessage("");
-    setErrorMessage("");
-  };
-
-  const cancelEditWallet = () => {
-    setEditingWalletId(null);
-    setEditForm({
-      name: "",
-      network: "sepolia",
-      isDefault: false,
-    });
-  };
-
-  const handleEditFormChange = (e) => {
-    const { name, value, checked, type } = e.target;
-
-    setEditForm((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
-  };
-
-  const saveWallet = async (walletId) => {
-    if (!walletId) {
-      setErrorMessage("Wallet id is missing");
-      return;
-    }
-
-    try {
-      setUpdatingWalletId(walletId);
-      setErrorMessage("");
-      setMessage("");
-
-      await updateWallet(walletId, {
-        name: editForm.name.trim() || "MetaMask",
-        network: editForm.network,
-        isDefault: editForm.isDefault,
-      });
-
-      setMessage("Wallet updated successfully");
-      setEditingWalletId(null);
-      await loadWallets();
-    } catch (error) {
-      setErrorMessage(
-        error.response?.data?.message || "Could not update wallet"
-      );
-    } finally {
-      setUpdatingWalletId(null);
     }
   };
 
@@ -178,7 +137,7 @@ function WalletManagement() {
     const walletId = getWalletId(wallet);
 
     if (!walletId) {
-      setErrorMessage("Wallet id is missing");
+      setErrorMessage("Wallet id is missing.");
       return;
     }
 
@@ -188,16 +147,14 @@ function WalletManagement() {
       setMessage("");
 
       await updateWallet(walletId, {
-        name: wallet.name || "MetaMask",
-        network: wallet.network || "sepolia",
         isDefault: true,
       });
 
-      setMessage("Default wallet updated");
+      setMessage("Default wallet updated.");
       await loadWallets();
     } catch (error) {
       setErrorMessage(
-        error.response?.data?.message || "Could not set default wallet"
+        error.response?.data?.message || "Could not set the default wallet."
       );
     } finally {
       setUpdatingWalletId(null);
@@ -206,11 +163,13 @@ function WalletManagement() {
 
   const removeWallet = async (walletId) => {
     if (!walletId) {
-      setErrorMessage("Wallet id is missing");
+      setErrorMessage("Wallet id is missing.");
       return;
     }
 
-    const confirmed = window.confirm("Bạn có chắc muốn xóa ví này không?");
+    const confirmed = window.confirm(
+      "Are you sure you want to remove this wallet?"
+    );
     if (!confirmed) return;
 
     try {
@@ -220,16 +179,11 @@ function WalletManagement() {
 
       await deleteWallet(walletId);
 
-      setMessage("Wallet deleted successfully");
-
-      if (editingWalletId === walletId) {
-        cancelEditWallet();
-      }
-
+      setMessage("Wallet removed successfully.");
       await loadWallets();
     } catch (error) {
       setErrorMessage(
-        error.response?.data?.message || "Could not delete wallet"
+        error.response?.data?.message || "Could not remove this wallet."
       );
     } finally {
       setDeletingWalletId(null);
@@ -238,20 +192,24 @@ function WalletManagement() {
 
   return (
     <div className="wallet-management">
-      <div className="wallet-section-header">
+      <div className="wallet-management-header">
         <div>
+          <span>Connected wallets</span>
           <h3>Wallet Management</h3>
-          <p>Quản lý ví MetaMask đã lưu trong tài khoản của bạn.</p>
+          <p>
+            Save multiple MetaMask wallets and choose one of them when you pay
+            at checkout.
+          </p>
         </div>
 
         <button
           type="button"
-          className="connect-btn"
+          className="wallet-connect-btn"
           onClick={connectWallet}
           disabled={connectingWallet}
         >
           <img
-            className="metamask-icon"
+            className="wallet-metamask-icon"
             src={metamaskIcon}
             alt=""
             aria-hidden="true"
@@ -260,164 +218,103 @@ function WalletManagement() {
         </button>
       </div>
 
+      <div className="wallet-management-summary">
+        <div>
+          <span>Total wallets</span>
+          <strong>{wallets.length}</strong>
+        </div>
+        <div>
+          <span>Default wallet</span>
+          <strong>
+            {defaultWallet ? shortenAddress(defaultWallet.address) : "Not set"}
+          </strong>
+        </div>
+      </div>
+
       {message && <p className="wallet-success-text">{message}</p>}
       {errorMessage && <p className="wallet-error-text">{errorMessage}</p>}
 
       {loadingWallets ? (
         <p className="wallet-loading-text">Loading your wallets...</p>
       ) : wallets.length > 0 ? (
-        <div className="wallet-card-list">
+        <div className="wallet-list">
           {wallets.map((wallet) => {
             const walletId = getWalletId(wallet);
-            const isEditing = editingWalletId === walletId;
             const isUpdating = updatingWalletId === walletId;
             const isDeleting = deletingWalletId === walletId;
 
             return (
-              <div
+              <article
                 key={walletId || wallet.address}
-                className={`checkout-wallet-card ${
-                  wallet.isDefault ? "is-default" : ""
-                }`}
+                className={`wallet-item ${wallet.isDefault ? "is-default" : ""}`}
               >
-                <div className="wallet-card-left">
+                <div className="wallet-item-main">
                   <div className="wallet-avatar">
                     <img src={metamaskIcon} alt="MetaMask" />
                   </div>
 
-                  <div className="checkout-wallet-main">
-                    {isEditing ? (
-                      <div className="wallet-edit-form">
-                        <div className="wallet-form-group">
-                          <label>Wallet name</label>
-                          <input
-                            type="text"
-                            name="name"
-                            value={editForm.name}
-                            onChange={handleEditFormChange}
-                            placeholder="MetaMask"
-                          />
-                        </div>
+                  <div className="wallet-details">
+                    <div className="wallet-title-row">
+                      <h4>{wallet.name || "MetaMask"}</h4>
+                      {wallet.isDefault && (
+                        <span className="wallet-default-badge">Default</span>
+                      )}
+                    </div>
 
-                        <div className="wallet-form-group">
-                          <label>Network</label>
-                          <select
-                            name="network"
-                            value={editForm.network}
-                            onChange={handleEditFormChange}
-                          >
-                            <option value="sepolia">Sepolia</option>
-                            <option value="ethereum">Ethereum</option>
-                            <option value="polygon">Polygon</option>
-                            <option value="bsc">BSC</option>
-                          </select>
-                        </div>
-
-                        <label className="wallet-checkbox">
-                          <input
-                            type="checkbox"
-                            name="isDefault"
-                            checked={editForm.isDefault}
-                            onChange={handleEditFormChange}
-                          />
-                          Đặt làm ví mặc định
-                        </label>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="wallet-title-row">
-                          <span className="checkout-wallet-name">
-                            {wallet.name || "Wallet"}
-                          </span>
-
-                          {wallet.isDefault && (
-                            <span className="checkout-wallet-default">
-                              Mặc định
-                            </span>
-                          )}
-                        </div>
-
-                        <code>{shortenAddress(wallet.address)}</code>
-                      </>
-                    )}
+                    <code title={wallet.address}>
+                      {shortenAddress(wallet.address)}
+                    </code>
                   </div>
                 </div>
 
-                <div className="checkout-wallet-meta">
-                  {!isEditing && (
-                    <div className="wallet-meta-top">
-                      <span className="wallet-network-badge">
-                        {wallet.network || "sepolia"}
-                      </span>
+                <div className="wallet-item-footer">
+                  <span className="wallet-network-badge">
+                    {wallet.network || "sepolia"}
+                  </span>
 
-                      {!wallet.isDefault && (
-                        <button
-                          type="button"
-                          className="wallet-action-btn wallet-action-soft"
-                          onClick={() => setDefaultWallet(wallet)}
-                          disabled={isUpdating || isDeleting}
-                        >
-                          {isUpdating ? "Saving..." : "Set default"}
-                        </button>
-                      )}
-                    </div>
-                  )}
+                  <div className="wallet-actions">
+                    <button
+                      type="button"
+                      className={`wallet-action-btn ${
+                        wallet.isDefault
+                          ? "wallet-action-current"
+                          : "wallet-action-soft"
+                      }`}
+                      onClick={() => setDefaultWallet(wallet)}
+                      disabled={wallet.isDefault || isUpdating || isDeleting}
+                    >
+                      <Star size={15} />
+                      {wallet.isDefault
+                        ? "Current default"
+                        : isUpdating
+                          ? "Saving..."
+                          : "Make default"}
+                    </button>
 
-                  {isEditing ? (
-                    <div className="wallet-row-actions">
-                      <button
-                        type="button"
-                        className="wallet-action-btn"
-                        onClick={() => saveWallet(walletId)}
-                        disabled={isUpdating}
-                      >
-                        {isUpdating ? "Saving..." : "Save"}
-                      </button>
-
-                      <button
-                        type="button"
-                        className="wallet-action-btn wallet-action-secondary"
-                        onClick={cancelEditWallet}
-                        disabled={isUpdating}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="wallet-row-actions">
-                      <button
-                        type="button"
-                        className="wallet-action-btn wallet-action-secondary"
-                        onClick={() => startEditWallet(wallet)}
-                        disabled={isUpdating || isDeleting}
-                      >
-                        Edit
-                      </button>
-
-                      <button
-                        type="button"
-                        className="wallet-action-btn wallet-action-danger"
-                        onClick={() => removeWallet(walletId)}
-                        disabled={isDeleting || isUpdating}
-                      >
-                        {isDeleting ? "Deleting..." : "Delete"}
-                      </button>
-                    </div>
-                  )}
+                    <button
+                      type="button"
+                      className="wallet-action-btn wallet-action-danger"
+                      onClick={() => removeWallet(walletId)}
+                      disabled={isDeleting || isUpdating}
+                    >
+                      <Trash2 size={15} />
+                      {isDeleting ? "Removing..." : "Remove"}
+                    </button>
+                  </div>
                 </div>
-              </div>
+              </article>
             );
           })}
         </div>
       ) : (
-        <div className="no-wallet-box">
+        <div className="wallet-empty-box">
           <div className="wallet-avatar">
             <img src={metamaskIcon} alt="MetaMask" />
           </div>
 
           <div>
-            <strong>Chưa có ví</strong>
-            <p>Kết nối MetaMask để thêm ví vào tài khoản.</p>
+            <strong>No wallets connected</strong>
+            <p>Connect MetaMask to save your first payment wallet.</p>
           </div>
         </div>
       )}

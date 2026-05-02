@@ -12,7 +12,7 @@ const WalletSchema = new mongoose.Schema(
     name: {
       type: String,
       trim: true,
-      default: "Ví của tôi",
+      default: "MetaMask",
     },
 
     address: {
@@ -36,7 +36,7 @@ const WalletSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// 1 user không được lưu trùng cùng 1 địa chỉ ví
+// One user cannot save the same wallet address more than once.
 WalletSchema.index({ user: 1, address: 1 }, { unique: true });
 
 const Wallet = mongoose.model("Wallet", WalletSchema);

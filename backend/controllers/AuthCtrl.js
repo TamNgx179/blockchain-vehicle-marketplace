@@ -13,7 +13,7 @@ export const register = async (req, res) => {
     await registerService(req.body);
 
     res.status(201).json({
-      message: "OTP sent to email. Please verify your account.",
+      message: "Account created successfully. Please sign in.",
     });
   } catch (error) {
     res.status(400).json({
