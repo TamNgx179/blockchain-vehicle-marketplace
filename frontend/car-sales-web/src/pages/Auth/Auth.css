@@ -50,6 +50,11 @@
   overflow: hidden;
 }
 
+.auth-card,
+.auth-card * {
+  box-sizing: border-box;
+}
+
 /* Bỏ thanh đỏ/đen trên đầu form */
 .auth-card::before {
   display: none;
@@ -140,6 +145,7 @@
   justify-self: start;
   display: flex;
   align-items: center;
+  gap: 6px;
 
   width: max-content;
   margin: 0 0 18px;
@@ -159,6 +165,11 @@
 .auth-back-link:hover {
   color: #111;
   transform: translateX(-2px);
+}
+
+.auth-back-link svg,
+.auth-icon svg {
+  flex: 0 0 auto;
 }
 
 .auth-forgot-header .auth-kicker {
@@ -257,11 +268,13 @@
 
   display: grid;
   gap: 14px;
+  width: 100%;
 }
 
 .auth-field {
   display: grid;
   gap: 8px;
+  width: 100%;
 }
 
 .auth-field span {
@@ -353,6 +366,7 @@
 =============================== */
 
 .auth-form button {
+  width: 100%;
   height: 50px;
 
   border: 0;

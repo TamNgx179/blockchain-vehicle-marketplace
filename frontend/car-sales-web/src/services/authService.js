@@ -1,17 +1,5 @@
 import api from "./api";
-
-const resolveApiOrigin = () => {
-  const envUrl = import.meta.env.VITE_API_URL;
-  if (envUrl) return envUrl;
-
-  if (typeof window !== "undefined" && window.location.hostname === "localhost") {
-    return "http://localhost:3000";
-  }
-
-  return import.meta.env.PROD ? "https://car-api-x622.onrender.com" : "http://localhost:3000";
-};
-
-const API_URL = resolveApiOrigin();
+import { API_URL } from "./apiConfig";
 
 const AuthService = {
   // Đăng ký tài khoản mới

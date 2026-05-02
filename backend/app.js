@@ -36,6 +36,27 @@ const deployedOrigins = [
   .map((value) => value.trim().replace(/\/$/, ""))
   .filter(Boolean);
 
+const isPrivateNetworkHost = (hostname) =>
+  /^10\./.test(hostname) ||
+  /^192\.168\./.test(hostname) ||
+  /^172\.(1[6-9]|2\d|3[0-1])\./.test(hostname);
+
+const isAllowedDevOrigin = (origin) => {
+  try {
+    const url = new URL(origin);
+    const devPorts = new Set(["5173", "5174", "5175", "5176", "4173"]);
+
+    if (!["http:", "https:"].includes(url.protocol)) return false;
+    if (url.hostname === "localhost" || url.hostname === "127.0.0.1") {
+      return true;
+    }
+
+    return isPrivateNetworkHost(url.hostname) && devPorts.has(url.port);
+  } catch {
+    return false;
+  }
+};
+
 // Middleware cơ bản
 app.use(
   cors({
@@ -51,8 +72,15 @@ app.use(
         allowedOrigins.add(allowedOrigin);
       });
 
+      const normalizedOrigin = origin?.replace(/\/$/, "");
+
       if (!origin) return callback(null, true);
-      if (allowedOrigins.has(origin.replace(/\/$/, ""))) return callback(null, true);
+      if (
+        allowedOrigins.has(normalizedOrigin) ||
+        isAllowedDevOrigin(normalizedOrigin)
+      ) {
+        return callback(null, true);
+      }
 
       return callback(new Error("Not allowed by CORS"));
     },
