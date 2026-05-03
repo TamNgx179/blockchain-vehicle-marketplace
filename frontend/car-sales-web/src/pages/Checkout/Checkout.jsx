@@ -106,6 +106,100 @@ const getCheckoutErrorMessage = (error) => {
 
 const normalizeOrderData = (response) => response?.data || response;
 
+const CONTRACT_PAYMENT_TYPE = {
+  deposit: 1,
+  full: 2,
+};
+
+const CONTRACT_STATUS = {
+  pending: 1,
+};
+
+const shortenAddress = (address) => {
+  if (!address) return "";
+  return `${address.substring(0, 10)}...${address.slice(-4)}`;
+};
+
+const normalizeContractOrder = (orderResult) => ({
+  orderId: orderResult?.[0]?.toString?.() || "0",
+  buyer: orderResult?.[1] || "",
+  totalAmount: orderResult?.[3]?.toString?.() || "0",
+  depositAmount: orderResult?.[4]?.toString?.() || "0",
+  paymentType: Number(orderResult?.[6] ?? 0),
+  status: Number(orderResult?.[7] ?? 0),
+});
+
+const assertReadyForPayment = async ({
+  contract,
+  blockchainOrderId,
+  buyerWallet,
+  paymentType,
+  expectedWei,
+}) => {
+  const connectedWallet = await contract.runner.getAddress();
+
+  if (connectedWallet.toLowerCase() !== buyerWallet.toLowerCase()) {
+    throw new Error(
+      `MetaMask is using ${shortenAddress(
+        connectedWallet
+      )}, but checkout selected ${shortenAddress(
+        buyerWallet
+      )}. Please switch MetaMask to the selected wallet.`
+    );
+  }
+
+  let contractOrder;
+  try {
+    contractOrder = normalizeContractOrder(
+      await contract.getOrder(blockchainOrderId)
+    );
+  } catch {
+    throw new Error(
+      "Could not read this order from the smart contract. Please check Sepolia network and contract address settings."
+    );
+  }
+
+  if (contractOrder.orderId === "0") {
+    throw new Error(
+      "This order does not exist on the smart contract. Make sure backend CONTRACT_ADDRESS and frontend VITE_CONTRACT_ADDRESS are the same, then restart both servers."
+    );
+  }
+
+  if (contractOrder.buyer.toLowerCase() !== buyerWallet.toLowerCase()) {
+    throw new Error(
+      `This blockchain order belongs to ${shortenAddress(
+        contractOrder.buyer
+      )}, not ${shortenAddress(buyerWallet)}. Please select the correct wallet.`
+    );
+  }
+
+  const expectedPaymentType = CONTRACT_PAYMENT_TYPE[paymentType];
+  if (contractOrder.paymentType !== expectedPaymentType) {
+    throw new Error(
+      "The selected payment plan does not match the payment plan saved on the smart contract. Please start checkout again."
+    );
+  }
+
+  if (contractOrder.status !== CONTRACT_STATUS.pending) {
+    throw new Error(
+      "This blockchain order is not waiting for payment anymore. Please refresh checkout and try again."
+    );
+  }
+
+  const expectedValue = getPositiveWeiValue(expectedWei);
+  const contractValue = getPositiveWeiValue(
+    paymentType === "deposit"
+      ? contractOrder.depositAmount
+      : contractOrder.totalAmount
+  );
+
+  if (contractValue !== expectedValue) {
+    throw new Error(
+      "The payment amount from the backend does not match the smart contract amount. Please check USD_PER_ETH settings and create the order again."
+    );
+  }
+};
+
 function Checkout({ notifyRef }) {
   const navigate = useNavigate();
 
@@ -166,11 +260,21 @@ function Checkout({ notifyRef }) {
     totalAmountWei,
     buyerWallet
   ) => {
-    showMessage("Please confirm the full payment in MetaMask...");
+    showMessage("Checking the smart contract order...");
 
     const contract = await getMarketplaceContract(buyerWallet);
+    await assertReadyForPayment({
+      contract,
+      blockchainOrderId,
+      buyerWallet,
+      paymentType: "full",
+      expectedWei: totalAmountWei,
+    });
+
+    showMessage("Please confirm the full payment in MetaMask...");
+
     const tx = await contract.payFull(blockchainOrderId, {
-      value: await getPositiveWeiValue(totalAmountWei),
+      value: getPositiveWeiValue(totalAmountWei),
     });
 
     setFinalTxHash(tx.hash);
@@ -192,11 +296,21 @@ function Checkout({ notifyRef }) {
     depositAmountWei,
     buyerWallet
   ) => {
-    showMessage("Please confirm the deposit in MetaMask...");
+    showMessage("Checking the smart contract order...");
 
     const contract = await getMarketplaceContract(buyerWallet);
+    await assertReadyForPayment({
+      contract,
+      blockchainOrderId,
+      buyerWallet,
+      paymentType: "deposit",
+      expectedWei: depositAmountWei,
+    });
+
+    showMessage("Please confirm the deposit in MetaMask...");
+
     const tx = await contract.payDeposit(blockchainOrderId, {
-      value: await getPositiveWeiValue(depositAmountWei),
+      value: getPositiveWeiValue(depositAmountWei),
     });
 
     setFinalTxHash(tx.hash);
