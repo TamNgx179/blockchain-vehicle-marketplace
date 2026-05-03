@@ -2,15 +2,15 @@
 
 **Base URL:** `/api/contacts`
 
-Route ben duoi can header `Authorization: Bearer <ACCESS_TOKEN>` theo ghi chu tung route.
+Route bên dưới cần header `Authorization: Bearer <ACCESS_TOKEN>` theo ghi chú từng route.
 
 ## GET `/getAll` (admin)
 
-Lay tat ca contact.
+Lấy tất cả contact.
 
 ## POST `/create` (locked)
 
-User da dang nhap tao contact moi.
+User đã đăng nhập tạo contact mới.
 
 **Request body:**
 
@@ -24,13 +24,13 @@ User da dang nhap tao contact moi.
 
 ## GET `/:id` (admin)
 
-Lay chi tiet mot contact.
+Lấy chi tiết một contact.
 
 ## PUT `/read/:id` (admin)
 
-Danh dau contact da doc.
+Đánh dấu contact đã đọc.
 
 **Legend:**
 
-- `locked`: can user token.
-- `admin`: can user token va role admin.
+- `locked`: cần user token.
+- `admin`: cần user token và role admin.

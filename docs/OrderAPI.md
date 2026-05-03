@@ -2,18 +2,18 @@
 
 **Base URL:** `/api/orders`
 
-Tat ca route ben duoi can header:
+Tất cả route bên dưới cần header:
 
 ```http
 Authorization: Bearer <ACCESS_TOKEN>
 Content-Type: application/json
 ```
 
-## 1. Tao order tu cart
+## 1. Tạo order từ cart
 
 ### POST `/create-from-cart`
 
-Tao order tu cac item dang co trong cart, dong thoi tao order tren smart contract bang seller/server wallet.
+Tạo order từ các item đang có trong cart, đồng thời tạo order trên smart contract bằng seller/server wallet.
 
 **Request body - pickup:**
 
@@ -49,14 +49,14 @@ Tao order tu cac item dang co trong cart, dong thoi tao order tren smart contrac
 
 **Field notes:**
 
-| Field | Bat buoc | Mo ta |
+| Field | Bắt buộc | Mô tả |
 | --- | --- | --- |
-| `selectedItems` | Yes | Mang product `_id` trong cart |
-| `paymentType` | Yes | `deposit` hoac `full` |
-| `buyerWallet` | Yes | Dia chi MetaMask da luu trong `/api/wallets` |
-| `deliveryMethod` | Yes | `pickup` hoac `delivery` |
-| `pickupInfo` | Khi pickup | Ten, phone, pickupDate |
-| `shippingAddress` | Khi delivery | Ten, phone, address |
+| `selectedItems` | Yes | Mảng product `_id` trong cart |
+| `paymentType` | Yes | `deposit` hoặc `full` |
+| `buyerWallet` | Yes | Địa chỉ MetaMask đã lưu trong `/api/wallets` |
+| `deliveryMethod` | Yes | `pickup` hoặc `delivery` |
+| `pickupInfo` | Khi pickup | Tên, phone, pickupDate |
+| `shippingAddress` | Khi delivery | Tên, phone, address |
 
 **Response:**
 
@@ -83,21 +83,21 @@ Tao order tu cac item dang co trong cart, dong thoi tao order tren smart contrac
 
 ### POST `/:id/discard-unpaid`
 
-Dung khi frontend tao order thanh cong nhung user tu choi hoac transaction that bai truoc khi payment hoan tat. Backend huy order chua thanh toan va giu cart khong doi.
+Dùng khi frontend tạo order thành công nhưng user từ chối hoặc transaction thất bại trước khi payment hoàn tất. Backend hủy order chưa thanh toán và giữ cart không đổi.
 
 ## 3. My orders
 
 ### GET `/my-orders`
 
-Lay danh sach order cua user dang dang nhap.
+Lấy danh sách order của user đang đăng nhập.
 
 ### GET `/:id`
 
-Lay chi tiet order. User chi xem duoc order cua minh; admin co route rieng.
+Lấy chi tiết order. User chỉ xem được order của mình; admin có route riêng.
 
 ## 4. Verify blockchain transactions
 
-Frontend gui `txHash` sau khi MetaMask transaction mined.
+Frontend gửi `txHash` sau khi MetaMask transaction mined.
 
 ### POST `/:id/verify-deposit`
 
@@ -105,7 +105,7 @@ Frontend gui `txHash` sau khi MetaMask transaction mined.
 { "txHash": "0x..." }
 ```
 
-Verify event `DepositPaid`, update order thanh `deposit_paid`.
+Verify event `DepositPaid`, update order thành `deposit_paid`.
 
 ### POST `/:id/verify-full-payment`
 
@@ -113,7 +113,7 @@ Verify event `DepositPaid`, update order thanh `deposit_paid`.
 { "txHash": "0x..." }
 ```
 
-Verify event `FullPaid`, update order thanh `payment_paid`.
+Verify event `FullPaid`, update order thành `payment_paid`.
 
 ### POST `/:id/verify-complete`
 
@@ -121,7 +121,7 @@ Verify event `FullPaid`, update order thanh `payment_paid`.
 { "txHash": "0x..." }
 ```
 
-Verify event `OrderCompleted`, update order thanh `completed`.
+Verify event `OrderCompleted`, update order thành `completed`.
 
 ### POST `/:id/verify-cancel`
 
@@ -129,7 +129,7 @@ Verify event `OrderCompleted`, update order thanh `completed`.
 { "txHash": "0x..." }
 ```
 
-Verify event `OrderCancelled`, update order thanh `cancelled`.
+Verify event `OrderCancelled`, update order thành `cancelled`.
 
 ### POST `/:id/verify-seller-confirm` (admin)
 
@@ -137,22 +137,22 @@ Verify event `OrderCancelled`, update order thanh `cancelled`.
 { "txHash": "0x..." }
 ```
 
-Verify event `SellerConfirmed`, update order thanh `processing`.
+Verify event `SellerConfirmed`, update order thành `processing`.
 
 ## 5. Admin helpers
 
 ### GET `/all-orders` (admin)
 
-Lay tat ca order.
+Lấy tất cả order.
 
 ### POST `/admin/:id/confirm` (admin)
 
-Backend tu goi smart contract `confirmOrder` bang seller/server wallet, sau do verify va update MongoDB.
+Backend tự gọi smart contract `confirmOrder` bằng seller/server wallet, sau đó verify và update MongoDB.
 
 ### POST `/admin/:id/cancel` (admin)
 
-Backend tu goi smart contract `cancelOrder` bang seller/server wallet, sau do verify va update MongoDB.
+Backend tự gọi smart contract `cancelOrder` bằng seller/server wallet, sau đó verify và update MongoDB.
 
 ### GET `/admin`
 
-Danh sach order co filter/sort/pagination. Xem `AdminOrderAPI.md`.
+Danh sách order có filter/sort/pagination. Xem `AdminOrderAPI.md`.

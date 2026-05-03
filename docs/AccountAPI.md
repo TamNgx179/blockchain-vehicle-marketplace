@@ -2,7 +2,7 @@
 
 **Base URL:** `/api/accounts`
 
-Route co ky hieu lock can header:
+Route có ký hiệu lock cần header:
 
 ```http
 Authorization: Bearer <ACCESS_TOKEN>
@@ -33,7 +33,7 @@ Content-Type: application/json
 
 ### GET `/getProfile` (locked)
 
-Lay profile user dang dang nhap.
+Lấy profile user đang đăng nhập.
 
 ### PUT `/editProfile` (locked)
 
@@ -49,11 +49,11 @@ Lay profile user dang dang nhap.
 
 ### DELETE `/me` (locked)
 
-Xoa tai khoan dang dang nhap.
+Xóa tài khoản đang đăng nhập.
 
 ### DELETE `/:id` (locked)
 
-Admin xoa user bat ky hoac user tu xoa chinh minh.
+Admin xóa user bất kỳ hoặc user tự xóa chính mình.
 
 ## Wishlist
 
@@ -65,7 +65,7 @@ Admin xoa user bat ky hoac user tu xoa chinh minh.
 
 ### GET `/wishlist` (locked)
 
-Lay wishlist cua user.
+Lấy wishlist của user.
 
 ### DELETE `/wishlist/remove` (locked)
 

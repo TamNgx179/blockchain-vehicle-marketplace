@@ -1,10 +1,10 @@
 # Vehicle Marketplace Escrow Blockchain
 
-Thu muc `blockchain` chua smart contract va test cho phan thanh toan Web3 cua ung dung ban xe. Contract chay tren Ethereum Sepolia Testnet va xu ly escrow cho deposit/full payment.
+Thư mục `blockchain` chứa smart contract và test cho phần thanh toán Web3 của ứng dụng bán xe. Contract chạy trên Ethereum Sepolia Testnet và xử lý escrow cho deposit/full payment.
 
-## 1. Contract da deploy
+## 1. Contract đã deploy
 
-| Hang muc | Gia tri |
+| Hạng mục | Giá trị |
 | --- | --- |
 | Contract | `VehicleMarketplaceEscrow` |
 | Network | Sepolia Testnet |
@@ -14,7 +14,7 @@ Thu muc `blockchain` chua smart contract va test cho phan thanh toan Web3 cua un
 | Solidity | `0.8.28` |
 | Framework | Hardhat 3 + ethers.js v6 |
 
-Env can co:
+Env cần có:
 
 ```bash
 cp .env.example .env
@@ -27,47 +27,47 @@ ETHERSCAN_API_KEY=...
 CONTRACT_ADDRESS=0xD0CF607f0bCD60B5ed02896e682450eA4dBf5BB0
 ```
 
-## 2. Vai tro blockchain
+## 2. Vai trò blockchain
 
-He thong dung mo hinh off-chain ket hop on-chain:
+Hệ thống dùng mô hình off-chain kết hợp on-chain:
 
 | Off-chain | On-chain |
 | --- | --- |
 | User, cart, product, stock, handover info | Order escrow state |
-| MongoDB luu chi tiet order | Buyer/seller wallet |
-| Backend tinh USD sang wei | Total amount/deposit amount |
-| Backend cap nhat status | Payment/confirm/complete/cancel events |
-| Frontend checkout | MetaMask ky transaction |
+| MongoDB lưu chi tiết order | Buyer/seller wallet |
+| Backend tính USD sang wei | Total amount/deposit amount |
+| Backend cập nhật status | Payment/confirm/complete/cancel events |
+| Frontend checkout | MetaMask ký transaction |
 
-Contract chi luu cac thong tin can minh bach: `orderId`, `buyer`, `seller`, `totalAmount`, `depositAmount`, `paidAmount`, `paymentType`, `status`, `createdAt`.
+Contract chỉ lưu các thông tin cần minh bạch: `orderId`, `buyer`, `seller`, `totalAmount`, `depositAmount`, `paidAmount`, `paymentType`, `status`, `createdAt`.
 
-## 3. Payment type va status
+## 3. Payment type và status
 
 ### Payment type
 
-| Value | Name | Mo ta |
+| Value | Name | Mô tả |
 | ---: | --- | --- |
-| `0` | `None` | Khong hop le |
-| `1` | `Deposit` | Thanh toan dat coc |
-| `2` | `Full` | Thanh toan toan bo |
+| `0` | `None` | Không hợp lệ |
+| `1` | `Deposit` | Thanh toán đặt cọc |
+| `2` | `Full` | Thanh toán toàn bộ |
 
 ### Order status
 
-| Value | Name | Mo ta |
+| Value | Name | Mô tả |
 | ---: | --- | --- |
-| `0` | `None` | Chua co order |
-| `1` | `Pending` | Da tao order, chua thanh toan |
-| `2` | `DepositPaid` | Buyer da dat coc |
-| `3` | `FullPaid` | Buyer da thanh toan full |
-| `4` | `Confirmed` | Seller/showroom da xac nhan |
-| `5` | `Completed` | Buyer da nhan xe, tien release cho seller |
-| `6` | `Cancelled` | Order bi huy, refund neu da thanh toan |
+| `0` | `None` | Chưa có order |
+| `1` | `Pending` | Đã tạo order, chưa thanh toán |
+| `2` | `DepositPaid` | Buyer đã đặt cọc |
+| `3` | `FullPaid` | Buyer đã thanh toán full |
+| `4` | `Confirmed` | Seller/showroom đã xác nhận |
+| `5` | `Completed` | Buyer đã nhận xe, tiền release cho seller |
+| `6` | `Cancelled` | Order bị hủy, refund nếu đã thanh toán |
 
-## 4. Flow nghiep vu
+## 4. Flow nghiệp vụ
 
-### 4.1 Tao order
+### 4.1 Tạo order
 
-Backend goi:
+Backend gọi:
 
 ```solidity
 createOrder(orderId, buyer, seller, totalAmount, depositAmount, paymentType)
@@ -76,27 +76,27 @@ createOrder(orderId, buyer, seller, totalAmount, depositAmount, paymentType)
 Rules:
 
 - `orderId != 0`
-- `buyer` va `seller` khac zero address
+- `buyer` và `seller` khác zero address
 - `totalAmount > 0`
-- `orderId` chua ton tai
-- voi `Deposit`, `depositAmount > 0` va `< totalAmount`
-- voi `Full`, `depositAmount == 0`
+- `orderId` chưa tồn tại
+- với `Deposit`, `depositAmount > 0` và `< totalAmount`
+- với `Full`, `depositAmount == 0`
 
 ### 4.2 Pay deposit
 
-Frontend goi bang buyer MetaMask:
+Frontend gọi bằng buyer MetaMask:
 
 ```solidity
 payDeposit(orderId)
 ```
 
-Voi:
+Với:
 
 ```text
 msg.value == order.depositAmount
 ```
 
-Contract set status thanh `DepositPaid` va emit:
+Contract set status thành `DepositPaid` và emit:
 
 ```text
 DepositPaid(orderId, buyer, amount)
@@ -104,19 +104,19 @@ DepositPaid(orderId, buyer, amount)
 
 ### 4.3 Pay full
 
-Frontend goi bang buyer MetaMask:
+Frontend gọi bằng buyer MetaMask:
 
 ```solidity
 payFull(orderId)
 ```
 
-Voi:
+Với:
 
 ```text
 msg.value == order.totalAmount
 ```
 
-Contract set status thanh `FullPaid` va emit:
+Contract set status thành `FullPaid` và emit:
 
 ```text
 FullPaid(orderId, buyer, amount)
@@ -124,44 +124,44 @@ FullPaid(orderId, buyer, amount)
 
 ### 4.4 Seller confirm
 
-Backend/admin goi bang seller/server wallet:
+Backend/admin gọi bằng seller/server wallet:
 
 ```solidity
 confirmOrder(orderId)
 ```
 
-Chi hop le khi status la `DepositPaid` hoac `FullPaid`.
+Chỉ hợp lệ khi status là `DepositPaid` hoặc `FullPaid`.
 
 ### 4.5 Complete
 
-Buyer goi:
+Buyer gọi:
 
 ```solidity
 completeOrder(orderId)
 ```
 
-Chi hop le khi seller da confirm. Contract release `paidAmount` cho seller.
+Chỉ hợp lệ khi seller đã confirm. Contract release `paidAmount` cho seller.
 
 ### 4.6 Cancel/refund
 
-Buyer hoac seller goi:
+Buyer hoặc seller gọi:
 
 ```solidity
 cancelOrder(orderId)
 ```
 
-Chi hop le khi order con `Pending`, `DepositPaid` hoac `FullPaid`. Neu da thanh toan, contract refund ve buyer.
+Chỉ hợp lệ khi order còn `Pending`, `DepositPaid` hoặc `FullPaid`. Nếu đã thanh toán, contract refund về buyer.
 
-## 5. Cach tinh amount
+## 5. Cách tính amount
 
-Backend/frontend dang dung ty gia gia lap:
+Backend/frontend đang dùng tỷ giá giả lập:
 
 ```text
 USD_PER_ETH=2000000
 deposit rate = 0.5%
 ```
 
-Vi du:
+Ví dụ:
 
 ```text
 Vehicle price = $13,000
@@ -169,32 +169,32 @@ Total ETH = 13000 / 2000000 = 0.0065 ETH
 Deposit = 0.5% * 13000 = $65 = 0.0000325 ETH
 ```
 
-Contract yeu cau `msg.value` khop chinh xac voi amount da luu on-chain.
+Contract yêu cầu `msg.value` khớp chính xác với amount đã lưu on-chain.
 
 ## 6. Backend verify transaction
 
-Backend khong tin truc tiep `txHash` tu client. Moi verify deu kiem tra:
+Backend không tin trực tiếp `txHash` từ client. Mỗi verify đều kiểm tra:
 
-1. `txHash` dung dinh dang 32 bytes.
-2. Receipt da mined va `status === 1`.
-3. Receipt `to` la contract address dang cau hinh.
-4. Receipt co dung event cua action.
-5. Event co dung `orderId`.
-6. `receipt.from` khop buyer/seller wallet.
-7. `getOrder(orderId)` tren contract co status, payment type va amount khop MongoDB.
+1. `txHash` đúng định dạng 32 bytes.
+2. Receipt đã mined và `status === 1`.
+3. Receipt `to` là contract address đang cấu hình.
+4. Receipt có đúng event của action.
+5. Event có đúng `orderId`.
+6. `receipt.from` khớp buyer/seller wallet.
+7. `getOrder(orderId)` trên contract có status, payment type và amount khớp MongoDB.
 
 ## 7. Troubleshooting MetaMask
 
-Neu bam pay ma MetaMask khong hien popup, thuong la contract reject trong buoc `estimateGas`. Cac nguyen nhan pho bien:
+Nếu bấm pay mà MetaMask không hiện popup, thường là contract reject trong bước `estimateGas`. Các nguyên nhân phổ biến:
 
-- MetaMask khong o network Sepolia.
-- Account active khong phai buyer wallet da chon trong checkout.
-- Dung `SELLER_WALLET` de test buyer.
-- Frontend `VITE_CONTRACT_ADDRESS` khac backend `CONTRACT_ADDRESS`.
-- `USD_PER_ETH` frontend/backend khac nhau lam amount bi lech.
-- Order on-chain khong con status `Pending`.
+- MetaMask không ở network Sepolia.
+- Account active không phải buyer wallet đã chọn trong checkout.
+- Dùng `SELLER_WALLET` để test buyer.
+- Frontend `VITE_CONTRACT_ADDRESS` khác backend `CONTRACT_ADDRESS`.
+- `USD_PER_ETH` frontend/backend khác nhau làm amount bị lệch.
+- Order on-chain không còn status `Pending`.
 
-Sau khi doi env, restart ca backend va frontend.
+Sau khi đổi env, restart cả backend và frontend.
 
 ## 8. Test
 
@@ -218,16 +218,16 @@ npx hardhat compile
 npx hardhat run scripts/deploy.js --network sepolia
 ```
 
-Sau khi deploy contract moi, cap nhat:
+Sau khi deploy contract mới, cập nhật:
 
 - `blockchain/.env`: `CONTRACT_ADDRESS`
 - `backend/.env`: `CONTRACT_ADDRESS`
 - `frontend/car-sales-web/.env`: `VITE_CONTRACT_ADDRESS`
-- ABI trong backend/frontend neu contract interface thay doi
+- ABI trong backend/frontend nếu contract interface thay đổi
 
-## 10. File quan trong
+## 10. File quan trọng
 
-| File | Mo ta |
+| File | Mô tả |
 | --- | --- |
 | `contracts/VehicleMarketplaceEscrow.sol` | Smart contract escrow |
 | `scripts/deploy.js` | Deploy script |

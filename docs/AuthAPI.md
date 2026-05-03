@@ -1,6 +1,6 @@
 ## Auth API
 
-**Base URL:** `/api/users`
+**Base URL:** `/api/users`  
 **Xác thực:** Các route có 🔒 yêu cầu header `Authorization: Bearer <token>`
 
 ---
@@ -8,9 +8,11 @@
 ### Đăng ký
 
 #### POST `/register`
+
 Đăng ký tài khoản mới, hệ thống sẽ gửi OTP về email.
 
 **Request Body:**
+
 ```json
 {
   "email": "string",
@@ -20,6 +22,7 @@
 ```
 
 **Response:**
+
 ```json
 { "message": "OTP sent to email. Please verify your account." }
 ```
@@ -29,9 +32,11 @@
 ### Xác thực OTP
 
 #### POST `/verifyOtp`
+
 Xác thực tài khoản sau khi đăng ký.
 
 **Request Body:**
+
 ```json
 {
   "email": "string",
@@ -40,6 +45,7 @@ Xác thực tài khoản sau khi đăng ký.
 ```
 
 **Response:**
+
 ```json
 { "message": "Xác thực thành công" }
 ```
@@ -49,9 +55,11 @@ Xác thực tài khoản sau khi đăng ký.
 ### Đăng nhập
 
 #### POST `/login`
+
 Đăng nhập bằng email và mật khẩu.
 
 **Request Body:**
+
 ```json
 {
   "email": "string",
@@ -60,6 +68,7 @@ Xác thực tài khoản sau khi đăng ký.
 ```
 
 **Response:**
+
 ```json
 {
   "message": "Đăng nhập thành công",
@@ -75,15 +84,18 @@ Xác thực tài khoản sau khi đăng ký.
 ### Đăng nhập Google
 
 #### GET `/auth/google`
+
 Chuyển hướng người dùng đến trang đăng nhập Google.
 
 Không cần body, gọi trực tiếp trên browser.
 
 #### GET `/auth/google/callback`
+
 Callback sau khi Google xác thực thành công.
 
 **Response:** Redirect về:
-```
+
+```text
 http://localhost:3001/login?token=<token>&username=<username>&email=<email>
 ```
 
@@ -92,14 +104,17 @@ http://localhost:3001/login?token=<token>&username=<username>&email=<email>
 ### Quên mật khẩu
 
 #### POST `/forgot-password`
+
 Gửi OTP về email để reset mật khẩu.
 
 **Request Body:**
+
 ```json
 { "email": "string" }
 ```
 
 **Response:**
+
 ```json
 { "message": "OTP đã được gửi đến email của bạn" }
 ```
@@ -109,9 +124,11 @@ Gửi OTP về email để reset mật khẩu.
 ### Reset mật khẩu
 
 #### POST `/reset-password`
+
 Đặt lại mật khẩu bằng OTP đã nhận.
 
 **Request Body:**
+
 ```json
 {
   "email": "string",
@@ -121,6 +138,7 @@ Gửi OTP về email để reset mật khẩu.
 ```
 
 **Response:**
+
 ```json
 { "message": "Mật khẩu đã được cập nhật thành công" }
 ```
@@ -130,11 +148,13 @@ Gửi OTP về email để reset mật khẩu.
 ### Refresh Token
 
 #### POST `/refresh-token`
+
 Lấy `accessToken` mới từ `refreshToken` trong cookie.
 
 Không cần body, hệ thống tự đọc cookie `refreshToken`.
 
 **Response:**
+
 ```json
 { "token": "string" }
 ```

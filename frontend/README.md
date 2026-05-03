@@ -1,12 +1,12 @@
 # Frontend Workspace
 
-Ung dung frontend chinh nam trong:
+Ứng dụng frontend chính nằm trong:
 
 ```text
 frontend/car-sales-web
 ```
 
-Chay local:
+Chạy local:
 
 ```bash
 cd frontend/car-sales-web
@@ -20,4 +20,4 @@ Build production:
 npm run build
 ```
 
-Xem chi tiet tai `frontend/car-sales-web/README.md`.
+Xem chi tiết tại `frontend/car-sales-web/README.md`.

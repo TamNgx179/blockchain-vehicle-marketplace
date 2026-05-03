@@ -2,18 +2,18 @@
 
 **Base URL:** `/api/wallets`
 
-Tat ca route can header:
+Tất cả route cần header:
 
 ```http
 Authorization: Bearer <ACCESS_TOKEN>
 Content-Type: application/json
 ```
 
-Wallet dung de luu cac dia chi MetaMask ma user co the chon khi checkout.
+Wallet dùng để lưu các địa chỉ MetaMask mà user có thể chọn khi checkout.
 
 ## GET `/`
 
-Lay danh sach wallet cua user dang dang nhap.
+Lấy danh sách wallet của user đang đăng nhập.
 
 **Response:**
 
@@ -36,7 +36,7 @@ Lay danh sach wallet cua user dang dang nhap.
 
 ## POST `/`
 
-Them wallet moi.
+Thêm wallet mới.
 
 **Request body:**
 
@@ -51,27 +51,27 @@ Them wallet moi.
 
 **Rules:**
 
-- `address` bat buoc va phai la Ethereum address hop le.
-- Mot user khong the luu trung cung mot address.
-- Wallet dau tien cua user tu dong la default.
-- Neu `isDefault=true`, cac wallet khac cua user se bi set `isDefault=false`.
+- `address` bắt buộc và phải là Ethereum address hợp lệ.
+- Một user không thể lưu trùng cùng một address.
+- Wallet đầu tiên của user tự động là default.
+- Nếu `isDefault=true`, các wallet khác của user sẽ bị set `isDefault=false`.
 
 ## PUT `/:id`
 
-Chi dung de set default wallet.
+Chỉ dùng để set default wallet.
 
-**Request body hop le:**
+**Request body hợp lệ:**
 
 ```json
 { "isDefault": true }
 ```
 
-Khong cho edit `name`, `address`, `network` hay thong tin khac cua wallet.
+Không cho edit `name`, `address`, `network` hay thông tin khác của wallet.
 
 ## DELETE `/:id`
 
-Xoa wallet cua user. Neu wallet bi xoa la default, backend tu chon wallet con lai gan nhat lam default.
+Xóa wallet của user. Nếu wallet bị xóa là default, backend tự chọn wallet còn lại gần nhất làm default.
 
 ## Checkout note
 
-Order API chi chap nhan `buyerWallet` da ton tai trong danh sach wallet cua user. Khi thanh toan, frontend se yeu cau MetaMask active dung wallet da chon.
+Order API chỉ chấp nhận `buyerWallet` đã tồn tại trong danh sách wallet của user. Khi thanh toán, frontend sẽ yêu cầu MetaMask active đúng wallet đã chọn.

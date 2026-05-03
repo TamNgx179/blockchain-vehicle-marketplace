@@ -1,8 +1,8 @@
 # Backend API
 
-Backend dung Node.js, Express 5, MongoDB/Mongoose va ethers.js de xu ly nghiep vu off-chain va dong bo voi smart contract Sepolia.
+Backend dùng Node.js, Express 5, MongoDB/Mongoose và ethers.js để xử lý nghiệp vụ off-chain và đồng bộ với smart contract Sepolia.
 
-## Chay local
+## Chạy local
 
 ```bash
 cd backend
@@ -10,7 +10,7 @@ npm install
 npm run dev
 ```
 
-Server mac dinh:
+Server mặc định:
 
 ```text
 http://localhost:3000
@@ -18,16 +18,16 @@ http://localhost:3000
 
 ## Scripts
 
-| Script | Mo ta |
+| Script | Mô tả |
 | --- | --- |
-| `npm run dev` | Chay server bang nodemon |
-| `npm start` | Chay server bang Node |
-| `npm test` | Chay Node test runner |
-| `npm run check:mailer` | Kiem tra cau hinh mailer |
+| `npm run dev` | Chạy server bằng nodemon |
+| `npm start` | Chạy server bằng Node |
+| `npm test` | Chạy Node test runner |
+| `npm run check:mailer` | Kiểm tra cấu hình mailer |
 
-## Env can co
+## Env cần có
 
-Tao file local:
+Tạo file local:
 
 ```bash
 cp .env.example .env
@@ -46,15 +46,15 @@ SELLER_WALLET=0x3aB431DC9782DA26bBdB002e94Fa057A13D2049F
 USD_PER_ETH=2000000
 ```
 
-`SEPOLIA_PRIVATE_KEY` phai thuoc ve `SELLER_WALLET`, vi backend dung wallet nay de tao order on-chain, seller confirm va admin cancel.
+`SEPOLIA_PRIVATE_KEY` phải thuộc về `SELLER_WALLET`, vì backend dùng wallet này để tạo order on-chain, seller confirm và admin cancel.
 
 ## Route groups
 
-| Base URL | Mo ta |
+| Base URL | Mô tả |
 | --- | --- |
 | `/api/users` | Auth, OTP, login, refresh token, forgot/reset password |
 | `/api/accounts` | Profile, password, wishlist |
-| `/api/products` | Product CRUD va upload anh |
+| `/api/products` | Product CRUD và upload ảnh |
 | `/api/reviews` | Review theo product |
 | `/api/contacts` | Contact form/admin contact |
 | `/api/cart` | Cart user/admin |
@@ -64,12 +64,12 @@ USD_PER_ETH=2000000
 
 ## Blockchain integration
 
-Backend tao order on-chain truoc khi luu order vao MongoDB. Sau khi frontend gui transaction bang MetaMask, backend verify `txHash` bang:
+Backend tạo order on-chain trước khi lưu order vào MongoDB. Sau khi frontend gửi transaction bằng MetaMask, backend verify `txHash` bằng:
 
-- receipt ton tai va `status === 1`;
-- transaction goi dung contract;
-- event dung action va dung `blockchainOrderId`;
-- `receipt.from` khop buyer/seller wallet;
-- state on-chain khop MongoDB.
+- receipt tồn tại và `status === 1`;
+- transaction gọi đúng contract;
+- event đúng action và đúng `blockchainOrderId`;
+- `receipt.from` khớp buyer/seller wallet;
+- state on-chain khớp MongoDB.
 
-Thong tin chi tiet nam trong `../blockchain/README.md`.
+Thông tin chi tiết nằm trong `../blockchain/README.md`.
