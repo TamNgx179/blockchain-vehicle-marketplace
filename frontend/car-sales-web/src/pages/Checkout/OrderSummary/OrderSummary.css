@@ -1,12 +1,7 @@
-/* ===============================
-   ORDER SUMMARY
-=============================== */
-
 #Order-summary {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
-  font-family: Arial, Helvetica, sans-serif;
 }
 
 #Order-summary *,
@@ -15,191 +10,193 @@
   box-sizing: border-box;
 }
 
-#Order-summary h2 {
-  margin: 0 0 14px;
-  font-size: 22px;
-  font-weight: 700;
-  color: #222;
+.summary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 12px;
 }
 
-/* ===============================
-   BOX
-=============================== */
-
-#summary {
-  width: 100%;
-  max-width: 100%;
-  padding: 18px;
-  background: #fff;
-  border: 1px solid #e2e2e2;
-  border-radius: 10px;
-}
-
-/* ===============================
-   SELECTED CAR
-=============================== */
-
-.car-selected {
-  padding-bottom: 14px;
-  margin-bottom: 14px;
-  border-bottom: 1px solid #e5e5e5;
-}
-
-.car-selected label {
+.summary-header span {
   display: block;
-  margin-bottom: 10px;
-  font-size: 15px;
-  font-weight: 700;
-  color: #222;
+  margin-bottom: 5px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 850;
+  text-transform: uppercase;
 }
 
-.list-car-selected {
+.summary-header h2 {
   margin: 0;
-  padding-left: 18px;
+  color: #0f172a;
+  font-size: 20px;
+  line-height: 1.2;
+  font-weight: 950;
 }
 
-.list-car-selected li {
-  margin-bottom: 8px;
-  color: #444;
+.summary-vehicle-list {
+  display: grid;
+  gap: 8px;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #edf1f7;
+}
+
+.summary-vehicle-row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+
+.summary-vehicle-row img {
+  width: 58px;
+  height: 44px;
+  border-radius: 8px;
+  object-fit: contain;
+  background: #f4f7fb;
+}
+
+.summary-vehicle-row strong,
+.summary-vehicle-row span {
+  display: block;
+}
+
+.summary-vehicle-row strong {
+  color: #0f172a;
   font-size: 14px;
+  font-weight: 900;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.summary-vehicle-row span {
+  margin-top: 3px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.summary-vehicle-row b {
+  grid-column: 2;
+  color: #0f172a;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.summary-empty {
+  margin: 0;
+  padding: 12px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  color: #64748b;
+  background: #f8fafc;
+  font-size: 13px;
   line-height: 1.5;
 }
 
-.list-car-selected li:last-child {
-  margin-bottom: 0;
+.summary-lines {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 10px;
 }
 
-.list-car-selected li span {
-  float: right;
-  margin-left: 12px;
-  font-weight: 700;
-  color: #222;
-  white-space: nowrap;
-}
-
-/* ===============================
-   FEE
-=============================== */
-
-.fee {
+.summary-lines > div {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  margin: 12px 0;
-  color: #444;
+  color: #475569;
+  font-size: 14px;
+}
+
+.summary-lines span {
+  color: #64748b;
+}
+
+.summary-lines strong {
+  color: #0f172a;
+  font-weight: 850;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.summary-due-card {
+  padding: 12px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #eff6ff;
+}
+
+.summary-due-card span {
+  display: block;
+  margin-bottom: 5px;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.summary-due-card strong {
+  display: block;
+  color: #0f172a;
+  font-size: 26px;
+  line-height: 1.1;
+  font-weight: 950;
+}
+
+.summary-due-card em {
+  display: block;
+  margin-top: 4px;
+  color: #475569;
   font-size: 15px;
+  font-style: normal;
+  font-weight: 800;
 }
 
-#delivery-fee {
-  font-weight: 700;
-  color: #222;
-  white-space: nowrap;
+.summary-due-card p {
+  margin: 6px 0 0;
+  color: #475569;
+  font-size: 13px;
+  line-height: 1.4;
 }
 
-/* ===============================
-   DIVIDER
-=============================== */
-
-#summary #cross-line {
-  border: none;
-  border-top: 1px solid #e5e5e5;
-  margin: 14px 0;
-}
-
-/* ===============================
-   TOTAL
-=============================== */
-
-.total-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-}
-
-.total-row label {
-  font-size: 16px;
-  font-weight: 700;
-  color: #222;
-}
-
-#total-fee {
-  font-size: 22px;
-  font-weight: 700;
-  color: #111;
-  white-space: nowrap;
-}
-
-/* ===============================
-   RESPONSIVE
-=============================== */
-
-@media (max-width: 768px) {
-  #summary {
-    padding: 15px;
+@media (max-width: 960px) {
+  .summary-vehicle-list {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   }
 
-  #Order-summary h2 {
-    font-size: 20px;
+  .summary-lines {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .list-car-selected li,
-  .fee {
-    font-size: 14px;
+  .summary-lines > div {
+    min-width: 0;
+    display: grid;
+    gap: 2px;
   }
 
-  #total-fee {
-    font-size: 20px;
+  .summary-lines strong {
+    text-align: left;
   }
 }
 
-@media (max-width: 576px) {
-  #summary {
-    padding: 14px;
-    border-radius: 8px;
-  }
-
-  .list-car-selected {
-    padding-left: 16px;
-  }
-
-  .list-car-selected li span {
-    float: none;
-    display: block;
-    margin-left: 0;
-    margin-top: 2px;
-    text-align: right;
-  }
-
-  .fee,
-  .total-row {
-    align-items: flex-start;
-  }
-
-  #total-fee {
-    font-size: 19px;
-  }
-}
-
-@media (max-width: 400px) {
-  #Order-summary h2 {
+@media (max-width: 640px) {
+  .summary-header h2 {
     font-size: 18px;
   }
 
-  #summary {
-    padding: 12px;
+  .summary-lines {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 430px) {
+  .summary-vehicle-row {
+    grid-template-columns: 56px minmax(0, 1fr);
   }
 
-  .list-car-selected li,
-  .fee {
-    font-size: 13px;
-  }
-
-  .total-row label {
-    font-size: 15px;
-  }
-
-  #total-fee {
-    font-size: 18px;
+  .summary-due-card strong {
+    font-size: 25px;
   }
 }

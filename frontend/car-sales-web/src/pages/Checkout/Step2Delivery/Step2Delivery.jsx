@@ -1,81 +1,123 @@
-import React from 'react';
-import './Step2Delivery.css';
+import React from "react";
+import {
+  Building2,
+  CalendarDays,
+  CheckCircle,
+  Clock3,
+  MapPin,
+  Truck,
+} from "lucide-react";
+import "./Step2Delivery.css";
 
-function Step2Delivery({ deliveryMethod, setDeliveryMethod, paymentDetails, setPaymentDetails }) {
+function Step2Delivery({
+  deliveryMethod,
+  setDeliveryMethod,
+  paymentDetails,
+  setPaymentDetails,
+}) {
   const methods = [
     {
-      id: 'pickup',
-      title: 'Showroom Pickup',
-      description: 'Visit our nearest Showroom to pick up your car. (Free)',
-      icon: '🏢'
+      id: "pickup",
+      title: "Showroom pickup",
+      description:
+        "Reserve a handover appointment, inspect the vehicle, and finish documents at the showroom.",
+      fee: "Free",
+      icon: <Building2 size={24} />,
     },
     {
-      id: 'delivery',
-      title: 'Home Delivery',
-      description: 'Premium transport service right to your doorstep. ($50.00)',
-      icon: '🚚'
-    }
+      id: "delivery",
+      title: "Home delivery",
+      description:
+        "A premium transport team delivers the vehicle to your preferred address after showroom approval.",
+      fee: "$50 service fee",
+      icon: <Truck size={24} />,
+    },
   ];
 
-  // Hàm handle thay đổi input chung
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setPaymentDetails(prev => ({
+  const handleInputChange = (event) => {
+    const { name, value } = event.target;
+    setPaymentDetails((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   return (
-    <div className="delivery-selection">
-      <h2>Select Delivery Method</h2>
-      <div className="delivery-options">
-        {methods.map((method) => (
-          <div
-            key={method.id}
-            className={`delivery-card ${deliveryMethod === method.id ? 'selected' : ''}`}
-            onClick={() => setDeliveryMethod(method.id)}
-          >
-            <div className="method-icon">{method.icon}</div>
-            <div className="method-info">
-              <h3>{method.title}</h3>
-              <p>{method.description}</p>
-            </div>
-            <div className="radio-circle">
-              {deliveryMethod === method.id && <div className="inner-circle" />}
-            </div>
-          </div>
-        ))}
+    <div className="handover-selection">
+      <div className="checkout-section-heading">
+        <span>Step 2</span>
+        <h2>Plan the handover</h2>
+        <p>
+          Choose how you want to receive the vehicle after the deposit is
+          verified and the showroom confirms availability.
+        </p>
       </div>
 
-      {/* Phần hiển thị thêm dựa trên phương thức đã chọn */}
-      <div className="delivery-details-form">
-        {deliveryMethod === 'pickup' && (
-          <div className="form-group slide-in">
-            <label>Select Pickup Date</label>
-            <input
-              type="date"
-              name="pickupDate"
-              className="detail-input"
-              value={paymentDetails.pickupDate || ''}
-              onChange={handleInputChange}
-              min={new Date().toISOString().split('T')[0]} // Không cho chọn ngày quá khứ
-            />
-            <small>Showroom hours: 8:00 AM - 6:00 PM</small>
-          </div>
-        )}
+      <div className="handover-options">
+        {methods.map((method) => {
+          const selected = deliveryMethod === method.id;
 
-        {deliveryMethod === 'delivery' && (
-          <div className="form-group slide-in">
-            <label>🏠 Delivery Address</label>
+          return (
+            <button
+              type="button"
+              key={method.id}
+              className={`handover-card ${selected ? "selected" : ""}`}
+              onClick={() => setDeliveryMethod(method.id)}
+            >
+              <div className="handover-icon">{method.icon}</div>
+              <div className="handover-copy">
+                <div>
+                  <h3>{method.title}</h3>
+                  <span>{method.fee}</span>
+                </div>
+                <p>{method.description}</p>
+              </div>
+              <div className="handover-check">
+                {selected && <CheckCircle size={18} />}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="handover-details-panel">
+        {deliveryMethod === "pickup" ? (
+          <div className="handover-form-grid">
+            <label className="handover-field">
+              <span>
+                <CalendarDays size={16} />
+                Pickup date
+              </span>
+              <input
+                type="date"
+                name="pickupDate"
+                value={paymentDetails.pickupDate || ""}
+                onChange={handleInputChange}
+                min={new Date().toISOString().split("T")[0]}
+              />
+            </label>
+
+            <div className="handover-note">
+              <Clock3 size={17} />
+              <div>
+                <strong>Showroom hours</strong>
+                <p>Appointments are available from 8:00 AM to 6:00 PM.</p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <label className="handover-field">
+            <span>
+              <MapPin size={16} />
+              Delivery address
+            </span>
             <textarea
               name="address"
-              className="detail-input textarea"
               placeholder="Enter your full street address, city, and zip code..."
-              value={paymentDetails.address || ''}
+              value={paymentDetails.address || ""}
               onChange={handleInputChange}
             />
-          </div>
+          </label>
         )}
       </div>
     </div>

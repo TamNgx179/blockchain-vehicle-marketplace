@@ -1,11 +1,22 @@
-import React from 'react';
-import './Step1CarSelection.css';
-import { Link } from 'react-router-dom';
-import trashcan from '../../../assets/icon/trashcan.png';
-import weight from '../../../assets/icon/weight.png';
-import engine from '../../../assets/icon/engine.png';
-import energy from '../../../assets/icon/energy.png';
-import add from '../../../assets/icon/add.png';
+import React from "react";
+import { Link } from "react-router-dom";
+import {
+  CheckCircle,
+  Gauge,
+  Minus,
+  Plus,
+  Scale,
+  Trash2,
+  Zap,
+} from "lucide-react";
+import "./Step1CarSelection.css";
+
+const formatCurrency = (value) =>
+  new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(Number(value || 0));
 
 function Step1CarSelection({
   cartItems = [],
@@ -13,162 +24,176 @@ function Step1CarSelection({
   updateQuantity,
   selectedIds = [],
   toggleSelectCar,
-  actionLoading = {}
+  actionLoading = {},
 }) {
   return (
-    <div className="step-1-wrapper">
-      <h2 id="header">Selection of cars for inspection</h2>
-      <hr id="cross-line" />
-      <p id="paragraph">
-        <strong>We want you to get the best cars possible...</strong>
-      </p>
+    <div className="vehicle-selection">
+      <div className="checkout-section-heading">
+        <span>Step 1</span>
+        <h2>Choose the vehicle to reserve</h2>
+        <p>
+          Select the car you want to move forward with. You can adjust quantity
+          or remove models before scheduling handover.
+        </p>
+      </div>
 
-      <div className="display-carform">
-        <p id="title-display-carform">Cars for inspection</p>
-
-        {cartItems.length > 0 ? (
-          cartItems.map((item) => {
+      {cartItems.length > 0 ? (
+        <div className="vehicle-list">
+          {cartItems.map((item) => {
             const product = item.productId;
             const cartItemId = item._id;
             const productId = product?._id;
-
             const quantity = Number(item.quantity || 1);
             const price = Number(item.price || product?.price || 0);
             const specs = product?.specifications || {};
             const isSelected = selectedIds.includes(cartItemId);
             const isLoading = Boolean(actionLoading[cartItemId]);
 
+            const specificationItems = [
+              {
+                icon: <Scale size={15} />,
+                label: "Weight",
+                value: specs.weight ? `${specs.weight} kg` : "N/A",
+              },
+              {
+                icon: <Zap size={15} />,
+                label: "Power",
+                value: specs.power ? `${specs.power} HP` : "N/A",
+              },
+              {
+                icon: <Gauge size={15} />,
+                label: "Top speed",
+                value: specs.topSpeed ? `${specs.topSpeed} km/h` : "N/A",
+              },
+            ];
+
             return (
-              <div
-                className={`carform ${isSelected ? 'selected-outline' : ''}`}
-                key={cartItemId}
+              <article
+                className={`vehicle-card ${isSelected ? "is-selected" : ""}`}
+                key={cartItemId || productId}
                 onClick={() => {
-                  if (!isLoading) toggleSelectCar(cartItemId);
+                  if (!isLoading && cartItemId) toggleSelectCar(cartItemId);
                 }}
-                style={{ cursor: isLoading ? 'not-allowed' : 'pointer' }}
               >
-                <img
-                  className="img-car"
-                  src={product?.thumbnailImage || ''}
-                  alt={product?.name || 'car'}
-                />
+                <div className="vehicle-select-indicator">
+                  {isSelected ? <CheckCircle size={18} /> : <span />}
+                </div>
 
-                <hr className="line" />
+                <div className="vehicle-media">
+                  <img
+                    src={product?.thumbnailImage || ""}
+                    alt={product?.name || "Vehicle"}
+                  />
+                </div>
 
-                <div className="car-infomation">
-                  <div className="car-and-close">
-                    <h4 className="car-name">
-                      {product?.name || 'Unnamed car'}
-                    </h4>
+                <div className="vehicle-content">
+                  <div className="vehicle-title-row">
+                    <div>
+                      <span>Selected model</span>
+                      <h3>{product?.name || "Unnamed vehicle"}</h3>
+                    </div>
 
-                    <img
-                      className="icon trash-icon"
-                      src={trashcan}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
+                    <button
+                      type="button"
+                      className="vehicle-remove-btn"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
 
                         if (isLoading || !productId) return;
 
                         removeFromCart({
                           cartItemId,
-                          productId
-                        });
-                      }}
-                      alt="remove"
-                      style={{
-                        opacity: isLoading ? 0.5 : 1,
-                        pointerEvents: isLoading ? 'none' : 'auto'
-                      }}
-                    />
-                  </div>
-
-                  <div className="info-line">
-                    <div className="info-item">
-                      <img className="icon" src={weight} alt="" />
-                      <span>{specs.weight ? `${specs.weight} kg` : 'N/A'}</span>
-                    </div>
-
-                    <div className="info-item">
-                      <img className="icon" src={engine} alt="" />
-                      <span>{specs.power ? `${specs.power} HP` : 'N/A'}</span>
-                    </div>
-
-                    <div className="info-item">
-                      <img className="icon" src={energy} alt="" />
-                      <span>{specs.topSpeed ? `${specs.topSpeed} km/h` : 'N/A'}</span>
-                    </div>
-                  </div>
-
-                  <div className="car-quantity">
-                    <button
-                      type="button"
-                      className="qty-btn"
-                      disabled={quantity <= 1 || isLoading || !productId}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-
-                        if (quantity <= 1 || isLoading || !productId) return;
-
-                        updateQuantity({
-                          cartItemId,
                           productId,
-                          quantity: quantity - 1
                         });
                       }}
-                    >
-                      -
-                    </button>
-
-                    <input
-                      type="number"
-                      value={quantity}
-                      readOnly
-                      className="qty-input"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                      }}
-                    />
-
-                    <button
-                      type="button"
-                      className="qty-btn"
                       disabled={isLoading || !productId}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-
-                        if (isLoading || !productId) return;
-
-                        updateQuantity({
-                          cartItemId,
-                          productId,
-                          quantity: quantity + 1
-                        });
-                      }}
+                      aria-label="Remove vehicle from cart"
                     >
-                      +
+                      <Trash2 size={17} />
                     </button>
                   </div>
 
-                  <h3 className="car-price">
-                    ${(price * quantity).toLocaleString()}
-                  </h3>
-                </div>
-              </div>
-            );
-          })
-        ) : (
-          <p>Your cart is empty.</p>
-        )}
+                  <div className="vehicle-spec-grid">
+                    {specificationItems.map((spec) => (
+                      <div className="vehicle-spec" key={spec.label}>
+                        {spec.icon}
+                        <span>{spec.label}</span>
+                        <strong>{spec.value}</strong>
+                      </div>
+                    ))}
+                  </div>
 
-        <Link to="/cars" id="addanother" style={{ textDecoration: 'none' }}>
-          <img className="icon" src={add} alt="" />
-          <p>Add another car</p>
+                  <div className="vehicle-card-footer">
+                    <div className="vehicle-quantity" aria-label="Quantity">
+                      <button
+                        type="button"
+                        disabled={quantity <= 1 || isLoading || !productId}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+
+                          if (quantity <= 1 || isLoading || !productId) return;
+
+                          updateQuantity({
+                            cartItemId,
+                            productId,
+                            quantity: quantity - 1,
+                          });
+                        }}
+                      >
+                        <Minus size={15} />
+                      </button>
+
+                      <span>{quantity}</span>
+
+                      <button
+                        type="button"
+                        disabled={isLoading || !productId}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+
+                          if (isLoading || !productId) return;
+
+                          updateQuantity({
+                            cartItemId,
+                            productId,
+                            quantity: quantity + 1,
+                          });
+                        }}
+                      >
+                        <Plus size={15} />
+                      </button>
+                    </div>
+
+                    <div className="vehicle-price">
+                      <span>Vehicle total</span>
+                      <strong>{formatCurrency(price * quantity)}</strong>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="vehicle-empty-state">
+          <h3>Your garage is empty</h3>
+          <p>Add a vehicle before starting checkout.</p>
+          <Link to="/cars">
+            <Plus size={17} />
+            Browse vehicles
+          </Link>
+        </div>
+      )}
+
+      {cartItems.length > 0 && (
+        <Link to="/cars" className="vehicle-add-link">
+          <Plus size={17} />
+          Add another vehicle
         </Link>
-      </div>
+      )}
     </div>
   );
 }

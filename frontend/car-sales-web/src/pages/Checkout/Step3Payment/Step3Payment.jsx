@@ -1,13 +1,11 @@
-import React, { useEffect, useState } from "react";
-import { Banknote, Blocks, CheckCircle, Plus } from "lucide-react";
+import React, { useCallback, useEffect, useState } from "react";
+import { CheckCircle, LockKeyhole, Plus, Wallet } from "lucide-react";
 import "./Step3Payment.css";
 import metamaskIcon from "../../../assets/icon/metamask.png";
 import { getMyWallets, addWallet } from "../../../services/walletService";
 import { requestMetaMaskAccounts } from "../../../utils/metamaskWallets";
 
 function Step3Payment({
-  paymentMethod,
-  setPaymentMethod,
   paymentType,
   setPaymentType,
   paymentDetails,
@@ -18,7 +16,12 @@ function Step3Payment({
   const [loadingWallets, setLoadingWallets] = useState(false);
   const [connectingWallet, setConnectingWallet] = useState(false);
 
-  const notify = (message) => showNotify?.(message);
+  const notify = useCallback(
+    (message) => {
+      showNotify?.(message);
+    },
+    [showNotify]
+  );
 
   const shortenAddress = (address) => {
     if (!address) return "";
@@ -33,56 +36,57 @@ function Step3Payment({
   };
 
   const selectedWallet = wallets.find(
-    (wallet) =>
-      wallet.address?.toLowerCase() ===
+    (walletItem) =>
+      walletItem.address?.toLowerCase() ===
       paymentDetails.walletAddress?.toLowerCase()
   );
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
+  const loadWallets = useCallback(
+    async ({ autoSelect = false } = {}) => {
+      try {
+        setLoadingWallets(true);
+
+        const response = await getMyWallets();
+        const walletList = normalizeWalletResponse(response);
+
+        setWallets(walletList);
+
+        if (autoSelect && walletList.length > 0) {
+          const defaultWallet =
+            walletList.find((walletItem) => walletItem.isDefault) ||
+            walletList[0];
+
+          setPaymentDetails((prev) => ({
+            ...prev,
+            walletAddress: prev.walletAddress || defaultWallet.address,
+          }));
+        }
+
+        return walletList;
+      } catch (error) {
+        notify(
+          error.response?.data?.message || "Could not load your saved wallets."
+        );
+        return [];
+      } finally {
+        setLoadingWallets(false);
+      }
+    },
+    [notify, setPaymentDetails]
+  );
+
+  useEffect(() => {
+    loadWallets({ autoSelect: true });
+  }, [loadWallets]);
+
+  const handleInputChange = (event) => {
+    const { name, value } = event.target;
 
     setPaymentDetails((prev) => ({
       ...prev,
       [name]: value,
     }));
   };
-
-  const loadWallets = async () => {
-    try {
-      setLoadingWallets(true);
-
-      const response = await getMyWallets();
-      const walletList = normalizeWalletResponse(response);
-
-      setWallets(walletList);
-
-      if (!paymentDetails.walletAddress && walletList.length > 0) {
-        const defaultWallet =
-          walletList.find((wallet) => wallet.isDefault) || walletList[0];
-
-        setPaymentDetails((prev) => ({
-          ...prev,
-          walletAddress: defaultWallet.address,
-        }));
-      }
-
-      return walletList;
-    } catch (error) {
-      notify(
-        error.response?.data?.message || "Could not load your saved wallets."
-      );
-      return [];
-    } finally {
-      setLoadingWallets(false);
-    }
-  };
-
-  useEffect(() => {
-    if (paymentMethod === "blockchain") {
-      loadWallets();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paymentMethod]);
 
   const handleSelectWallet = (walletAddress) => {
     setPaymentDetails((prev) => ({
@@ -103,7 +107,9 @@ function Step3Payment({
       }
 
       const existingAddresses = new Set(
-        wallets.map((wallet) => wallet.address?.toLowerCase()).filter(Boolean)
+        wallets
+          .map((walletItem) => walletItem.address?.toLowerCase())
+          .filter(Boolean)
       );
       let savedCount = 0;
       let duplicateCount = 0;
@@ -166,93 +172,79 @@ function Step3Payment({
   };
 
   return (
-    <div className="payment-selection">
-      <h2>Payment & Contact Information</h2>
-
-      <div className="payment-grid">
-        <button
-          type="button"
-          className={`payment-card ${paymentMethod === "cash" ? "active" : ""}`}
-          onClick={() => setPaymentMethod("cash")}
-        >
-          <div className="payment-icon">
-            <Banknote size={25} />
-          </div>
-          <div className="payment-info">
-            <h3>Cash Payment</h3>
-            <p>Pay at showroom</p>
-          </div>
-        </button>
-
-        <button
-          type="button"
-          className={`payment-card ${
-            paymentMethod === "blockchain" ? "active" : ""
-          }`}
-          onClick={() => setPaymentMethod("blockchain")}
-        >
-          <div className="payment-icon">
-            <Blocks size={25} />
-          </div>
-          <div className="payment-info">
-            <h3>Blockchain</h3>
-            <p>Smart contract payment</p>
-          </div>
-        </button>
+    <div className="escrow-payment">
+      <div className="checkout-section-heading">
+        <span>Step 3</span>
+        <h2>Secure the order with MetaMask</h2>
+        <p>
+          Your payment is recorded on Sepolia through the showroom escrow
+          contract. The selected wallet must be active in MetaMask when you
+          confirm.
+        </p>
       </div>
 
-      {paymentMethod === "blockchain" && (
-        <div className="payment-type-selection">
-          <h3>Select Payment Plan</h3>
-
-          <div className="type-grid">
-            <label
-              className={`type-option ${
-                paymentType === "full" ? "selected" : ""
-              }`}
-            >
-              <input
-                type="radio"
-                name="paymentType"
-                value="full"
-                checked={paymentType === "full"}
-                onChange={() => setPaymentType("full")}
-              />
-              <div className="type-content">
-                <strong>Full Payment</strong>
-                <span>Pay 100% of the total amount</span>
-              </div>
-            </label>
-
-            <label
-              className={`type-option ${
-                paymentType === "deposit" ? "selected" : ""
-              }`}
-            >
-              <input
-                type="radio"
-                name="paymentType"
-                value="deposit"
-                checked={paymentType === "deposit"}
-                onChange={() => setPaymentType("deposit")}
-              />
-              <div className="type-content">
-                <strong>Deposit</strong>
-                <span>Pay a deposit first and complete later</span>
-              </div>
-            </label>
+      <div className="payment-plan-grid">
+        <label
+          className={`payment-plan-card ${
+            paymentType === "deposit" ? "selected" : ""
+          }`}
+        >
+          <input
+            type="radio"
+            name="paymentType"
+            value="deposit"
+            checked={paymentType === "deposit"}
+            onChange={() => setPaymentType("deposit")}
+          />
+          <div>
+            <span>Recommended</span>
+            <strong>Deposit reservation</strong>
+            <p>
+              Pay the deposit now, then complete the remaining balance after
+              you receive the vehicle.
+            </p>
           </div>
+          {paymentType === "deposit" && <CheckCircle size={20} />}
+        </label>
+
+        <label
+          className={`payment-plan-card ${
+            paymentType === "full" ? "selected" : ""
+          }`}
+        >
+          <input
+            type="radio"
+            name="paymentType"
+            value="full"
+            checked={paymentType === "full"}
+            onChange={() => setPaymentType("full")}
+          />
+          <div>
+            <span>Optional</span>
+            <strong>Full blockchain payment</strong>
+            <p>
+              Pay the full purchase amount immediately through the same escrow
+              contract.
+            </p>
+          </div>
+          {paymentType === "full" && <CheckCircle size={20} />}
+        </label>
+      </div>
+
+      <div className="payment-contact-panel">
+        <div className="panel-title-row">
+          <div>
+            <span>Buyer information</span>
+            <h3>Contact details</h3>
+          </div>
+          <LockKeyhole size={22} />
         </div>
-      )}
 
-      <div className="details-form">
-        <h3>Contact Details</h3>
-
-        <div className="input-group">
+        <div className="payment-input-grid">
           <input
             type="text"
             name="fullName"
-            placeholder="Full Name"
+            placeholder="Full name"
             value={paymentDetails.fullName}
             onChange={handleInputChange}
           />
@@ -260,120 +252,104 @@ function Step3Payment({
           <input
             type="text"
             name="phoneNumber"
-            placeholder="Phone Number"
+            placeholder="Phone number"
             value={paymentDetails.phoneNumber}
             onChange={handleInputChange}
           />
+
+          <input
+            type="email"
+            name="email"
+            placeholder="Email address"
+            value={paymentDetails.email}
+            onChange={handleInputChange}
+          />
+        </div>
+      </div>
+
+      <div className="payment-wallet-panel">
+        <div className="panel-title-row">
+          <div>
+            <span>Payment wallet</span>
+            <h3>Choose a connected wallet</h3>
+          </div>
+
+          <button
+            type="button"
+            className="metamask-connect-btn"
+            onClick={connectWallet}
+            disabled={connectingWallet}
+          >
+            <img src={metamaskIcon} alt="" aria-hidden="true" />
+            {connectingWallet ? "Connecting..." : "Connect MetaMask"}
+            {!connectingWallet && <Plus size={15} />}
+          </button>
         </div>
 
-        <input
-          type="email"
-          name="email"
-          placeholder="Email Address"
-          className="full-width-input"
-          value={paymentDetails.email}
-          onChange={handleInputChange}
-        />
+        {loadingWallets ? (
+          <p className="wallet-loading-text">Loading your wallets...</p>
+        ) : wallets.length > 0 ? (
+          <div className="checkout-wallet-grid">
+            {wallets.map((walletItem) => {
+              const isSelected =
+                walletItem.address?.toLowerCase() ===
+                paymentDetails.walletAddress?.toLowerCase();
 
-        {paymentMethod === "blockchain" && (
-          <div className="blockchain-section">
-            <div className="checkout-wallet-header">
-              <div>
-                <h3>Payment Wallet</h3>
-                <p>
-                  Choose one of your saved MetaMask wallets. The same wallet
-                  must be active in MetaMask when you confirm the payment.
-                </p>
-              </div>
+              return (
+                <button
+                  key={walletItem._id || walletItem.address}
+                  type="button"
+                  className={`checkout-wallet-card ${
+                    isSelected ? "selected" : ""
+                  }`}
+                  onClick={() => handleSelectWallet(walletItem.address)}
+                >
+                  <div className="checkout-wallet-card-main">
+                    <div className="checkout-wallet-avatar">
+                      <img src={metamaskIcon} alt="MetaMask" />
+                    </div>
 
-              <button
-                type="button"
-                className="connect-btn"
-                onClick={connectWallet}
-                disabled={connectingWallet}
-              >
-                {connectingWallet ? (
-                  "Connecting..."
-                ) : (
-                  <>
-                    <Plus size={16} />
-                    Connect wallet
-                  </>
-                )}
-              </button>
-            </div>
+                    <div className="checkout-wallet-main">
+                      <span>{walletItem.name || "MetaMask"}</span>
+                      <code title={walletItem.address}>
+                        {shortenAddress(walletItem.address)}
+                      </code>
+                    </div>
+                  </div>
 
-            {loadingWallets ? (
-              <p className="wallet-loading-text">Loading your wallets...</p>
-            ) : wallets.length > 0 ? (
-              <div className="checkout-wallet-grid">
-                {wallets.map((wallet) => {
-                  const isSelected =
-                    wallet.address?.toLowerCase() ===
-                    paymentDetails.walletAddress?.toLowerCase();
+                  <div className="checkout-wallet-meta">
+                    <span>{walletItem.network || "sepolia"}</span>
 
-                  return (
-                    <button
-                      key={wallet._id || wallet.address}
-                      type="button"
-                      className={`checkout-wallet-card ${
-                        isSelected ? "selected" : ""
-                      }`}
-                      onClick={() => handleSelectWallet(wallet.address)}
-                    >
-                      <div className="checkout-wallet-card-main">
-                        <div className="checkout-wallet-avatar">
-                          <img src={metamaskIcon} alt="MetaMask" />
-                        </div>
+                    {walletItem.isDefault && (
+                      <span className="checkout-wallet-default">Default</span>
+                    )}
 
-                        <div className="checkout-wallet-main">
-                          <span className="checkout-wallet-name">
-                            {wallet.name || "MetaMask"}
-                          </span>
-                          <code title={wallet.address}>
-                            {shortenAddress(wallet.address)}
-                          </code>
-                        </div>
-                      </div>
-
-                      <div className="checkout-wallet-meta">
-                        <span>{wallet.network || "sepolia"}</span>
-
-                        {wallet.isDefault && (
-                          <span className="checkout-wallet-default">
-                            Default
-                          </span>
-                        )}
-
-                        {isSelected && (
-                          <span className="checkout-wallet-selected">
-                            <CheckCircle size={12} />
-                            Selected
-                          </span>
-                        )}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="no-wallet-box">
-                <div>
-                  <strong>No wallets connected</strong>
-                  <p>Connect MetaMask to add a wallet and continue checkout.</p>
-                </div>
-              </div>
-            )}
-
-            {selectedWallet && (
-              <p className="note">
-                Selected wallet: {shortenAddress(selectedWallet.address)}.{" "}
-                {paymentType === "deposit"
-                  ? "You chose to pay a deposit."
-                  : "You chose to pay the full amount."}
-              </p>
-            )}
+                    {isSelected && (
+                      <span className="checkout-wallet-selected">
+                        <CheckCircle size={12} />
+                        Selected
+                      </span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
           </div>
+        ) : (
+          <div className="wallet-empty-box">
+            <Wallet size={28} />
+            <div>
+              <strong>No wallets connected</strong>
+              <p>Connect MetaMask to add a payment wallet.</p>
+            </div>
+          </div>
+        )}
+
+        {selectedWallet && (
+          <p className="wallet-selected-note">
+            Selected wallet: {shortenAddress(selectedWallet.address)}. The
+            checkout will ask MetaMask to sign with this exact address.
+          </p>
         )}
       </div>
     </div>
