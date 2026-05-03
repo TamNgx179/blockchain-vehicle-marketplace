@@ -344,6 +344,7 @@
     top: 12px;
     right: 12px;
   }
+}
 
 @media (max-width: 430px) {
   .vehicle-card {

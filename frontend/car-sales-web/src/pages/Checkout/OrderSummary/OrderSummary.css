@@ -10,7 +10,7 @@
   box-sizing: border-box;
 }
 
-.summary-header {
+#Order-summary .summary-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -18,7 +18,7 @@
   margin-bottom: 12px;
 }
 
-.summary-header span {
+#Order-summary .summary-header span {
   display: block;
   margin-bottom: 5px;
   color: #64748b;
@@ -27,7 +27,7 @@
   text-transform: uppercase;
 }
 
-.summary-header h2 {
+#Order-summary .summary-header h2 {
   margin: 0;
   color: #0f172a;
   font-size: 20px;
@@ -35,7 +35,7 @@
   font-weight: 950;
 }
 
-.summary-vehicle-list {
+#Order-summary .summary-vehicle-list {
   display: grid;
   gap: 8px;
   padding-bottom: 10px;
@@ -43,7 +43,7 @@
   border-bottom: 1px solid #edf1f7;
 }
 
-.summary-vehicle-row {
+#Order-summary .summary-vehicle-row {
   min-width: 0;
   display: grid;
   grid-template-columns: 58px minmax(0, 1fr);
@@ -51,7 +51,8 @@
   align-items: center;
 }
 
-.summary-vehicle-row img {
+#Order-summary .summary-vehicle-row img {
+  display: block;
   width: 58px;
   height: 44px;
   border-radius: 8px;
@@ -59,12 +60,12 @@
   background: #f4f7fb;
 }
 
-.summary-vehicle-row strong,
-.summary-vehicle-row span {
+#Order-summary .summary-vehicle-row strong,
+#Order-summary .summary-vehicle-row span {
   display: block;
 }
 
-.summary-vehicle-row strong {
+#Order-summary .summary-vehicle-row strong {
   color: #0f172a;
   font-size: 14px;
   font-weight: 900;
@@ -72,20 +73,21 @@
   overflow-wrap: anywhere;
 }
 
-.summary-vehicle-row span {
+#Order-summary .summary-vehicle-row span {
   margin-top: 3px;
   color: #64748b;
   font-size: 12px;
 }
 
-.summary-vehicle-row b {
+#Order-summary .summary-vehicle-row b {
   grid-column: 2;
   color: #0f172a;
   font-size: 13px;
   line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
-.summary-empty {
+#Order-summary .summary-empty {
   margin: 0;
   padding: 12px;
   border: 1px dashed #cbd5e1;
@@ -96,39 +98,44 @@
   line-height: 1.5;
 }
 
-.summary-lines {
+#Order-summary .summary-lines {
   display: grid;
   gap: 8px;
   margin-bottom: 10px;
 }
 
-.summary-lines > div {
+#Order-summary .summary-lines > div {
+  min-width: 0;
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
   gap: 12px;
   color: #475569;
   font-size: 14px;
 }
 
-.summary-lines span {
+#Order-summary .summary-lines span {
+  flex: 0 0 auto;
   color: #64748b;
 }
 
-.summary-lines strong {
+#Order-summary .summary-lines strong {
+  flex: 1 1 auto;
+  min-width: 0;
   color: #0f172a;
   font-weight: 850;
   text-align: right;
   overflow-wrap: anywhere;
 }
 
-.summary-due-card {
+#Order-summary .summary-due-card {
   padding: 12px;
   border: 1px solid #bfdbfe;
   border-radius: 8px;
   background: #eff6ff;
 }
 
-.summary-due-card span {
+#Order-summary .summary-due-card span {
   display: block;
   margin-bottom: 5px;
   color: #1d4ed8;
@@ -137,24 +144,26 @@
   text-transform: uppercase;
 }
 
-.summary-due-card strong {
+#Order-summary .summary-due-card strong {
   display: block;
   color: #0f172a;
   font-size: 26px;
   line-height: 1.1;
   font-weight: 950;
+  overflow-wrap: anywhere;
 }
 
-.summary-due-card em {
+#Order-summary .summary-due-card em {
   display: block;
   margin-top: 4px;
   color: #475569;
   font-size: 15px;
   font-style: normal;
   font-weight: 800;
+  overflow-wrap: anywhere;
 }
 
-.summary-due-card p {
+#Order-summary .summary-due-card p {
   margin: 6px 0 0;
   color: #475569;
   font-size: 13px;
@@ -162,41 +171,48 @@
 }
 
 @media (max-width: 960px) {
-  .summary-vehicle-list {
+  #Order-summary .summary-vehicle-list {
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   }
 
-  .summary-lines {
+  #Order-summary .summary-lines {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .summary-lines > div {
-    min-width: 0;
+  #Order-summary .summary-lines > div {
     display: grid;
     gap: 2px;
   }
 
-  .summary-lines strong {
+  #Order-summary .summary-lines span {
+    flex: initial;
+  }
+
+  #Order-summary .summary-lines strong {
     text-align: left;
   }
 }
 
 @media (max-width: 640px) {
-  .summary-header h2 {
+  #Order-summary .summary-header h2 {
     font-size: 18px;
   }
 
-  .summary-lines {
+  #Order-summary .summary-lines {
     grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 430px) {
-  .summary-vehicle-row {
+  #Order-summary .summary-vehicle-row {
     grid-template-columns: 56px minmax(0, 1fr);
   }
 
-  .summary-due-card strong {
+  #Order-summary .summary-vehicle-row img {
+    width: 56px;
+  }
+
+  #Order-summary .summary-due-card strong {
     font-size: 25px;
   }
 }
