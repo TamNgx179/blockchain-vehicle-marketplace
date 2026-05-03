@@ -1,23 +1,23 @@
 # Saigon Speed - Car Marketplace with Blockchain Escrow
 
-> IE213.Q21 - Ky thuat phat trien he thong Web | Nhom 6
+> IE213.Q21 - Kỹ thuật phát triển hệ thống Web | Nhóm 6
 
-Saigon Speed la website mua ban xe ket hop React, Express, MongoDB va Ethereum Sepolia. He thong xu ly du lieu san pham, gio hang, tai khoan va don hang off-chain; cac buoc dat coc/thanh toan duoc ghi nhan on-chain bang smart contract escrow va MetaMask.
+Saigon Speed là website mua bán xe kết hợp React, Express, MongoDB và Ethereum Sepolia. Hệ thống xử lý dữ liệu sản phẩm, giỏ hàng, tài khoản và đơn hàng off-chain; các bước đặt cọc/thanh toán được ghi nhận on-chain bằng smart contract escrow và MetaMask.
 
-## Noi dung
+## Nội dung
 
-- [Cong nghe](#cong-nghe)
-- [Kien truc](#kien-truc)
-- [Chuc nang chinh](#chuc-nang-chinh)
-- [Checkout va blockchain](#checkout-va-blockchain)
-- [Cai dat](#cai-dat)
-- [Bien moi truong](#bien-moi-truong)
-- [Tai lieu API](#tai-lieu-api)
-- [Luu y khi test MetaMask](#luu-y-khi-test-metamask)
+- [Công nghệ](#công-nghệ)
+- [Kiến trúc](#kiến-trúc)
+- [Chức năng chính](#chức-năng-chính)
+- [Checkout và blockchain](#checkout-và-blockchain)
+- [Cài đặt](#cài-đặt)
+- [Biến môi trường](#biến-môi-trường)
+- [Tài liệu API](#tài-liệu-api)
+- [Lưu ý khi test Metamask](#lưu-ý-khi-test-metamask)
 
-## Cong nghe
+## Công nghệ
 
-| Thanh phan | Cong nghe |
+| Thành phần | Công nghệ |
 | --- | --- |
 | Frontend | React 19 + Vite + React Router |
 | Backend | Node.js + Express 5 |
@@ -27,7 +27,7 @@ Saigon Speed la website mua ban xe ket hop React, Express, MongoDB va Ethereum S
 | Wallet | MetaMask |
 | Web3 client | ethers.js v6 |
 
-## Kien truc
+## Kiến trúc
 
 ```text
 React Frontend
@@ -38,54 +38,54 @@ React Frontend
 
 Express Backend
   - Auth, Account, Product, Review, Cart, Order, Wallet APIs
-  - Tao order on-chain bang seller/server wallet
-  - Verify transaction receipt va event log
-  - Dong bo trang thai order vao MongoDB
+  - Tạo order on-chain bằng seller/server wallet
+  - Verify transaction receipt và event log
+  - Đồng bộ trạng thái order vao MongoDB
 
 VehicleMarketplaceEscrow
-  - Luu orderId, buyer, seller, total/deposit amount
-  - Nhan payDeposit/payFull tu buyer
+  - Lưu orderId, buyer, seller, total/deposit amount
+  - Nhấn payDeposit/payFull từ buyer
   - Cho seller confirm, buyer complete, cancel/refund
 ```
 
-Blockchain khong thay the database. MongoDB van la noi luu chi tiet user, product, cart, delivery info va order detail; smart contract chi luu nhung du lieu can minh bach va doi chieu giao dich.
+Blockchain không thay thế database. MongoDB vẫn là nơi lưu chi tiết user, product, cart, delivery info và order detail; smart contract chỉ lưu những dữ liệu cần minh bạch và đối chiếu giao dịch.
 
-## Chuc nang chinh
+## Chức năng chính
 
-- Xac thuc user/admin bang JWT, OTP email, forgot/reset password.
-- Quan ly san pham xe, hinh anh, thong so, review va wishlist.
-- Gio hang va checkout theo tung xe da chon.
-- Profile gom edit profile, change password va wallet management.
-- Moi tai khoan co the luu nhieu vi MetaMask.
-- Wallet management cho phep connect, set default, delete; khong cho edit chi tiet vi.
-- Checkout chi dung MetaMask escrow, khong con thanh toan tien mat.
-- User co the chon vi da luu de thanh toan.
-- Admin quan ly order, confirm/cancel order bang seller/server wallet.
+- Xác thực user/admin bằng JWT, OTP email, forgot/reset password.
+- Quản lý sản phẩm xe, hình ảnh, thông số, review va wishlist.
+- Giỏ hàng và checkout theo từng xe đã chọn.
+- Profile gồm edit profile, change password và wallet management.
+- Mỗi tài khoản có thể lưu nhiều ví MetaMask.
+- Wallet management cho phép connect, set default, delete.
+- Checkout chỉ dùng MetaMask escrow.
+- User có thể chọn ví đã lưu để thanh toán.
+- Admin quản lý order, confirm/cancel order bằng seller/server wallet.
 
-## Checkout va blockchain
+## Checkout và blockchain
 
-Checkout hien tai gom 4 buoc:
+Checkout hiện tại gồm 4 bước:
 
-1. `Vehicle`: chon xe trong gio hang, sua quantity hoac xoa xe.
-2. `Handover`: chon showroom pickup hoac home delivery.
-3. `Deposit`: dien contact, chon payment plan va chon MetaMask wallet.
-4. `Done`: hien thi confirmation va transaction hash.
+1. `Vehicle`: chọn xe trong giỏ hàng, sửa quantity hoặc xóa xe.
+2. `Handover`: chọn showroom pickup hoặc home delivery.
+3. `Deposit`: điền contact, chọn payment plan và chọn MetaMask wallet.
+4. `Done`: hiển thị confirmation và transaction hash.
 
 Payment plan:
 
-| Plan | Mo ta |
+| Plan | Mô tả |
 | --- | --- |
-| `deposit` | Thanh toan tien coc truoc. So con lai chi thanh toan sau khi nhan xe. |
-| `full` | Thanh toan toan bo gia tri don ngay tren smart contract. |
+| `deposit` | Thanh toán tiền cọc trước. Số còn lại chỉ thanh toán sau khi nhận xe. |
+| `full` | Thanh toán toàn bộ giá trị đơn trên smart contract. |
 
-Ty gia gia lap dang dung:
+Tỷ giá giả lập đang dùng:
 
 ```text
 USD_PER_ETH=2000000
-deposit rate = 0.5% tong gia xe
+deposit rate = 0.5% tổng giá xe
 ```
 
-Vi du xe `$13,000`:
+Ví dụ xe `$13,000`:
 
 ```text
 Full amount = 0.0065 ETH
@@ -93,7 +93,7 @@ Deposit = 0.0000325 ETH ($65)
 Remaining = 0.0064675 ETH ($12,935)
 ```
 
-## Cai dat
+## Cài đặt
 
 ### 1. Clone repo
 
@@ -110,7 +110,7 @@ npm install
 npm run dev
 ```
 
-Backend mac dinh chay tai:
+Backend mặc định chạy tại:
 
 ```text
 http://localhost:3000
@@ -124,7 +124,7 @@ npm install
 npm run dev
 ```
 
-Vite mac dinh chay tai:
+Vite mặc định chạy tại:
 
 ```text
 http://localhost:5173
@@ -138,11 +138,11 @@ npm install
 npm test
 ```
 
-## Bien moi truong
+## Biến môi trường
 
 ### Backend `.env`
 
-Tao file tu template:
+Tạo file từ template:
 
 ```bash
 cd backend
@@ -164,7 +164,7 @@ USD_PER_ETH=2000000
 
 ### Frontend `frontend/car-sales-web/.env`
 
-Tao file tu template:
+Tao file từ template:
 
 ```bash
 cd frontend/car-sales-web
@@ -177,20 +177,20 @@ VITE_CONTRACT_ADDRESS=0xD0CF607f0bCD60B5ed02896e682450eA4dBf5BB0
 VITE_USD_PER_ETH=2000000
 ```
 
-Quan trong: `CONTRACT_ADDRESS` cua backend va `VITE_CONTRACT_ADDRESS` cua frontend phai giong nhau. Sau khi doi env, restart ca backend va frontend.
+Quan trọng: `CONTRACT_ADDRESS` của backend va `VITE_CONTRACT_ADDRESS` của frontend phải giống nhau. Sau khi đổi env, restart cả backend và frontend.
 
 ### Blockchain `.env`
 
-Tao file tu template neu can compile/deploy/verify contract:
+Tạo file từ template nếu cần compile/deploy/verify contract:
 
 ```bash
 cd blockchain
 cp .env.example .env
 ```
 
-## Tai lieu API
+## Tài liệu API
 
-Tai lieu route nam trong thu muc `docs/`:
+Tài liệu route nằm trong thư mục `docs/`:
 
 - `docs/AuthAPI.md`
 - `docs/AccountAPI.md`
@@ -203,18 +203,18 @@ Tai lieu route nam trong thu muc `docs/`:
 - `docs/ContactAPI.md`
 - `docs/DashboardAPI.md`
 
-## Luu y khi test MetaMask
+## Lưu ý khi test Metamask
 
-- Chon dung network `Sepolia`.
-- Vi buyer phai co Sepolia ETH de tra tien va gas.
-- Khong dung `SELLER_WALLET` lam buyer wallet khi test checkout.
-- Wallet duoc chon trong checkout phai la account dang active trong MetaMask.
-- Neu MetaMask khong hien popup, giao dich thuong da bi reject o buoc `estimateGas`. Kiem tra:
-  - frontend/backend co cung contract address khong;
-  - wallet dang active co phai buyer cua order khong;
-  - payment plan va amount co khop order on-chain khong;
-  - order tren contract con status `Pending` khong.
+- Chọn đúng network `Sepolia`.
+- Ví buyer phải có Sepolia ETH để trả tiền và gas.
+- Không dùng `SELLER_WALLET` làm buyer wallet khi test checkout.
+- Wallet được chọn trong checkout phải là account đang active trong MetaMask.
+- Nếu Metamask không hiện popup, giao dịch thường đã bị reject ở bước `estimateGas`. Kiểm tra:
+  - frontend/backend có cùng contract address không;
+  - wallet đang active có phải buyer của order không;
+  - payment plan va amount có khớp order on-chain không;
+  - order trên contract còn status `Pending` không.
 
 ## License
 
-Du an phuc vu muc dich hoc tap cho mon IE213.Q21.
+Dự án phục vụ mục đích học tập cho môn IE213.Q21.
