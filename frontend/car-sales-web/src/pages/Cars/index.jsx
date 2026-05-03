@@ -49,6 +49,12 @@ const getProductIdFromWishlistItem = (item) => {
   );
 };
 
+const getImageSrc = (src) => {
+  if (!src) return "/images/car.webp";
+  if (/^(https?:|data:|blob:)/i.test(src)) return src;
+  return src.startsWith("/") ? src : `/${src}`;
+};
+
 function DualRange({
   min,
   max,
@@ -444,7 +450,9 @@ function Cars() {
   const visibleCars = filteredCars.slice(startIndex, startIndex + pageSize);
 
   const heroCar = visibleCars[0] || filteredCars[0] || carsList[0];
-  const heroImage = heroCar?.heroImage || heroCar?.thumbnailImage || "/images/car.webp";
+  const heroImage = getImageSrc(
+    heroCar?.heroImage || heroCar?.thumbnailImage
+  );
 
   const priceText = (value) => {
     if (typeof value !== "number") return null;
@@ -473,7 +481,17 @@ function Cars() {
               <h1>Find your<br />favorite car</h1>
             </div>
             <div className="cars-hero-media">
-              <img src={heroImage} alt="Hero car" loading="eager" decoding="async" />
+              <img
+                src={heroImage}
+                alt={heroCar?.name || "Hero car"}
+                loading="eager"
+                decoding="async"
+                onError={(event) => {
+                  event.currentTarget.onerror = null;
+                  event.currentTarget.src =
+                    "/images/vinfast/vinfast-vf8/hero/vf8-hero.webp";
+                }}
+              />
             </div>
           </div>
         </section>
@@ -693,7 +711,7 @@ function Cars() {
                 const isExpanded = Boolean(expandedTagsById[car._id]);
                 const visibleChips = isExpanded ? chipItems : chipItems.slice(0, 4);
                 const remaining = Math.max(0, chipItems.length - 4);
-                const cardImage = car.thumbnailImage || "/images/car.webp";
+                const cardImage = getImageSrc(car.thumbnailImage);
                 const isWishlisted = wishlistIds.includes(String(car._id));
                 const stock = Number(car?.stock) || 0;
                 const stockText = stock <= 0 ? "Out of stock" : `${stock} left`;

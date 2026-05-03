@@ -1,32 +1,26 @@
 ## Account API
 
-**Base URL:** `/api/account`
-**Xác thực:** Các route có 🔒 yêu cầu header `Authorization: Bearer <token>`
+**Base URL:** `/api/accounts`
 
----
+Route co ky hieu lock can header:
 
-### Xác thực
+```http
+Authorization: Bearer <ACCESS_TOKEN>
+Content-Type: application/json
+```
 
-#### POST `/logout`
-Không cần token.
+## Auth/session
 
-**Request Body:**
+### POST `/logout`
+
 ```json
 { "refreshToken": "string" }
 ```
 
-**Response:**
-```json
-{ "message": "Logout successful" }
-```
+## Password
 
----
+### POST `/changePassword` (locked)
 
-### Mật khẩu
-
-#### POST `/changePassword` 🔒
-
-**Request Body:**
 ```json
 {
   "oldPassword": "string",
@@ -35,93 +29,46 @@ Không cần token.
 }
 ```
 
-**Response:**
+## Profile
+
+### GET `/getProfile` (locked)
+
+Lay profile user dang dang nhap.
+
+### PUT `/editProfile` (locked)
+
 ```json
-{ "message": "string" }
+{
+  "username": "Nguyen Van A",
+  "phoneNumber": "0900000000",
+  "address": "Thu Duc, Ho Chi Minh City"
+}
 ```
 
----
+## Delete account
 
-### Hồ sơ cá nhân
+### DELETE `/me` (locked)
 
-#### GET `/getProfile` 🔒
-Không cần body.
+Xoa tai khoan dang dang nhap.
 
-**Response:**
+### DELETE `/:id` (locked)
+
+Admin xoa user bat ky hoac user tu xoa chinh minh.
+
+## Wishlist
+
+### POST `/wishlist/add` (locked)
+
 ```json
-{ "data": { ...thông tin user } }
+{ "productId": "PRODUCT_ID" }
 ```
 
-#### PUT `/editProfile` 🔒
+### GET `/wishlist` (locked)
 
-**Request Body:**
+Lay wishlist cua user.
+
+### DELETE `/wishlist/remove` (locked)
+
 ```json
-{ "name": "string", "phone": "string", ... }
+{ "productId": "PRODUCT_ID" }
 ```
-
-**Response:**
-```json
-{ "user": { ...thông tin user sau khi cập nhật } }
-```
-
----
-
-### Xóa tài khoản
-
-#### DELETE `/me` 🔒
-Xóa chính tài khoản đang đăng nhập.
-
-**Response:**
-```json
-{ "message": "User deleted successfully", "user": { ...user đã xóa } }
-```
-
-#### DELETE `/:id` 🔒
-Admin hoặc tự xóa chính mình theo ID.
-
-**URL Param:** `id` — MongoDB `_id` của user
-
-**Response:**
-```json
-{ "message": "User deleted successfully", "user": { ...user đã xóa } }
-```
-
----
-
-### Wishlist
-
-#### POST `/wishlist/add` 🔒
-
-**Request Body:**
-```json
-{ "productId": "string" }
-```
-
-**Response:**
-```json
-{ "message": "Product added to wishlist", "wishlist": [...] }
-```
-
-#### GET `/wishlist` 🔒
-Không cần body.
-
-**Response:**
-```json
-{ "wishlist": [...] }
-```
-
-#### DELETE `/wishlist/remove` 🔒
-
-**Request Body:**
-```json
-{ "productId": "string" }
-```
-
-**Response:**
-```json
-{ "message": "Product removed from wishlist", "wishlist": [...] }
-```
-
----
-
-> 🔒 = yêu cầu `Authorization: Bearer <token>`

@@ -1,6 +1,6 @@
 ## Auth API
 
-**Base URL:** `/api/auth`
+**Base URL:** `/api/users`
 **Xác thực:** Các route có 🔒 yêu cầu header `Authorization: Bearer <token>`
 
 ---

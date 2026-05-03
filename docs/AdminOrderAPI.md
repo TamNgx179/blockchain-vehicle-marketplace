@@ -2,26 +2,26 @@
 
 **Base URL:** `/api/orders`
 
-Tat ca route ben duoi can header:
+Tat ca route ben duoi can admin token:
 
 ```http
 Authorization: Bearer <ADMIN_ACCESS_TOKEN>
 Content-Type: application/json
 ```
 
-### 1. Lay danh sach don hang cho admin
+## 1. Lay danh sach order
 
-#### GET `/admin`
+### GET `/admin`
 
 Ho tro filter, search, sort va phan trang.
 
-**Query params tuy chon:**
+**Query params:**
 
 | Param | Vi du | Ghi chu |
 | --- | --- | --- |
-| `page` | `1` | Trang hien tai, mac dinh `1` |
-| `limit` | `10` | So dong moi trang, toi da `100` |
-| `status` | `pending_deposit` | Co the truyen nhieu gia tri cach nhau bang dau phay |
+| `page` | `1` | Mac dinh `1` |
+| `limit` | `10` | Toi da `100` |
+| `status` | `deposit_paid,processing` | Co the truyen nhieu gia tri cach nhau bang dau phay |
 | `paymentType` | `deposit` | `deposit` hoac `full` |
 | `deliveryMethod` | `pickup` | `pickup` hoac `delivery` |
 | `depositStatus` | `paid` | `pending` hoac `paid` |
@@ -29,44 +29,35 @@ Ho tro filter, search, sort va phan trang.
 | `toDate` | `2026-04-30` | Loc den ngay tao |
 | `minTotal` | `10000` | Tong tien nho nhat |
 | `maxTotal` | `500000` | Tong tien lon nhat |
-| `search` | `tam@example.com` | Tim theo order id, blockchainOrderId, ten/email/sdt user, ten xe, wallet |
+| `search` | `tam@example.com` | Tim theo order id, blockchainOrderId, user, car, wallet |
 | `sortBy` | `createdAt` | `createdAt`, `updatedAt`, `totalAmount`, `paidAmount`, `status`, `paymentType`, `deliveryMethod`, `expiresAt`, `blockchainOrderId` |
 | `sortOrder` | `desc` | `asc` hoac `desc` |
 
-**Postman URL mau:**
+## 2. Lay chi tiet order
 
-```http
-GET http://localhost:3000/api/orders/admin?page=1&limit=10&status=deposit_paid,processing&sortBy=createdAt&sortOrder=desc
-```
+### GET `/admin/:id`
 
-**Response mau:**
+Lay chi tiet bat ky order cho admin.
 
-```json
-{
-  "success": true,
-  "data": [],
-  "pagination": {
-    "total": 0,
-    "page": 1,
-    "limit": 10,
-    "totalPages": 0
-  }
-}
-```
+## 3. Confirm order
 
-### 2. Lay chi tiet don hang bat ky cho admin
+### POST `/admin/:id/confirm`
 
-#### GET `/admin/:id`
+Backend goi `confirmOrder(orderId)` tren smart contract bang seller/server wallet, verify event `SellerConfirmed`, roi update MongoDB thanh `processing`.
 
-**Postman URL mau:**
+Khong can body.
 
-```http
-GET http://localhost:3000/api/orders/admin/ORDER_ID
-```
+## 4. Cancel order
 
-### 3. Luu y ve cap nhat trang thai
+### POST `/admin/:id/cancel`
 
-Admin order management chi dung de xem va loc don hang. Cac buoc cap nhat trang thai thanh toan/giao dich van di qua API blockchain hien co:
+Backend goi `cancelOrder(orderId)` tren smart contract bang seller/server wallet, verify event `OrderCancelled`, roi update MongoDB thanh `cancelled`.
+
+Khong can body.
+
+## 5. Verify endpoints thu cong
+
+Neu da co transaction hash tu client/admin, co the verify truc tiep:
 
 ```http
 POST /api/orders/:id/verify-deposit

@@ -1,75 +1,36 @@
 ## Contact API
 
-**Base URL:** `/api/contact`
-**Xác thực:** Không yêu cầu token (public routes)
+**Base URL:** `/api/contacts`
 
----
+Route ben duoi can header `Authorization: Bearer <ACCESS_TOKEN>` theo ghi chu tung route.
 
-### Lấy tất cả liên hệ
+## GET `/getAll` (admin)
 
-#### GET `/getAll`
-Lấy toàn bộ danh sách liên hệ.
+Lay tat ca contact.
 
-Không cần body.
+## POST `/create` (locked)
 
-**Response:**
-```json
-[ ...danh sách liên hệ ]
-```
+User da dang nhap tao contact moi.
 
----
+**Request body:**
 
-### Lấy liên hệ theo ID
-
-#### GET `/:id`
-Lấy thông tin một liên hệ cụ thể.
-
-**URL Param:** `id` — MongoDB `_id` của liên hệ
-
-Không cần body.
-
-**Response:**
-```json
-{ ...thông tin liên hệ }
-```
-
----
-
-### Tạo liên hệ mới
-
-#### POST `/create`
-Tạo một liên hệ mới.
-
-**Request Body:**
 ```json
 {
-  "name": "string",
-  "email": "string",
-  "message": "string"
+  "name": "Nguyen Van A",
+  "email": "a@example.com",
+  "message": "I need support"
 }
 ```
 
-**Response:**
-```json
-{ ...thông tin liên hệ vừa tạo }
-```
+## GET `/:id` (admin)
 
----
+Lay chi tiet mot contact.
 
-### Đánh dấu đã đọc
+## PUT `/read/:id` (admin)
 
-#### PUT `/read/:id`
-Đánh dấu một liên hệ là đã đọc.
+Danh dau contact da doc.
 
-**URL Param:** `id` — MongoDB `_id` của liên hệ
+**Legend:**
 
-Không cần body.
-
-**Response:**
-```json
-{ ...thông tin liên hệ sau khi cập nhật }
-```
-
----
-
-> ⚠️ Các route này không có middleware xác thực. Nếu cần bảo vệ (đặc biệt là `getAll` và `read`), nên thêm `authenticateToken` và `requireAdmin` vào sau.
+- `locked`: can user token.
+- `admin`: can user token va role admin.

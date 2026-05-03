@@ -1,13 +1,11 @@
 # Vehicle Marketplace Escrow Blockchain
 
-Thu muc `blockchain` chua smart contract va test cho phan thanh toan Web3 cua ung dung ban xe. Module nay dung Ethereum Sepolia Testnet de ghi nhan qua trinh tao don, thanh toan coc/full, xac nhan cua showroom, hoan tat giao dich va huy/hoan tien.
+Thu muc `blockchain` chua smart contract va test cho phan thanh toan Web3 cua ung dung ban xe. Contract chay tren Ethereum Sepolia Testnet va xu ly escrow cho deposit/full payment.
 
-Smart contract da deploy khong duoc sua trong qua trinh toi uu hien tai. ABI dang duoc backend/frontend su dung cung duoc giu nguyen de dam bao app van noi dung contract da deploy.
-
-## 1. Thong tin contract da deploy
+## 1. Contract da deploy
 
 | Hang muc | Gia tri |
-|---|---|
+| --- | --- |
 | Contract | `VehicleMarketplaceEscrow` |
 | Network | Sepolia Testnet |
 | Contract address | `0xD0CF607f0bCD60B5ed02896e682450eA4dBf5BB0` |
@@ -16,7 +14,11 @@ Smart contract da deploy khong duoc sua trong qua trinh toi uu hien tai. ABI dan
 | Solidity | `0.8.28` |
 | Framework | Hardhat 3 + ethers.js v6 |
 
-Bien moi truong can co:
+Env can co:
+
+```bash
+cp .env.example .env
+```
 
 ```env
 SEPOLIA_RPC_URL=...
@@ -25,296 +27,211 @@ ETHERSCAN_API_KEY=...
 CONTRACT_ADDRESS=0xD0CF607f0bCD60B5ed02896e682450eA4dBf5BB0
 ```
 
-## 2. Vai tro cua blockchain trong he thong
+## 2. Vai tro blockchain
 
 He thong dung mo hinh off-chain ket hop on-chain:
 
 | Off-chain | On-chain |
-|---|---|
-| User, cart, product, stock, delivery info | Order escrow state |
-| MongoDB luu chi tiet don hang | Buyer/seller wallet |
-| Backend tinh tien USD sang wei | Total amount/deposit amount |
-| Backend cap nhat trang thai don | Payment/confirm/complete/cancel events |
-| Frontend dieu huong checkout | MetaMask ky giao dich |
+| --- | --- |
+| User, cart, product, stock, handover info | Order escrow state |
+| MongoDB luu chi tiet order | Buyer/seller wallet |
+| Backend tinh USD sang wei | Total amount/deposit amount |
+| Backend cap nhat status | Payment/confirm/complete/cancel events |
+| Frontend checkout | MetaMask ky transaction |
 
-Blockchain khong thay the database. Contract chi giu cac thong tin quan trong can minh bach va co the doi chieu: `orderId`, `buyer`, `seller`, `totalAmount`, `depositAmount`, `paidAmount`, `paymentType`, `status`, `createdAt`.
+Contract chi luu cac thong tin can minh bach: `orderId`, `buyer`, `seller`, `totalAmount`, `depositAmount`, `paidAmount`, `paymentType`, `status`, `createdAt`.
 
-## 3. Kien truc tich hop
-
-```text
-React Frontend
-  - Checkout / My Orders
-  - MetaMask + ethers.js
-  - Goi payDeposit, payFull, completeOrder, cancelOrder
-
-Backend Express
-  - Tao order on-chain bang vi server
-  - Verify txHash bang receipt + event log
-  - Dong bo trang thai vao MongoDB
-  - Admin confirm/cancel bang seller wallet server
-
-VehicleMarketplaceEscrow
-  - Luu order escrow
-  - Nhan ETH tu buyer
-  - Giu tien den khi confirm/complete/cancel
-  - Emit event cho moi buoc quan trong
-```
-
-## 4. Cac trang thai va loai thanh toan
+## 3. Payment type va status
 
 ### Payment type
 
-| Gia tri | Ten | Y nghia |
-|---:|---|---|
-| `0` | `None` | Khong hop le/mac dinh |
+| Value | Name | Mo ta |
+| ---: | --- | --- |
+| `0` | `None` | Khong hop le |
 | `1` | `Deposit` | Thanh toan dat coc |
 | `2` | `Full` | Thanh toan toan bo |
 
-### Order status tren contract
+### Order status
 
-| Gia tri | Ten | Y nghia |
-|---:|---|---|
+| Value | Name | Mo ta |
+| ---: | --- | --- |
 | `0` | `None` | Chua co order |
 | `1` | `Pending` | Da tao order, chua thanh toan |
 | `2` | `DepositPaid` | Buyer da dat coc |
 | `3` | `FullPaid` | Buyer da thanh toan full |
 | `4` | `Confirmed` | Seller/showroom da xac nhan |
 | `5` | `Completed` | Buyer da nhan xe, tien release cho seller |
-| `6` | `Cancelled` | Don bi huy, tien duoc refund neu da thanh toan |
+| `6` | `Cancelled` | Order bi huy, refund neu da thanh toan |
 
-## 5. Flow nghiep vu
+## 4. Flow nghiep vu
 
-### 5.1 Tao order
+### 4.1 Tao order
 
-1. User chon xe trong gio hang va vao checkout.
-2. Backend tao `blockchainOrderId`.
-3. Backend tinh:
-   - `totalAmountWei`
-   - `depositAmountWei` neu chon dat coc
-4. Backend goi contract:
+Backend goi:
 
 ```solidity
 createOrder(orderId, buyer, seller, totalAmount, depositAmount, paymentType)
 ```
 
-5. Contract luu order voi status `Pending`.
-6. Backend luu order vao MongoDB voi status:
-   - `pending_deposit` neu thanh toan coc
-   - `pending_payment` neu thanh toan full
+Rules:
 
-Event emit:
+- `orderId != 0`
+- `buyer` va `seller` khac zero address
+- `totalAmount > 0`
+- `orderId` chua ton tai
+- voi `Deposit`, `depositAmount > 0` va `< totalAmount`
+- voi `Full`, `depositAmount == 0`
 
-```text
-OrderCreated(orderId, buyer, seller, totalAmount, depositAmount, paymentType)
-```
+### 4.2 Pay deposit
 
-### 5.2 Dat coc
-
-1. Buyer ky giao dich tren MetaMask.
-2. Frontend goi:
+Frontend goi bang buyer MetaMask:
 
 ```solidity
 payDeposit(orderId)
 ```
 
-voi `msg.value == depositAmount`.
+Voi:
 
-3. Contract set:
-   - `paidAmount = depositAmount`
-   - `status = DepositPaid`
-4. Backend verify `txHash`, parse event va cap nhat MongoDB thanh `deposit_paid`.
+```text
+msg.value == order.depositAmount
+```
 
-Event emit:
+Contract set status thanh `DepositPaid` va emit:
 
 ```text
 DepositPaid(orderId, buyer, amount)
 ```
 
-### 5.3 Thanh toan full
+### 4.3 Pay full
 
-1. Buyer ky giao dich tren MetaMask.
-2. Frontend goi:
+Frontend goi bang buyer MetaMask:
 
 ```solidity
 payFull(orderId)
 ```
 
-voi `msg.value == totalAmount`.
+Voi:
 
-3. Contract set:
-   - `paidAmount = totalAmount`
-   - `status = FullPaid`
-4. Backend verify `txHash`, parse event va cap nhat MongoDB thanh `payment_paid`.
+```text
+msg.value == order.totalAmount
+```
 
-Event emit:
+Contract set status thanh `FullPaid` va emit:
 
 ```text
 FullPaid(orderId, buyer, amount)
 ```
 
-### 5.4 Seller/showroom confirm
+### 4.4 Seller confirm
 
-1. Admin bam confirm tren trang quan ly don.
-2. Backend dung `SEPOLIA_PRIVATE_KEY` cua seller/server wallet.
-3. Backend goi:
+Backend/admin goi bang seller/server wallet:
 
 ```solidity
 confirmOrder(orderId)
 ```
 
-4. Contract set status `Confirmed`.
-5. Backend cap nhat MongoDB thanh `processing`.
+Chi hop le khi status la `DepositPaid` hoac `FullPaid`.
 
-Event emit:
+### 4.5 Complete
 
-```text
-SellerConfirmed(orderId, seller)
-```
-
-### 5.5 Complete order
-
-1. Buyer xac nhan da nhan xe.
-2. Frontend goi:
+Buyer goi:
 
 ```solidity
 completeOrder(orderId)
 ```
 
-3. Contract set status `Completed`.
-4. Contract chuyen `paidAmount` dang giu cho seller.
-5. Backend cap nhat MongoDB thanh `completed`.
+Chi hop le khi seller da confirm. Contract release `paidAmount` cho seller.
 
-Event emit:
+### 4.6 Cancel/refund
 
-```text
-OrderCompleted(orderId, buyer, releasedAmount)
-```
-
-### 5.6 Cancel/refund
-
-1. Buyer hoac seller co the huy khi order chua duoc seller confirm.
-2. Frontend/backend goi:
+Buyer hoac seller goi:
 
 ```solidity
 cancelOrder(orderId)
 ```
 
-3. Contract set status `Cancelled`.
-4. Neu da thanh toan, contract refund ETH ve buyer.
-5. Backend cap nhat MongoDB thanh `cancelled` va tra stock neu can.
+Chi hop le khi order con `Pending`, `DepositPaid` hoac `FullPaid`. Neu da thanh toan, contract refund ve buyer.
 
-Event emit:
+## 5. Cach tinh amount
+
+Backend/frontend dang dung ty gia gia lap:
 
 ```text
-OrderCancelled(orderId, caller, refundedAmount)
+USD_PER_ETH=2000000
+deposit rate = 0.5%
 ```
 
-## 6. Cach backend xac minh giao dich
+Vi du:
 
-Backend khong tin truc tiep vao `txHash` do client gui len. Moi verify deu kiem tra:
+```text
+Vehicle price = $13,000
+Total ETH = 13000 / 2000000 = 0.0065 ETH
+Deposit = 0.5% * 13000 = $65 = 0.0000325 ETH
+```
+
+Contract yeu cau `msg.value` khop chinh xac voi amount da luu on-chain.
+
+## 6. Backend verify transaction
+
+Backend khong tin truc tiep `txHash` tu client. Moi verify deu kiem tra:
 
 1. `txHash` dung dinh dang 32 bytes.
 2. Receipt da mined va `status === 1`.
-3. Receipt `to` la `VehicleMarketplaceEscrow`.
-4. Receipt co dung event cua action dang verify.
+3. Receipt `to` la contract address dang cau hinh.
+4. Receipt co dung event cua action.
 5. Event co dung `orderId`.
 6. `receipt.from` khop buyer/seller wallet.
-7. `getOrder(orderId)` tren contract co status, payment type va amount khop voi MongoDB.
+7. `getOrder(orderId)` tren contract co status, payment type va amount khop MongoDB.
 
-Bang event verify:
+## 7. Troubleshooting MetaMask
 
-| API/action backend | Event can co |
-|---|---|
-| Verify deposit | `DepositPaid` |
-| Verify full payment | `FullPaid` |
-| Verify seller confirm | `SellerConfirmed` |
-| Verify complete | `OrderCompleted` |
-| Verify cancel | `OrderCancelled` |
+Neu bam pay ma MetaMask khong hien popup, thuong la contract reject trong buoc `estimateGas`. Cac nguyen nhan pho bien:
 
-## 7. Test
+- MetaMask khong o network Sepolia.
+- Account active khong phai buyer wallet da chon trong checkout.
+- Dung `SELLER_WALLET` de test buyer.
+- Frontend `VITE_CONTRACT_ADDRESS` khac backend `CONTRACT_ADDRESS`.
+- `USD_PER_ETH` frontend/backend khac nhau lam amount bi lech.
+- Order on-chain khong con status `Pending`.
 
-Test nam tai:
+Sau khi doi env, restart ca backend va frontend.
+
+## 8. Test
+
+```bash
+cd blockchain
+npm install
+npm test
+```
+
+Test file:
 
 ```text
 blockchain/test/VehicleMarketplaceEscrow.js
 ```
 
-Bo test nay deploy mot instance contract local trong Hardhat Network. Test khong goi truc tiep contract Sepolia da deploy, nhung xac minh logic contract hien tai hoat dong dung.
-
-### Cac truong hop da test
-
-| Test case | Muc dich |
-|---|---|
-| Deposit flow | `createOrder -> payDeposit -> confirmOrder -> completeOrder` |
-| Full payment flow | `createOrder -> payFull -> confirmOrder -> completeOrder` |
-| Cancel flow | Buyer huy don va contract refund truoc seller confirm |
-| Revert complete early | Khong cho complete khi seller chua confirm |
-| Revert invalid payment | Sai buyer hoac sai so tien coc bi reject |
-
-### Chay test
-
-```bash
-cd blockchain
-npm test
-```
-
-Ket qua mong doi:
-
-```text
-VehicleMarketplaceEscrow
-  5 passing
-```
-
-## 8. Chay/deploy contract
-
-### Compile
+## 9. Deploy
 
 ```bash
 cd blockchain
 npx hardhat compile
-```
-
-### Test local
-
-```bash
-npm test
-```
-
-### Deploy
-
-Script deploy:
-
-```text
-blockchain/scripts/deploy.js
-```
-
-Lenh deploy Sepolia:
-
-```bash
 npx hardhat run scripts/deploy.js --network sepolia
 ```
 
-Sau khi deploy contract moi, can cap nhat:
+Sau khi deploy contract moi, cap nhat:
 
-- `CONTRACT_ADDRESS` trong `blockchain/.env`
-- `CONTRACT_ADDRESS` trong `backend/.env`
-- `VITE_CONTRACT_ADDRESS` trong frontend neu co dung bien moi truong
-- ABI neu contract bi thay doi
+- `blockchain/.env`: `CONTRACT_ADDRESS`
+- `backend/.env`: `CONTRACT_ADDRESS`
+- `frontend/car-sales-web/.env`: `VITE_CONTRACT_ADDRESS`
+- ABI trong backend/frontend neu contract interface thay doi
 
-Trong ban hien tai, contract da deploy va dang duoc cau hinh la:
-
-```text
-0xD0CF607f0bCD60B5ed02896e682450eA4dBf5BB0
-```
-
-## 9. File quan trong
+## 10. File quan trong
 
 | File | Mo ta |
-|---|---|
+| --- | --- |
 | `contracts/VehicleMarketplaceEscrow.sol` | Smart contract escrow |
-| `scripts/deploy.js` | Script deploy contract |
-| `test/VehicleMarketplaceEscrow.js` | Test flow blockchain |
-| `hardhat.config.js` | Cau hinh Hardhat, Sepolia va verify |
-| `../backend/service/BlockchainService.js` | Service backend doc/ghi va verify contract |
-| `../frontend/car-sales-web/src/utils/blockchainClient.js` | Client ket noi MetaMask va contract |
-
+| `scripts/deploy.js` | Deploy script |
+| `test/VehicleMarketplaceEscrow.js` | Blockchain tests |
+| `hardhat.config.js` | Hardhat/Sepolia config |
+| `../backend/service/BlockchainService.js` | Backend contract service |
+| `../frontend/car-sales-web/src/utils/blockchainClient.js` | Frontend MetaMask client |

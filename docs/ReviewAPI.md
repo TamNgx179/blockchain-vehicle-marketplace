@@ -1,6 +1,6 @@
 ## Review API
 
-**Base URL:** `/api/review`
+**Base URL:** `/api/reviews`
 **Xác thực:** Các route có 🔒 yêu cầu header `Authorization: Bearer <token>`
 
 ---
