@@ -6,6 +6,7 @@ Saigon Speed là website mua bán xe kết hợp React, Express, MongoDB và Eth
 
 ## Nội dung
 
+- [Thành Viên & Phân Công](#thành-viên--phân-công)
 - [Công nghệ](#công-nghệ)
 - [Kiến trúc](#kiến-trúc)
 - [Chức năng chính](#chức-năng-chính)
@@ -14,6 +15,16 @@ Saigon Speed là website mua bán xe kết hợp React, Express, MongoDB và Eth
 - [Biến môi trường](#biến-môi-trường)
 - [Tài liệu API](#tài-liệu-api)
 - [Lưu ý khi test Metamask](#lưu-ý-khi-test-metamask)
+
+## Thành Viên & Phân Công
+
+| MSSV | Họ và Tên | Công việc phụ trách |
+|---|---|---|
+| 23520101 | **Huỳnh Khánh Bảo** | API giỏ hàng, viết document cho các API, hỗ trợ frontend tích hợp với backend, làm slide, thuyết trình |
+| 23521390 | **Nguyễn Minh Tâm** | Khởi tạo dự án backend, viết Smart Contract deploy lên Sepolia Testnet, API xác thực & tài khoản, tích hợp blockchain vào API đơn hàng, giao diện trang contact/profile/quản lý admin, viết báo cáo |
+| 23520195 | **Dương Chí Cường** | Khởi tạo dự án frontend, cấu hình điều hướng & kiến trúc, README, giao diện Trang chủ/Header/Footer, trang thanh toán & giỏ hàng, kết nối MetaMask, các file service, Dashboard & quản lý admin |
+| 23521456 | **Nguyễn Văn Thanh** | Khởi tạo dự án backend, API Dashboard/Product/Review/Contact, hỗ trợ tích hợp blockchain, viết báo cáo, giao diện trang About/Wishlist/Quên mật khẩu, responsive |
+| 23520870 | **Huỳnh Tiến Lợi** | Giao diện trang danh sách xe, trang xe chi tiết kèm review, trang đăng nhập & đăng ký, kiểm thử trang web |
 
 ## Công nghệ
 
