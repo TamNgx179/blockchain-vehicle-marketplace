@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft, LockKeyhole } from "lucide-react";
 import Navbar from "../../components/Navbar/Navbar";
@@ -13,6 +13,8 @@ const REQUEST_TIMEOUT_MS = 20000;
 const MESSAGE_MAP = {
   "OTP sent to email. Please verify your account.":
     "OTP has been sent to your email. Please verify your account.",
+  "Account created successfully. Please sign in.":
+    "Account created successfully. Please sign in.",
   "OTP has been sent to your email":
     "OTP has been sent to your email.",
   "Verification successful":
@@ -55,6 +57,10 @@ function normalizeInitialMode(mode) {
   return "login";
 }
 
+function generateSecurityCode() {
+  return Math.floor(10 + Math.random() * 90).toString();
+}
+
 async function readJsonResponse(response) {
   try {
     return await response.json();
@@ -88,7 +94,7 @@ async function postJson(path, body, fallbackMessage) {
   } catch (error) {
     if (error?.name === "AbortError") {
       throw new Error(
-        "Request timed out while sending OTP. Please check the backend or SMTP settings."
+        "Request timed out. Please check the backend server."
       );
     }
 
@@ -113,8 +119,9 @@ function Auth({ initialMode = "login" }) {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  const [pendingEmail, setPendingEmail] = useState("");
-  const [otp, setOtp] = useState("");
+  const [securityStep, setSecurityStep] = useState(false);
+  const [securityCode, setSecurityCode] = useState("");
+  const [securityInput, setSecurityInput] = useState("");
 
   const [loginForm, setLoginForm] = useState({
     email: "",
@@ -135,11 +142,6 @@ function Auth({ initialMode = "login" }) {
     newPassword: "",
     confirmPassword: "",
   });
-
-  const isOtpStep = useMemo(
-    () => mode === "signup" && Boolean(pendingEmail),
-    [mode, pendingEmail]
-  );
 
   useEffect(() => {
     setMode(normalizeInitialMode(initialMode));
@@ -177,8 +179,9 @@ function Auth({ initialMode = "login" }) {
     setForgotStep(1);
 
     if (next !== "signup") {
-      setPendingEmail("");
-      setOtp("");
+      setSecurityStep(false);
+      setSecurityCode("");
+      setSecurityInput("");
     }
   };
 
@@ -253,59 +256,56 @@ function Auth({ initialMode = "login" }) {
     }
   };
 
-  const submitSignup = async (event) => {
+  const submitSignupDetails = (event) => {
+    event.preventDefault();
+    setError("");
+    setMessage("");
+
+    if (signupForm.password !== signupForm.resPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    setSignupForm((prev) => ({
+      ...prev,
+      username: prev.username.trim(),
+      email: prev.email.trim().toLowerCase(),
+    }));
+    setSecurityCode(generateSecurityCode());
+    setSecurityInput("");
+    setSecurityStep(true);
+  };
+
+  const submitSignupSecurity = async (event) => {
     event.preventDefault();
     setLoading(true);
     setError("");
     setMessage("");
 
     try {
-      const payload = {
-        username: signupForm.username.trim(),
-        email: signupForm.email.trim().toLowerCase(),
-        password: signupForm.password,
-        resPassword: signupForm.resPassword,
-      };
+      if (securityInput.trim() !== securityCode) {
+        setSecurityCode(generateSecurityCode());
+        setSecurityInput("");
+        throw new Error("Security code is incorrect. Please try again.");
+      }
+
       const json = await postJson(
         "/api/users/register",
-        payload,
+        {
+          username: signupForm.username,
+          email: signupForm.email,
+          password: signupForm.password,
+          resPassword: signupForm.resPassword,
+        },
         "Sign up failed"
       );
 
-      setSignupForm(payload);
-      setPendingEmail(payload.email);
-      setOtp("");
-      setMessage(
-        toDisplayMessage(
-          json?.message,
-          "OTP has been sent to your email. Please verify your account."
-        )
-      );
-    } catch (err) {
-      setError(toDisplayMessage(err?.message, "Sign up failed"));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const submitOtp = async (event) => {
-    event.preventDefault();
-    setLoading(true);
-    setError("");
-    setMessage("");
-
-    try {
-      const json = await postJson(
-        "/api/users/verifyOtp",
-        { email: pendingEmail, otp: otp.trim() },
-        "OTP verification failed"
-      );
-
-      const verifiedEmail = pendingEmail;
-      setPendingEmail("");
-      setOtp("");
+      const createdEmail = signupForm.email;
+      setSecurityStep(false);
+      setSecurityCode("");
+      setSecurityInput("");
       setMode("login");
-      setLoginForm((prev) => ({ ...prev, email: verifiedEmail }));
+      setLoginForm((prev) => ({ ...prev, email: createdEmail }));
       setSignupForm({
         username: "",
         email: "",
@@ -315,11 +315,11 @@ function Auth({ initialMode = "login" }) {
       setMessage(
         toDisplayMessage(
           json?.message,
-          "Verification successful. Please sign in."
+          "Account created successfully. Please sign in."
         )
       );
     } catch (err) {
-      setError(toDisplayMessage(err?.message, "OTP verification failed"));
+      setError(toDisplayMessage(err?.message, "Sign up failed"));
     } finally {
       setLoading(false);
     }
@@ -410,21 +410,21 @@ function Auth({ initialMode = "login" }) {
               <>
                 <div className="auth-header">
                   <span className="auth-kicker">
-                    {isOtpStep ? "Email verification" : "Welcome back"}
+                    {securityStep ? "Security check" : "Welcome back"}
                   </span>
                   <h1>
                     {mode === "login"
                       ? "Sign in to your account"
-                      : isOtpStep
-                      ? "Verify your email"
+                      : securityStep
+                      ? "Confirm the code"
                       : "Create your account"}
                   </h1>
                   <p>
                     {mode === "login"
                       ? "Continue with your email and password."
-                      : isOtpStep
-                      ? "Enter the OTP sent to your inbox to activate your account."
-                      : "Join us and verify your email to get started."}
+                      : securityStep
+                      ? "Enter the two numbers shown below to finish creating your account."
+                      : "Join us and complete a quick security check."}
                   </p>
                 </div>
 
@@ -602,8 +602,8 @@ function Auth({ initialMode = "login" }) {
               </form>
             )}
 
-            {mode === "signup" && !isOtpStep && (
-              <form onSubmit={submitSignup} className="auth-form">
+            {mode === "signup" && !securityStep && (
+              <form onSubmit={submitSignupDetails} className="auth-form">
                 <label className="auth-field">
                   <span>Username</span>
                   <input
@@ -675,17 +675,22 @@ function Auth({ initialMode = "login" }) {
               </form>
             )}
 
-            {mode === "signup" && isOtpStep && (
-              <form onSubmit={submitOtp} className="auth-form">
+            {mode === "signup" && securityStep && (
+              <form onSubmit={submitSignupSecurity} className="auth-form">
+                <div className="auth-captcha-panel">
+                  <span>{securityCode}</span>
+                </div>
+
                 <div className="auth-email-note">
                   <span>
-                    OTP sent to <strong>{pendingEmail}</strong>
+                    Creating account for <strong>{signupForm.email}</strong>
                   </span>
                   <button
                     type="button"
                     onClick={() => {
-                      setPendingEmail("");
-                      setOtp("");
+                      setSecurityStep(false);
+                      setSecurityCode("");
+                      setSecurityInput("");
                       setMessage("");
                       setError("");
                     }}
@@ -695,19 +700,19 @@ function Auth({ initialMode = "login" }) {
                 </div>
 
                 <label className="auth-field">
-                  <span>OTP code</span>
+                  <span>Security code</span>
                   <input
-                    value={otp}
-                    onChange={(event) => setOtp(event.target.value)}
-                    placeholder="Enter OTP"
+                    value={securityInput}
+                    onChange={(event) => setSecurityInput(event.target.value)}
+                    placeholder="Enter the two numbers"
                     inputMode="numeric"
-                    maxLength={6}
+                    maxLength={2}
                     required
                   />
                 </label>
 
                 <button type="submit" disabled={loading}>
-                  {loading ? "Verifying..." : "Verify OTP"}
+                  {loading ? "Creating..." : "Create account"}
                 </button>
               </form>
             )}

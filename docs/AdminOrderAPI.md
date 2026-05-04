@@ -2,71 +2,62 @@
 
 **Base URL:** `/api/orders`
 
-Tat ca route ben duoi can header:
+Tất cả route bên dưới cần admin token:
 
 ```http
 Authorization: Bearer <ADMIN_ACCESS_TOKEN>
 Content-Type: application/json
 ```
 
-### 1. Lay danh sach don hang cho admin
+## 1. Lấy danh sách order
 
-#### GET `/admin`
+### GET `/admin`
 
-Ho tro filter, search, sort va phan trang.
+Hỗ trợ filter, search, sort và phân trang.
 
-**Query params tuy chon:**
+**Query params:**
 
-| Param | Vi du | Ghi chu |
+| Param | Ví dụ | Ghi chú |
 | --- | --- | --- |
-| `page` | `1` | Trang hien tai, mac dinh `1` |
-| `limit` | `10` | So dong moi trang, toi da `100` |
-| `status` | `pending_deposit` | Co the truyen nhieu gia tri cach nhau bang dau phay |
-| `paymentType` | `deposit` | `deposit` hoac `full` |
-| `deliveryMethod` | `pickup` | `pickup` hoac `delivery` |
-| `depositStatus` | `paid` | `pending` hoac `paid` |
-| `fromDate` | `2026-04-01` | Loc tu ngay tao |
-| `toDate` | `2026-04-30` | Loc den ngay tao |
-| `minTotal` | `10000` | Tong tien nho nhat |
-| `maxTotal` | `500000` | Tong tien lon nhat |
-| `search` | `tam@example.com` | Tim theo order id, blockchainOrderId, ten/email/sdt user, ten xe, wallet |
+| `page` | `1` | Mặc định `1` |
+| `limit` | `10` | Tối đa `100` |
+| `status` | `deposit_paid,processing` | Có thể truyền nhiều giá trị cách nhau bằng dấu phẩy |
+| `paymentType` | `deposit` | `deposit` hoặc `full` |
+| `deliveryMethod` | `pickup` | `pickup` hoặc `delivery` |
+| `depositStatus` | `paid` | `pending` hoặc `paid` |
+| `fromDate` | `2026-04-01` | Lọc từ ngày tạo |
+| `toDate` | `2026-04-30` | Lọc đến ngày tạo |
+| `minTotal` | `10000` | Tổng tiền nhỏ nhất |
+| `maxTotal` | `500000` | Tổng tiền lớn nhất |
+| `search` | `tam@example.com` | Tìm theo order id, blockchainOrderId, user, car, wallet |
 | `sortBy` | `createdAt` | `createdAt`, `updatedAt`, `totalAmount`, `paidAmount`, `status`, `paymentType`, `deliveryMethod`, `expiresAt`, `blockchainOrderId` |
-| `sortOrder` | `desc` | `asc` hoac `desc` |
+| `sortOrder` | `desc` | `asc` hoặc `desc` |
 
-**Postman URL mau:**
+## 2. Lấy chi tiết order
 
-```http
-GET http://localhost:3000/api/orders/admin?page=1&limit=10&status=deposit_paid,processing&sortBy=createdAt&sortOrder=desc
-```
+### GET `/admin/:id`
 
-**Response mau:**
+Lấy chi tiết bất kỳ order cho admin.
 
-```json
-{
-  "success": true,
-  "data": [],
-  "pagination": {
-    "total": 0,
-    "page": 1,
-    "limit": 10,
-    "totalPages": 0
-  }
-}
-```
+## 3. Confirm order
 
-### 2. Lay chi tiet don hang bat ky cho admin
+### POST `/admin/:id/confirm`
 
-#### GET `/admin/:id`
+Backend gọi `confirmOrder(orderId)` trên smart contract bằng seller/server wallet, verify event `SellerConfirmed`, rồi update MongoDB thành `processing`.
 
-**Postman URL mau:**
+Không cần body.
 
-```http
-GET http://localhost:3000/api/orders/admin/ORDER_ID
-```
+## 4. Cancel order
 
-### 3. Luu y ve cap nhat trang thai
+### POST `/admin/:id/cancel`
 
-Admin order management chi dung de xem va loc don hang. Cac buoc cap nhat trang thai thanh toan/giao dich van di qua API blockchain hien co:
+Backend gọi `cancelOrder(orderId)` trên smart contract bằng seller/server wallet, verify event `OrderCancelled`, rồi update MongoDB thành `cancelled`.
+
+Không cần body.
+
+## 5. Verify endpoints thủ công
+
+Nếu đã có transaction hash từ client/admin, có thể verify trực tiếp:
 
 ```http
 POST /api/orders/:id/verify-deposit

@@ -17,6 +17,7 @@ import ContactRoutes from "./routes/ContactRoute.js";
 import CartRoutes from "./routes/CartRoute.js";
 import OrderRoutes from "./routes/OrderRoutes.js";
 import DashboardRoutes from "./routes/DashboardRoute.js";
+import WalletRoutes from "./routes/WalletRoute.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -68,6 +69,7 @@ app.use(
         "http://localhost:4173",
         "http://127.0.0.1:4173",
       ]);
+
       deployedOrigins.forEach((allowedOrigin) => {
         allowedOrigins.add(allowedOrigin);
       });
@@ -87,24 +89,27 @@ app.use(
     credentials: true,
   })
 );
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // Cấu hình Session
-app.use(session({
+app.use(
+  session({
     secret: process.env.SESSION_SECRET || "your_secret_key",
     resave: false,
     saveUninitialized: false,
     cookie: { secure: false, maxAge: 24 * 60 * 60 * 1000 },
-}));
+  })
+);
 
 // Khởi tạo Passport
 app.use(passport.initialize());
-app.use(passport.session()); 
+app.use(passport.session());
 
 // Phục vụ file tĩnh (Xem ảnh)
-app.use('/images', express.static(path.join(__dirname, 'public/images')));
+app.use("/images", express.static(path.join(__dirname, "public/images")));
 
 app.get("/", (req, res) => {
   res.json({
@@ -118,6 +123,7 @@ app.get("/", (req, res) => {
       "/api/cart",
       "/api/orders",
       "/api/dashboard",
+      "/api/wallets",
     ],
   });
 });
@@ -135,15 +141,17 @@ app.use("/api/contacts", ContactRoutes);
 app.use("/api/cart", CartRoutes);
 app.use("/api/orders", OrderRoutes);
 app.use("/api/dashboard", DashboardRoutes);
+app.use("/api/wallets", WalletRoutes);
 
 // Middleware xử lý lỗi tập trung
 app.use((err, req, res, next) => {
-  res.status(err.status || 500).json({
+  res.status(err.status || err.statusCode || 500).json({
     message: err.message || "Lỗi Server nội bộ",
   });
 });
 
 const PORT = process.env.PORT || 3000;
+
 app.listen(PORT, () =>
   console.log(`API Server đang chạy tại: http://localhost:${PORT}`)
 );

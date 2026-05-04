@@ -2,6 +2,7 @@ import Cart from "../models/CartModel.js";
 import Order from "../models/OrderModel.js";
 import Product from "../models/ProductModel.js";
 import User from "../models/AuthModel.js";
+import Wallet from "../models/WalletModel.js";
 import mongoose from "mongoose";
 import { ethers } from "ethers";
 
@@ -210,6 +211,15 @@ export const createOrderFromCartService = async (userId, body) => {
 
     if (!buyerWallet || !ethers.isAddress(buyerWallet)) {
       throw new Error("buyerWallet không hợp lệ");
+    }
+
+    const savedBuyerWallet = await Wallet.findOne({
+      user: userId,
+      address: buyerWallet.toLowerCase(),
+    }).session(session);
+
+    if (!savedBuyerWallet) {
+      throw new Error("Please connect this wallet before checkout");
     }
 
     if (!["pickup", "delivery"].includes(deliveryMethod)) {

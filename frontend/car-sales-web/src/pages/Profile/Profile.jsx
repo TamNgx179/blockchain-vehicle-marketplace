@@ -1,18 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
-  AtSign,
-  CalendarDays,
   LoaderCircle,
   LockKeyhole,
-  MapPin,
   Pencil,
-  Phone,
   Save,
-  ShieldCheck,
   UserRound,
 } from "lucide-react";
 import Navbar from "../../components/Navbar/Navbar";
 import AccountService from "../../services/accountService";
+import WalletManagement from "./WalletManagement/WalletManagement";
 import "./Profile.css";
 
 const emptyProfile = {
@@ -48,15 +44,6 @@ function Profile() {
   const [error, setError] = useState("");
   const [passwordMessage, setPasswordMessage] = useState("");
   const [passwordError, setPasswordError] = useState("");
-
-  const joinedDate = useMemo(() => {
-    if (!profile.createdAt) return "Not available";
-    return new Date(profile.createdAt).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  }, [profile.createdAt]);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -180,30 +167,6 @@ function Profile() {
         </header>
 
         <section className="profile-grid">
-          <article className="profile-card profile-summary-card">
-            <div className="profile-card-title">
-              <div>
-                <span>Overview</span>
-                <h2>Account details</h2>
-              </div>
-              <ShieldCheck size={22} />
-            </div>
-
-            {loading ? (
-              <div className="profile-loading">
-                <LoaderCircle className="spin-icon" size={22} />
-                Loading profile...
-              </div>
-            ) : (
-              <div className="profile-summary-list">
-                <ProfileInfo icon={<AtSign size={18} />} label="Email" value={profile.email || "Not available"} />
-                <ProfileInfo icon={<Phone size={18} />} label="Phone" value={profile.phoneNumber || "Not available"} />
-                <ProfileInfo icon={<MapPin size={18} />} label="Address" value={profile.address || "Not available"} />
-                <ProfileInfo icon={<CalendarDays size={18} />} label="Joined" value={joinedDate} />
-              </div>
-            )}
-          </article>
-
           <article className="profile-card profile-form-card">
             <div className="profile-card-title">
               <div>
@@ -221,59 +184,93 @@ function Profile() {
               </button>
             </div>
 
-            {message && <div className="profile-alert success">{message}</div>}
-            {error && <div className="profile-alert error">{error}</div>}
+            {loading ? (
+              <div className="profile-loading">
+                <LoaderCircle className="spin-icon" size={22} />
+                Loading profile...
+              </div>
+            ) : (
+              <>
+                {message && (
+                  <div className="profile-alert success">{message}</div>
+                )}
+                {error && <div className="profile-alert error">{error}</div>}
 
-            <form className="profile-form" onSubmit={submitProfile}>
-              <label className="profile-field">
-                <span>Username</span>
-                <input
-                  value={form.username}
-                  onChange={(event) => updateField("username", event.target.value)}
-                  disabled={!editing || saving || loading}
-                  placeholder="Your name"
-                  required
-                />
-              </label>
+                <form className="profile-form" onSubmit={submitProfile}>
+                  <label className="profile-field">
+                    <span>Username</span>
+                    <input
+                      value={form.username}
+                      onChange={(event) =>
+                        updateField("username", event.target.value)
+                      }
+                      disabled={!editing || saving || loading}
+                      placeholder="Your name"
+                      required
+                    />
+                  </label>
 
-              <label className="profile-field">
-                <span>Email</span>
-                <input value={form.email} disabled placeholder="Email address" />
-              </label>
+                  <label className="profile-field">
+                    <span>Email</span>
+                    <input
+                      value={form.email}
+                      disabled
+                      placeholder="Email address"
+                    />
+                  </label>
 
-              <label className="profile-field">
-                <span>Phone number</span>
-                <input
-                  value={form.phoneNumber}
-                  onChange={(event) => updateField("phoneNumber", event.target.value)}
-                  disabled={!editing || saving || loading}
-                  placeholder="Add your phone number"
-                />
-              </label>
+                  <label className="profile-field">
+                    <span>Phone number</span>
+                    <input
+                      value={form.phoneNumber}
+                      onChange={(event) =>
+                        updateField("phoneNumber", event.target.value)
+                      }
+                      disabled={!editing || saving || loading}
+                      placeholder="Add your phone number"
+                    />
+                  </label>
 
-              <label className="profile-field">
-                <span>Address</span>
-                <textarea
-                  value={form.address}
-                  onChange={(event) => updateField("address", event.target.value)}
-                  disabled={!editing || saving || loading}
-                  placeholder="Add your address"
-                  rows={4}
-                />
-              </label>
+                  <label className="profile-field">
+                    <span>Address</span>
+                    <textarea
+                      value={form.address}
+                      onChange={(event) =>
+                        updateField("address", event.target.value)
+                      }
+                      disabled={!editing || saving || loading}
+                      placeholder="Add your address"
+                      rows={4}
+                    />
+                  </label>
 
-              {editing && (
-                <div className="profile-actions">
-                  <button type="button" className="profile-secondary-button" onClick={cancelEditing} disabled={saving}>
-                    Cancel
-                  </button>
-                  <button type="submit" className="profile-primary-button" disabled={saving || loading}>
-                    {saving ? <LoaderCircle className="spin-icon" size={17} /> : <Save size={17} />}
-                    Save changes
-                  </button>
-                </div>
-              )}
-            </form>
+                  {editing && (
+                    <div className="profile-actions">
+                      <button
+                        type="button"
+                        className="profile-secondary-button"
+                        onClick={cancelEditing}
+                        disabled={saving}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="profile-primary-button"
+                        disabled={saving || loading}
+                      >
+                        {saving ? (
+                          <LoaderCircle className="spin-icon" size={17} />
+                        ) : (
+                          <Save size={17} />
+                        )}
+                        Save changes
+                      </button>
+                    </div>
+                  )}
+                </form>
+              </>
+            )}
           </article>
 
           <article className="profile-card profile-security-card">
@@ -285,8 +282,12 @@ function Profile() {
               <LockKeyhole size={22} />
             </div>
 
-            {passwordMessage && <div className="profile-alert success">{passwordMessage}</div>}
-            {passwordError && <div className="profile-alert error">{passwordError}</div>}
+            {passwordMessage && (
+              <div className="profile-alert success">{passwordMessage}</div>
+            )}
+            {passwordError && (
+              <div className="profile-alert error">{passwordError}</div>
+            )}
 
             <form className="profile-form" onSubmit={submitPassword}>
               <label className="profile-field">
@@ -294,7 +295,9 @@ function Profile() {
                 <input
                   type="password"
                   value={passwordForm.oldPassword}
-                  onChange={(event) => updatePasswordField("oldPassword", event.target.value)}
+                  onChange={(event) =>
+                    updatePasswordField("oldPassword", event.target.value)
+                  }
                   placeholder="Enter current password"
                   required
                 />
@@ -305,7 +308,9 @@ function Profile() {
                 <input
                   type="password"
                   value={passwordForm.newPassword}
-                  onChange={(event) => updatePasswordField("newPassword", event.target.value)}
+                  onChange={(event) =>
+                    updatePasswordField("newPassword", event.target.value)
+                  }
                   placeholder="At least 8 characters"
                   minLength={8}
                   required
@@ -317,31 +322,37 @@ function Profile() {
                 <input
                   type="password"
                   value={passwordForm.resNewPassword}
-                  onChange={(event) => updatePasswordField("resNewPassword", event.target.value)}
+                  onChange={(event) =>
+                    updatePasswordField("resNewPassword", event.target.value)
+                  }
                   placeholder="Confirm new password"
                   minLength={8}
                   required
                 />
               </label>
 
-              <button type="submit" className="profile-primary-button" disabled={changingPassword}>
-                {changingPassword ? <LoaderCircle className="spin-icon" size={17} /> : <Save size={17} />}
+              <button
+                type="submit"
+                className="profile-primary-button"
+                disabled={changingPassword}
+              >
+                {changingPassword ? (
+                  <LoaderCircle className="spin-icon" size={17} />
+                ) : (
+                  <Save size={17} />
+                )}
                 Update password
               </button>
             </form>
+          </article>
+
+          <article className="profile-card profile-wallet-card">
+            <WalletManagement />
           </article>
         </section>
       </main>
     </>
   );
 }
-
-const ProfileInfo = ({ icon, label, value }) => (
-  <div className="profile-info-row">
-    <div>{icon}</div>
-    <span>{label}</span>
-    <strong>{value}</strong>
-  </div>
-);
 
 export default Profile;

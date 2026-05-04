@@ -8,9 +8,11 @@
 ### Tổng quan hệ thống
 
 #### GET `/summary` 🔒
+
 Lấy dữ liệu tổng quan cho dashboard (user, sản phẩm, đơn hàng, doanh thu).
 
 **Response:**
+
 ```json
 {
   "totalUsers": "number",
@@ -38,9 +40,11 @@ Lấy dữ liệu tổng quan cho dashboard (user, sản phẩm, đơn hàng, do
 ### Doanh thu theo ngày
 
 #### GET `/revenue` 🔒
+
 Lấy dữ liệu doanh thu theo số ngày (dùng cho biểu đồ).
 
 **Query Params:**
+
 ```json
 {
   "days": "number (mặc định 7, min 1, max 90)"
@@ -48,6 +52,7 @@ Lấy dữ liệu doanh thu theo số ngày (dùng cho biểu đồ).
 ```
 
 **Response:**
+
 ```json
 [
   {
@@ -67,9 +72,11 @@ Lấy dữ liệu doanh thu theo số ngày (dùng cho biểu đồ).
 ### Top sản phẩm bán chạy
 
 #### GET `/top-products` 🔒
+
 Lấy danh sách 5 sản phẩm bán chạy nhất.
 
 **Response:**
+
 ```json
 [
   {
@@ -85,9 +92,11 @@ Lấy danh sách 5 sản phẩm bán chạy nhất.
 ### Thống kê trạng thái đơn hàng
 
 #### GET `/order-status` 🔒
+
 Thống kê số lượng đơn hàng theo trạng thái.
 
 **Response:**
+
 ```json
 [
   {
@@ -102,9 +111,11 @@ Thống kê số lượng đơn hàng theo trạng thái.
 ### Đơn hàng gần đây
 
 #### GET `/recent-orders` 🔒
+
 Lấy danh sách 5 đơn hàng mới nhất.
 
 **Response:**
+
 ```json
 [
   {
@@ -126,9 +137,11 @@ Lấy danh sách 5 đơn hàng mới nhất.
 ### Thống kê blockchain
 
 #### GET `/blockchain` 🔒
+
 Thống kê dữ liệu thanh toán liên quan blockchain.
 
 **Response:**
+
 ```json
 {
   "totalOrders": "number",

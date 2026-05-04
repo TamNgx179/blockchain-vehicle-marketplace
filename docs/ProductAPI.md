@@ -1,6 +1,6 @@
 ## Product API
 
-**Base URL:** `/api/product`
+**Base URL:** `/api/products`
 **Xác thực:** Các route có 🔒 yêu cầu header `Authorization: Bearer <token>`
 
 ---

@@ -1,187 +1,224 @@
-/* ===============================
-   BASE
-=============================== */
-
-.delivery-selection {
-  padding: 20px;
-  animation: fadeIn 0.5s ease;
-}
-
-.delivery-options {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-  margin-top: 20px;
-}
-
-.delivery-card {
-  display: flex;
-  align-items: center;
-  padding: 20px;
-  border: 2px solid #eee;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  position: relative;
-}
-
-.delivery-card:hover {
-  border-color: #1c69d4;
-  background-color: #f8fbff;
-}
-
-.delivery-card.selected {
-  border-color: #1c69d4;
-  background-color: #f0f5ff;
-}
-
-.method-icon {
-  font-size: 2rem;
-  margin-right: 20px;
-  flex-shrink: 0;
-}
-
-.method-info h3 {
-  margin: 0 0 5px;
-  font-size: 1.1rem;
-}
-
-.method-info p {
-  margin: 0;
-  color: #666;
-  font-size: 0.9rem;
-}
-
-.radio-circle {
-  margin-left: auto;
-  width: 20px;
-  height: 20px;
-  border: 2px solid #ccc;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.selected .radio-circle {
-  border-color: #1c69d4;
-}
-
-.inner-circle {
-  width: 12px;
-  height: 12px;
-  background-color: #1c69d4;
-  border-radius: 50%;
-}
-
-.delivery-details-form {
-  margin-top: 30px;
-  padding: 20px;
-  background: #f8f9fa;
-  border-radius: 12px;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 15px;
-}
-
-.form-group:last-child {
-  margin-bottom: 0;
-}
-
-.detail-input {
+.handover-selection {
   width: 100%;
-  box-sizing: border-box;
+}
+
+.handover-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.handover-card {
+  min-width: 0;
+  position: relative;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 24px;
+  gap: 10px;
+  align-items: start;
   padding: 12px;
-  border: 1px solid #ddd;
+  border: 1px solid #dfe7f1;
   border-radius: 8px;
-  font-size: 1rem;
+  background: #fff;
+  color: #111827;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  transition: 0.22s ease;
 }
 
-.detail-input:focus {
-  border-color: #007bff;
+.handover-card:hover {
+  border-color: #b8c7dd;
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
+}
+
+.handover-card.selected {
+  border-color: #0d6efd;
+  background: #f8fbff;
+  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1);
+}
+
+.handover-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  background: #eef4ff;
+  color: #0d6efd;
+  display: grid;
+  place-items: center;
+}
+
+.handover-copy {
+  min-width: 0;
+}
+
+.handover-copy > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.handover-copy h3 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.handover-copy span {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.handover-copy p {
+  margin: 5px 0 0;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.handover-check {
+  color: #16a34a;
+  display: grid;
+  place-items: center;
+}
+
+.handover-details-panel {
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid #dfe7f1;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.handover-form-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(220px, 1fr);
+  gap: 10px;
+  align-items: stretch;
+}
+
+.handover-field {
+  display: grid;
+  gap: 6px;
+}
+
+.handover-field > span {
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 850;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.handover-field input,
+.handover-field textarea {
+  width: 100%;
+  border: 1px solid #d7deea;
+  border-radius: 8px;
+  background: #fff;
+  color: #0f172a;
+  font: inherit;
+  font-size: 14px;
   outline: none;
+  transition: 0.2s ease;
 }
 
-.textarea {
-  min-height: 100px;
+.handover-field input {
+  height: 42px;
+  padding: 0 12px;
+}
+
+.handover-field textarea {
+  min-height: 86px;
+  padding: 12px;
   resize: vertical;
 }
 
-.slide-in {
-  animation: fadeIn 0.4s ease-out;
+.handover-field input:focus,
+.handover-field textarea:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1);
 }
 
-/* ===============================
-   TABLET
-=============================== */
+.handover-note {
+  min-height: 72px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
 
-@media (max-width: 768px) {
-  .delivery-selection {
-    padding: 15px 0;
-  }
+.handover-note strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #0f172a;
+  font-size: 14px;
+}
 
-  .delivery-details-form {
-    margin-top: 20px;
-    padding: 15px;
+.handover-note p {
+  margin: 0;
+  color: #475569;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+@media (max-width: 760px) {
+  .handover-options {
+    grid-template-columns: 1fr;
   }
 }
 
-/* ===============================
-   MOBILE
-=============================== */
-
-@media (max-width: 576px) {
-  .delivery-card {
-    padding: 15px;
-    gap: 10px;
+@media (max-width: 640px) {
+  .handover-form-grid {
+    grid-template-columns: 1fr;
   }
+}
 
-  .method-icon {
-    font-size: 1.5rem;
-    margin-right: 12px;
-  }
-
-  .method-info h3 {
-    font-size: 0.95rem;
-  }
-
-  .method-info p {
-    font-size: 0.8rem;
-  }
-
-  .detail-input {
+@media (max-width: 560px) {
+  .handover-card {
+    grid-template-columns: 40px minmax(0, 1fr);
     padding: 10px;
-    font-size: 16px;
   }
 
-  .radio-circle {
-    width: 18px;
-    height: 18px;
+  .handover-icon {
+    width: 40px;
+    height: 40px;
   }
 
-  .inner-circle {
-    width: 10px;
-    height: 10px;
+  .handover-check {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+
+  .handover-copy > div {
+    flex-direction: column;
+    gap: 6px;
   }
 }
 
-/* ===============================
-   ANIMATION
-=============================== */
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
+@media (max-width: 420px) {
+  .handover-details-panel {
+    padding: 10px;
   }
 
-  to {
-    opacity: 1;
-    transform: translateY(0);
+  .handover-field input {
+    height: 40px;
+  }
+
+  .handover-field textarea {
+    min-height: 78px;
   }
 }

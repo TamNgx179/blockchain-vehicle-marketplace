@@ -24,7 +24,7 @@ const getAuthUsernameSnapshot = () => localStorage.getItem("authUsername") || ""
 const getAuthEmailSnapshot = () => localStorage.getItem("authEmail") || "";
 
 function Navbar() {
-  const { cartItems } = useCart();
+  const { cartCount = 0 } = useCart();
   const navigate = useNavigate();
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -49,6 +49,7 @@ function Navbar() {
 
   const closeMenu = () => setMenuOpen(false);
   const closeUserPanel = () => setUserPanelOpen(false);
+
   const closeNavigation = () => {
     closeMenu();
     closeUserPanel();
@@ -82,7 +83,6 @@ function Navbar() {
 
   return (
     <nav className="navbar">
-      {/* Logo */}
       <NavLink to="/" id="Logo" onClick={closeMenu}>
         <img
           src="/images/LogoWeb-removebg-preview.webp"
@@ -91,7 +91,6 @@ function Navbar() {
         />
       </NavLink>
 
-      {/* Hamburger */}
       <div
         className={`menu-toggle ${menuOpen ? "active" : ""}`}
         onClick={() => {
@@ -104,7 +103,6 @@ function Navbar() {
         <span></span>
       </div>
 
-      {/* Main Menu */}
       <ul className={`nav_block2 ${menuOpen ? "open" : ""}`}>
         <li>
           <NavLink to="/" onClick={closeMenu}>
@@ -131,7 +129,6 @@ function Navbar() {
         </li>
       </ul>
 
-      {/* Right side */}
       <div className="nav-right">
         <NavLink
           to="/checkout"
@@ -141,7 +138,7 @@ function Navbar() {
           }
         >
           <img src={trolley} alt="Trolley icon" />
-          <span className="counter">{cartItems.length}</span>
+          <span className="counter">{isAuthed ? cartCount : 0}</span>
         </NavLink>
 
         {isAuthed ? (
@@ -175,6 +172,7 @@ function Navbar() {
                 <div className="user-avatar">
                   <UserRound size={24} />
                 </div>
+
                 <button type="button" onClick={closeUserPanel} aria-label="Close user menu">
                   <X size={20} />
                 </button>
